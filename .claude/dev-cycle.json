@@ -1,4 +1,15 @@
 {
   "stateDir": ".feature-state",
-  "docs": { "language": "ja", "designHome": "file", "rfc": { "enabled": false } }
+  "docs": {
+    "language": "ja",
+    "designHome": "file",
+    "rfc": {
+      "enabled": false
+    }
+  },
+  "gates": {
+    "build": "pnpm build",
+    "typeCheck": "pnpm typecheck",
+    "test": "pnpm test"
+  }
 }
