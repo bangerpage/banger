@@ -5,6 +5,7 @@ export default defineConfig({
     include: ["test/e2e/**/*.e2e.test.ts"],
     environment: "node",
     testTimeout: 120000,
+    hookTimeout: 120000,
     fileParallelism: false,
     pool: "forks",
   },
