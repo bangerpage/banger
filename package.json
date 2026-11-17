@@ -10,7 +10,7 @@
     "test": "turbo run test",
     "test:e2e": "turbo run test:e2e",
     "typecheck": "turbo run typecheck",
-    "gen": "node packages/core/scripts/gen-theme.mjs",
+    "gen": "node packages/core/scripts/gen-theme.mjs && pnpm -C packages/core run gen:cem && node scripts/gen-skill.mjs",
     "gen:check": "pnpm gen && git diff --exit-code"
   },
   "devDependencies": {

@@ -12,6 +12,7 @@ export { BangText } from "./content/text.js";
 export { BangList } from "./content/list.js";
 export { BangStat } from "./content/stat.js";
 export { BangImage } from "./content/image.js";
+export { BangChart } from "./content/chart.js";
 export { BangRoot } from "./root.js";
 export type { OverflowItem, RootMode, StopInfo, TextSample } from "./root.js";
 export type { ReadyFailure, ReadyReport } from "./ready.js";

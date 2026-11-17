@@ -39,7 +39,7 @@ export class BangStop extends BangElement {
   @property({ type: Boolean }) overview = false;
 
   /** How many steps can be revealed at this stop. */
-  @property() steps = "0";
+  @property({ type: Number }) steps = 0;
 
   render() {
     return html`<slot></slot>`;

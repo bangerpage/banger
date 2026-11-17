@@ -7,6 +7,11 @@ import { writeThirdPartyLicenses } from "./third-party-licenses.mjs";
 
 const pkgRoot = join(dirname(fileURLToPath(import.meta.url)), "..");
 
+/** Writes `custom-elements.json`; `check` reads it at run time and it ships in the tarball. */
+export function generateManifest() {
+  execFileSync("pnpm", ["exec", "cem", "analyze"], { cwd: pkgRoot, stdio: "inherit" });
+}
+
 export async function buildEntry() {
   rmSync(join(pkgRoot, "dist"), { recursive: true, force: true });
   const result = await build({
@@ -38,6 +43,7 @@ export function emitDeclarations() {
 }
 
 if (process.argv[1] && fileURLToPath(import.meta.url) === process.argv[1]) {
+  generateManifest();
   await buildEntry();
   emitDeclarations();
 }

@@ -26,7 +26,7 @@ export class BangImage extends BangElement {
     }
   `;
 
-  /** Relative path of the image. Required. */
+  /** Required. Relative path of the image. */
   @property() src?: string;
 
   /** Text alternative. */

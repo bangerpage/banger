@@ -16,13 +16,15 @@
       "types": "./dist/index.d.ts",
       "import": "./dist/index.js"
     },
-    "./package.json": "./package.json"
+    "./package.json": "./package.json",
+    "./custom-elements.json": "./custom-elements.json"
   },
   "files": [
     "dist",
     "LICENSE",
     "NOTICE",
-    "THIRD-PARTY-LICENSES.txt"
+    "THIRD-PARTY-LICENSES.txt",
+    "custom-elements.json"
   ],
   "sideEffects": true,
   "scripts": {
@@ -30,13 +32,17 @@
     "test": "vitest run",
     "test:e2e": "vitest run --config vitest.e2e.config.ts",
     "typecheck": "tsc --noEmit",
-    "prepack": "node ../../scripts/copy-legal.mjs"
+    "prepack": "node ../../scripts/copy-legal.mjs",
+    "gen:cem": "cem analyze"
   },
   "devDependencies": {
+    "@custom-elements-manifest/analyzer": "^0.11.0",
     "@types/node": "^24.0.0",
+    "echarts": "^6.1.0",
     "esbuild": "^0.28.2",
     "lit": "^3.3.3",
     "playwright-core": "^1.65.1",
     "vitest": "^5.1.0"
-  }
+  },
+  "customElements": "custom-elements.json"
 }

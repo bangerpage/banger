@@ -30,7 +30,7 @@ export class BangStat extends BangElement {
     }
   `;
 
-  /** The number or short text to show. Required. */
+  /** Required. The number or short text to show. */
   @property() value?: string;
 
   /** Caption under the value. */
