@@ -1,0 +1,33 @@
+<!doctype html>
+<html lang="en">
+<head><meta charset="utf-8"><title>slow ready</title></head>
+<body>
+<script type="module" src="/dist/index.js"></script>
+<script type="module">
+  import { StepAware, BangElement } from "/dist/index.js";
+  class BangSlow extends StepAware {
+    updated(changed) {
+      super.updated(changed);
+      if (changed.has("frameStep")) this.renderDone = new Promise((resolve) => setTimeout(resolve, 500));
+    }
+  }
+  class BangFail extends BangElement {
+    get renderReady() {
+      return Promise.reject(new Error("boom"));
+    }
+  }
+  customElements.define("bang-slow", BangSlow);
+  customElements.define("bang-fail", BangFail);
+</script>
+<bang-root>
+  <bang-frame id="f1">
+    <bang-text>Slow</bang-text>
+    <bang-slow step="1"></bang-slow>
+    <bang-fail></bang-fail>
+  </bang-frame>
+  <bang-path>
+    <bang-stop frame="f1" steps="2"></bang-stop>
+  </bang-path>
+</bang-root>
+</body>
+</html>

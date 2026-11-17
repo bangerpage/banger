@@ -1,0 +1,41 @@
+<!doctype html>
+<html lang="en">
+<head><meta charset="utf-8"><title>deck</title></head>
+<body>
+<script type="module" src="/dist/index.js"></script>
+<bang-root theme="light">
+  <bang-frame id="a" at="0,0">
+    <bang-title size="xl">Title</bang-title>
+    <bang-text>Body</bang-text>
+    <bang-text id="accent" tone="accent">Accent</bang-text>
+    <bang-list id="plain"><li>One</li><li>Two</li></bang-list>
+  </bang-frame>
+  <bang-frame id="b" at="1,0">
+    <bang-text data-step="1" id="s1">Step one</bang-text>
+    <bang-text data-step="2" id="s2">Step two</bang-text>
+    <bang-list id="stepped" step="1"><li>First</li><li>Second</li></bang-list>
+    <bang-stat id="stat" value="1,200" label="members"></bang-stat>
+  </bang-frame>
+  <bang-frame id="c" at="0,1" span="2,1">
+    <bang-columns id="cols" ratio="1:2"><bang-text>Left</bang-text><bang-text>Right</bang-text></bang-columns>
+    <bang-stack id="stack" gap="l" align="center"><bang-text>Stacked</bang-text></bang-stack>
+  </bang-frame>
+  <bang-frame id="d" at="2,0">
+    <bang-columns id="badcols" ratio="1:2:3"><bang-text>X</bang-text><bang-text>Y</bang-text></bang-columns>
+    <bang-image id="img" src="pixel.png" alt="pixel"></bang-image>
+  </bang-frame>
+  <bang-path>
+    <bang-stop frame="a"><bang-notes>
+      Hello
+        indented line
+
+    </bang-notes></bang-stop>
+    <bang-stop frame="b" steps="2"><bang-notes>Second</bang-notes></bang-stop>
+    <bang-stop frame="b" region="0,0,0.5,0.5"><bang-notes>Region one</bang-notes></bang-stop>
+    <bang-stop frame="b" region="0.5,0,0.5,1"><bang-notes>Region two</bang-notes></bang-stop>
+    <bang-stop frame="c"><bang-notes>Wide</bang-notes></bang-stop>
+    <bang-stop overview><bang-notes>All</bang-notes></bang-stop>
+  </bang-path>
+</bang-root>
+</body>
+</html>
