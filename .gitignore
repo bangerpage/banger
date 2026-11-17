@@ -3,3 +3,11 @@ node_modules/
 dist/
 .turbo/
 .reviews/
+
+.build/
+packages/core/custom-elements.json
+snap/
+*.tgz
+packages/*/LICENSE
+packages/*/NOTICE
+packages/core/THIRD-PARTY-LICENSES.txt
