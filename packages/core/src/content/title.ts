@@ -1,0 +1,41 @@
+import { css, html } from "lit";
+import { property } from "lit/decorators.js";
+import { pick, SIZES, TONES } from "../attrs.js";
+import { BangElement, defineOnce } from "../element.js";
+
+/**
+ * A heading.
+ *
+ * ```html
+ * <bang-title size="xl">Hello</bang-title>
+ * ```
+ *
+ * @element bang-title
+ * @slot - The heading text.
+ */
+export class BangTitle extends BangElement {
+  static styles = css`
+    :host {
+      display: block;
+      font-family: var(--bang-font-display);
+      font-weight: 800;
+      letter-spacing: -0.03em;
+    }
+  `;
+
+  /** Text size. */
+  @property() size: "xs" | "s" | "m" | "l" | "xl" | "2xl" = "l";
+
+  /** Text color. */
+  @property() tone: "default" | "muted" | "accent" = "default";
+
+  render() {
+    const size = pick(this, "size", SIZES, "l");
+    const tone = pick(this, "tone", TONES, "default");
+    return html`<style>
+        :host { font-size: var(--bang-size-${size}); line-height: var(--bang-leading-${size}); color: var(--bang-tone-${tone}); }
+      </style><slot></slot>`;
+  }
+}
+
+defineOnce("bang-title", BangTitle);
