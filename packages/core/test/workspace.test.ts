@@ -48,4 +48,20 @@ describe("workspace", () => {
     expect(install).toBeGreaterThan(test);
     expect(e2e).toBeGreaterThan(install);
   });
+
+  it("cli package metadata and exports", () => {
+    const core = readJson("packages/core/package.json");
+    const cli = readJson("packages/cli/package.json");
+    expect(cli.name).toMatch(/^(@bangerpage\/cli|banger-cli)$/);
+    expect(cli.dependencies[core.name]).toBeDefined();
+    const source = read("packages/cli/src/core-package.ts");
+    expect(/CORE_PACKAGE = "([^"]+)"/.exec(source)?.[1]).toBe(core.name);
+    expect(cli.bin.banger).toBe("./dist/bin.js");
+    expect(cli.publishConfig.access).toBe("public");
+    for (const file of ["dist", "LICENSE", "NOTICE"]) expect(cli.files).toContain(file);
+    expect(cli.repository.url).toBe("git+https://github.com/bangerpage/banger.git");
+    expect(cli.repository.directory).toBe("packages/cli");
+    expect(cli.exports["."].types).toBe("./dist/index.d.ts");
+    expect(cli.exports["."].import).toBe("./dist/index.js");
+  });
 });
