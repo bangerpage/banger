@@ -36,4 +36,16 @@ describe("workspace", () => {
     expect(build.compilerOptions.outDir).toBe("dist");
     expect(existsSync(join(root, "packages/core/dist/index.d.ts"))).toBe(true);
   });
+
+  it("e2e script and ci steps", () => {
+    expect(readJson("package.json").scripts["test:e2e"]).toBeTypeOf("string");
+    expect(readJson("packages/core/package.json").scripts["test:e2e"]).toContain("vitest.e2e.config.ts");
+    const ci = read(".github/workflows/ci.yml");
+    const test = ci.indexOf("run: pnpm test\n");
+    const install = ci.indexOf("playwright-core install");
+    const e2e = ci.indexOf("run: pnpm test:e2e");
+    expect(test).toBeGreaterThanOrEqual(0);
+    expect(install).toBeGreaterThan(test);
+    expect(e2e).toBeGreaterThan(install);
+  });
 });

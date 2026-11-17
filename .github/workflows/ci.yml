@@ -19,3 +19,5 @@ jobs:
       - run: pnpm typecheck
       - run: pnpm build
       - run: pnpm test
+      - run: pnpm -C packages/core exec playwright-core install --with-deps chromium
+      - run: pnpm test:e2e
