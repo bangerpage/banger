@@ -1,0 +1,71 @@
+import { readFileSync, realpathSync } from "node:fs";
+import { fileURLToPath, pathToFileURL } from "node:url";
+import { BrowserNotFoundError, installHint } from "./browser.js";
+import { runDev } from "./commands/dev.js";
+import { runExport } from "./commands/export.js";
+import { runSnap } from "./commands/snap.js";
+import { CliError } from "./errors.js";
+
+export const USAGE = `usage: banger <command> [options]
+
+commands:
+  dev <file> [--port N]            preview with live reload
+  snap <file> [--stop N] [--step M|last] [--out path] [--out-dir dir] [--scale 1|2]
+                                   render states as 1920x1080 PNGs
+  export <file> --pdf [--out path] [--steps last|all]
+                                   write a PDF, one page per stop
+
+options:
+  --help       show this help
+  --version    show the version
+`;
+
+function version(): string {
+  const manifest = fileURLToPath(new URL("../package.json", import.meta.url));
+  return JSON.parse(readFileSync(manifest, "utf8")).version as string;
+}
+
+async function dispatch(argv: string[]): Promise<number> {
+  const [command, ...rest] = argv;
+  if (command === undefined) throw new CliError(2, `missing command\n${USAGE}`);
+  if (command === "--help" || command === "-h" || command === "help") {
+    process.stdout.write(USAGE);
+    return 0;
+  }
+  if (command === "--version" || command === "-v") {
+    process.stdout.write(`${version()}\n`);
+    return 0;
+  }
+  switch (command) {
+    case "dev":
+      return runDev(rest);
+    case "snap":
+      return runSnap(rest);
+    case "export":
+      return runExport(rest);
+    default:
+      throw new CliError(2, `unknown command: ${command}\n${USAGE}`);
+  }
+}
+
+export async function main(argv: string[]): Promise<number> {
+  try {
+    return await dispatch(argv);
+  } catch (error) {
+    if (error instanceof BrowserNotFoundError) {
+      process.stderr.write(`banger: ${error.message}; ${installHint()}\n`);
+      return 2;
+    }
+    if (error instanceof CliError) {
+      process.stderr.write(`banger: ${error.message}\n`);
+      return error.exitCode;
+    }
+    process.stderr.write(`${error instanceof Error ? (error.stack ?? error.message) : String(error)}\n`);
+    return 1;
+  }
+}
+
+const entry = process.argv[1];
+if (entry && import.meta.url === pathToFileURL(realpathSync(entry)).href) {
+  process.exitCode = await main(process.argv.slice(2));
+}

@@ -17,6 +17,7 @@ export interface ReadyFailure {
   reason: string;
 }
 
+/** Outcome of `ready()`: `ok` is false when any component failed; `warnings` are non-fatal (e.g. font fallbacks). */
 export interface ReadyReport {
   ok: boolean;
   failed: ReadyFailure[];
