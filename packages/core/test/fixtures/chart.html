@@ -1,0 +1,54 @@
+<!doctype html>
+<html lang="en">
+<head><meta charset="utf-8"><title>chart</title></head>
+<body>
+<script type="module" src="/dist/index.js"></script>
+<bang-root theme="light">
+  <bang-frame id="good" at="0,0">
+    <bang-chart id="bars" step="1">
+      <script type="application/json">
+        {
+          "title": { "text": "Growth" },
+          "legend": {},
+          "xAxis": { "type": "category", "name": "Year", "data": ["2024", "2025", "2026"] },
+          "yAxis": { "type": "value", "name": "Members" },
+          "series": [
+            { "type": "bar", "name": "North", "data": [3, 5, 8] },
+            { "type": "bar", "name": "South", "data": [2, 4, 6] },
+            { "type": "bar", "name": "West", "data": [1, 3, 5] }
+          ]
+        }
+      </script>
+    </bang-chart>
+  </bang-frame>
+  <bang-frame id="bad" at="1,0">
+    <bang-chart id="broken">
+      <script type="application/json">{ "series": [ SECRET-VALUE </script>
+    </bang-chart>
+  </bang-frame>
+  <bang-frame id="radar" at="2,0">
+    <bang-chart id="unsupported">
+      <script type="application/json">{ "radar": { "indicator": [{ "name": "a", "max": 5 }] }, "series": [{ "type": "radar", "data": [{ "value": [3] }] }] }</script>
+    </bang-chart>
+  </bang-frame>
+  <bang-frame id="custom" at="3,0">
+    <bang-chart id="custom-label">
+      <script type="application/json">
+        {
+          "xAxis": { "type": "category", "data": ["Q1", "Q2"], "axisLabel": { "fontSize": 36 } },
+          "yAxis": { "type": "value" },
+          "series": [{ "type": "line", "data": [1, 2] }]
+        }
+      </script>
+    </bang-chart>
+  </bang-frame>
+  <bang-path>
+    <bang-stop frame="good" steps="3"><bang-notes>Series one by one</bang-notes></bang-stop>
+    <bang-stop frame="bad"><bang-notes>Broken JSON</bang-notes></bang-stop>
+    <bang-stop frame="radar"><bang-notes>Unsupported type</bang-notes></bang-stop>
+    <bang-stop frame="custom"><bang-notes>Author font size</bang-notes></bang-stop>
+    <bang-stop overview><bang-notes>All</bang-notes></bang-stop>
+  </bang-path>
+</bang-root>
+</body>
+</html>

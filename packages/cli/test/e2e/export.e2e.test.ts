@@ -37,6 +37,14 @@ async function deckCopy(name: string, transform: (html: string) => string = (htm
 const withBrokenImage = (html: string) => html.replace("<bang-title>", '<bang-image src="missing.png" alt="x"></bang-image><bang-title>');
 
 describe("export", () => {
+  it("the skill starter exports as a one-page PDF (AC-SKILL-3)", async () => {
+    const starter = join(dirname(fileURLToPath(import.meta.url)), "../../../../skill/templates/starter.html");
+    const out = join(work, "starter.pdf");
+    const result = await runBin(["export", starter, "--pdf", "--out", out]);
+    expect(result.code, result.stderr).toBe(0);
+    expect((await extractPdf(out)).pages).toBe(1);
+  });
+
   it("export --pdf writes one 1440x810pt page per stop with the document title and extractable text (AC-EXP-2, AC-EXP-3)", async () => {
     const out = join(work, "basic.pdf");
     const result = await runBin(["export", fixture("basic.html"), "--pdf", "--out", out]);
