@@ -6,6 +6,9 @@ export const CORE_PACKAGE = "@bangerpage/core";
 export const CDN_HOSTS = ["cdn.jsdelivr.net/npm", "unpkg.com"];
 
 export type { ReadyFailure, ReadyReport, StopInfo } from "@bangerpage/core";
+export { PRESET_NAMES, isPresetName, parseThemeJson, presetTheme, resolveTheme, serializeTheme } from "@bangerpage/core/theme";
+export type { PresetName } from "@bangerpage/core/theme";
+export type { ThemeDefinition } from "@bangerpage/core";
 
 function corePackageDir(): string {
   return dirname(fileURLToPath(import.meta.resolve(`${CORE_PACKAGE}/package.json`)));

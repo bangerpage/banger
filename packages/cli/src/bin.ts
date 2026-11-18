@@ -4,6 +4,7 @@ import { BrowserNotFoundError, installHint } from "./browser.js";
 import { runDev } from "./commands/dev.js";
 import { runExport } from "./commands/export.js";
 import { runSnap } from "./commands/snap.js";
+import { runTheme } from "./commands/theme.js";
 import { CliError } from "./errors.js";
 
 export const USAGE = `usage: banger <command> [options]
@@ -14,6 +15,10 @@ commands:
                                    render states as 1920x1080 PNGs
   export <file> --pdf [--out path] [--steps last|all]
                                    write a PDF, one page per stop
+  theme init [file] [--from <preset>] [--force]
+                                   write a theme.json from a bundled preset
+  theme apply <theme.json> <deck.html>
+                                   embed the theme in a deck, idempotently
 
 options:
   --help       show this help
@@ -43,6 +48,8 @@ async function dispatch(argv: string[]): Promise<number> {
       return runSnap(rest);
     case "export":
       return runExport(rest);
+    case "theme":
+      return runTheme(rest);
     default:
       throw new CliError(2, `unknown command: ${command}\n${USAGE}`);
   }
