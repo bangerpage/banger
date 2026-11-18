@@ -5,7 +5,7 @@ description: HTML 1 枚で「めくらない」プレゼンテーション (キ�
 
 # Banger でプレゼンを作る
 
-発表を 1 つの HTML にする。フレーム (`bang-frame`) をキャンバスに並べ、カメラが止まる停止点 (`bang-stop`) の列で見せる順を決める。部品とその属性は `reference/components.md`、定番の組み立ては `reference/patterns.md`、最小の動く HTML は `templates/starter.html` にある。
+発表を 1 つの HTML にする。フレーム (`bang-frame`) をキャンバスに並べ、カメラが止まる停止点 (`bang-stop`) の列で見せる順を決める。部品とその属性は `reference/components.md`、定番の組み立ては `reference/patterns.md`、色とフォントを決めるカスタムテーマは `reference/themes.md`、最小の動く HTML は `templates/starter.html` にある。
 
 ## 作業の流れ
 
@@ -18,7 +18,7 @@ description: HTML 1 枚で「めくらない」プレゼンテーション (キ�
 ## 原則
 
 - 値は属性のトークンから選ぶ (`size="l"` `tone="accent"` `gap="m"` など)。属性に無い値は書かない。
-- `style` 属性と色コードを書かない。見た目はテーマに任せる。
+- `style` 属性を書かない。色コードも発表本文には書かない。色コードを書いてよいのはテーマ定義 (`bang-theme` の JSON と `theme.json`) だけ。色は利用者が指定しなくても提案してよいが、出発点は同梱のひな形 (`reference/themes.md`) から選ぶ。
 - 内容はフレームの外へ出さない。入りきらないときはフレームを分けるか、文を減らす。
 - フレームの中身は上下の中央に置かれる。先頭が `bang-title` なら、タイトルは上に残り、残りがその下の中央に来る。タイトルもまとめて中央に置きたいとき (表紙や締めの一言) は、`bang-stack` で包む。
 - アニメーションは部品の `step` (`bang-list` `bang-chart`) か `data-step` で行う。CSS や JS で動かさない。

@@ -1,6 +1,6 @@
 # パターン集
 
-動く完全な断片だけを載せる。値は `components.md` の属性から選び、`style` 属性と色コードは書かない。ランタイムの `<script type="module">` は `templates/starter.html` と同じ 1 行を使う。
+動く完全な断片だけを載せる。値は `components.md` の属性から選び、`style` 属性と色コードは書かない (色コードの例外はテーマ定義だけ。`reference/themes.md` を見る)。ランタイムの `<script type="module">` は `templates/starter.html` と同じ 1 行を使う。
 
 ## 比較を 2 列で見せる
 

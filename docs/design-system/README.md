@@ -43,6 +43,16 @@ Banger（バンガー）は、AIで作るHTMLの「めくらない」プレゼ�
 - 区切り線は `line`、入力欄などの枠は `line-strong`（3:1以上）。
 - **Lime Night（キャンペーン用）**：`lime` は告知、Product Hunt、トークのキービジュアルだけに使い、地は必ず墨（#141414）にします。`signal` と同じ画面には置きません。プロダクトのUIには使いません。
 
+### カスタムテーマ
+
+利用者が自分用の色とフォントを決めるときは、`theme="custom"` と `bang-theme` を使います。色は種と派生値に分かれます。
+
+- 種は `paper` / `surface` / `ink` / `ink-muted` / `line` / `signal` で、利用者が `#RGB` か `#RRGGBB` で書きます。書かなかった種は土台（Signal か Signal Dark）の値です。
+- `line-strong` / `on-signal` / `signal-text` / `focus` は種から計算で決まり、利用者は書けません。種が土台と同じなら、土台の手選びの値をそのまま使います。
+- `signal` は塗り専用のままで、その上の文字は計算で決まる `on-signal`（墨か白の高い方）、リンクや強調の文字色は `signal-text` です。
+- コントラストの基準は計算でも同じです。本文と補足は 4.5:1、`line-strong` は 3:1 以上です。作者が書いた種が基準に届かないときは、直さずに警告します。
+- 出発点になるひな形は 4 つです。`signal`（Signal の既定）、`signal-dark`（Signal Dark）、`sunshine`（黄色の明るいブランド地）、`midnight`（暗い紺の地に琥珀の `signal`）。
+
 ## 文字
 
 - **見出し・ロゴ**：Bricolage Grotesque（`display`）。ラテン文字だけなので、日本語は Noto Sans JP に切り替わります。日本語の見出しも同じ太さ（800）で組みます。

@@ -6,6 +6,7 @@ import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
 import { parseUnion, renderComponentsMd, stampText } from "../../../scripts/gen-skill.mjs";
 import { SUPPORTED_SERIES_TYPES } from "../src/content/chart-impl.js";
+import { parseThemeJson, PRESET_NAMES, presetTheme, serializeTheme, THEME_KEYS } from "../src/theme/index.js";
 
 const root = join(dirname(fileURLToPath(import.meta.url)), "../../..");
 const read = (path: string) => readFileSync(join(root, path), "utf8");
@@ -95,5 +96,38 @@ describe("skill", () => {
       const urls = readFileSync(file, "utf8").match(/https:\/\/cdn\.jsdelivr\.net\/npm\/[^"']+\/dist\/index\.js/g) ?? [];
       expect(urls, file).toEqual([expected]);
     }
+  });
+
+  it("AC-CTHEME-11 themes.md carries the four presets verbatim and every key", () => {
+    const md = read("skill/reference/themes.md");
+    for (const name of PRESET_NAMES) {
+      const section = md.split(/^### /m).find((s) => s.startsWith(`${name}\n`)) ?? "";
+      const block = /```json\n([\s\S]*?)\n```/.exec(section)?.[1];
+      expect(block, name).toBe(serializeTheme(presetTheme(name)));
+    }
+    for (const key of THEME_KEYS) expect(md, key).toContain(`\`${key}\``);
+  });
+
+  it("AC-CTHEME-11 every json fence in themes.md parses as a theme without warnings", () => {
+    const md = read("skill/reference/themes.md");
+    const blocks = [...md.matchAll(/```json\n([\s\S]*?)\n```/g)].map((m) => m[1]);
+    expect(blocks.length).toBeGreaterThan(4);
+    for (const block of blocks) {
+      const parsed = parseThemeJson(block);
+      expect(parsed.warnings, block).toEqual([]);
+      expect(parsed.definition, block).not.toBeNull();
+    }
+  });
+
+  it("AC-CTHEME-11 SKILL.md allows color codes only in the theme definition and points to themes.md", () => {
+    const md = read("skill/SKILL.md");
+    expect(md).toContain("reference/themes.md");
+    expect(md).toContain("テーマ定義");
+    expect(md).toContain("`theme.json`");
+    expect(md).toMatch(/`style` 属性.*書かない/);
+    const components = read("skill/reference/components.md");
+    const root = components.split(/^## /m).find((s) => s.startsWith("bang-root\n")) ?? "";
+    expect(root.split("\n").find((l) => l.startsWith("| `theme` |"))).toContain("`custom`");
+    expect(components).toContain("## bang-theme");
   });
 });
