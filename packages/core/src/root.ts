@@ -109,7 +109,7 @@ export class BangRoot extends BangElement {
         position: fixed;
         inset: 0;
         overflow: hidden;
-        background: var(--bang-color-paper);
+        background: var(--bang-color-line);
         color: var(--bang-color-ink);
         font-family: var(--bang-font-sans);
       }
@@ -124,7 +124,7 @@ export class BangRoot extends BangElement {
         display: flex;
         align-items: center;
         justify-content: center;
-        background: var(--bang-color-paper);
+        background: var(--bang-color-line);
       }
       .stage {
         position: relative;

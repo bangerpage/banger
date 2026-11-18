@@ -28,7 +28,7 @@ export class BangFrame extends BangElement {
     .frame {
       display: flex;
       flex-direction: column;
-      gap: var(--bang-gap-m);
+      gap: var(--bang-gap-l);
       padding: var(--bang-space-24);
       box-sizing: border-box;
       width: 100%;

@@ -202,7 +202,7 @@ describe("runtime", () => {
     expect(b.w).toBe(1200);
     expect(b.h).toBe(675);
     expect(b.y).toBeCloseTo(112.5, 0);
-    expect(b.bg).toBe("rgb(246, 245, 241)");
+    expect(b.bg).toBe("rgb(226, 224, 217)");
     const full = await open("deck.html");
     expect(await box(full.page)).toMatchObject({ x: 0, y: 0, w: 1920, h: 1080 });
   });
