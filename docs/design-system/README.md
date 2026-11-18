@@ -69,6 +69,6 @@ Banger（バンガー）は、AIで作るHTMLの「めくらない」プレゼ�
 
 ## Webでの使い方
 
-- `tokens.css` を読み込み、`<html data-theme="light">`（または `dark`）でテーマを切り替えます。OSの設定に合わせる場合は、`prefers-color-scheme` で `data-theme` を切り替えます。
+- トークンの正本は `tokens.json` です。Webではここから CSS 変数（`--signal` など）を作って読み込み、`<html data-theme="light">`（または `dark`）でテーマを切り替えます。発表のランタイム（`@bangerpage/core`）は、同じトークンから `--bang-` で始まる変数を生成して使います。OSの設定に合わせる場合は、`prefers-color-scheme` で `data-theme` を切り替えます。
 - 色や寸法は値を直接書かず、`var(--signal)`、`var(--space-6)` のようにトークンで参照します。
 - favicon は `banger-favicon.svg`、OGP画像やアプリアイコンは `banger-app-icon.svg` を使います。

@@ -10,7 +10,7 @@ html,body{margin:0;background:var(--paper)}
 .cover svg{position:absolute;left:0;top:0}
 .signal{fill:var(--signal)}
 .ink{fill:var(--ink)}
-.lime{fill:var(--lime)}
+.muted{fill:var(--line-strong)}
 .frame{fill:none;stroke:var(--paper);stroke-width:3}
 .dot{fill:var(--ink)}
 .slab{rx:var(--radius-l)}
@@ -24,14 +24,14 @@ html,body{margin:0;background:var(--paper)}
 <div class="cover">
 <svg width="960" height="288" viewBox="0 0 960 288" aria-hidden="true">
 <!--
-blocks: signal 360x320 slab (largest, bleeds top/right), ink 176x112 radius-l, lime 96x64 radius-l
+blocks: signal 360x320 slab (largest, bleeds top/right), ink 176x112 radius-l, line-strong 96x64 radius-l
 arrangement: one tall slab bleeding off the top-right with two satellites below-left, all right of x=480
 pattern: literal motif of the logo (16:9 screen + stop dot) — five 64x36 frames radius-s with a dot, climbing across the slab like the camera path
 scales: frame pitch space-16 (64) across / space-8 (32) up, gaps space-6, radii radius-s and radius-l
 -->
 <rect class="signal slab" x="616" y="-40" width="384" height="368"></rect>
 <rect class="ink slab" x="488" y="152" width="176" height="112"></rect>
-<rect class="lime slab" x="520" y="56" width="96" height="64"></rect>
+<rect class="muted slab" x="520" y="56" width="96" height="64"></rect>
 <rect class="frame tile" x="664" y="200" width="64" height="36"></rect>
 <circle class="dot" cx="696" cy="218" r="5"></circle>
 <rect class="frame tile" x="728" y="168" width="64" height="36"></rect>
