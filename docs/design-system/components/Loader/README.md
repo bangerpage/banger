@@ -19,7 +19,7 @@
 <svg class="bang-loader bang-loader--m1" viewBox="0 0 64 64" role="img" aria-label="読み込み中">
   <g class="bang-loader__b">
     <path class="bang-loader__stem" d="M6 7.5 A5.5 5.5 0 0 1 17 7.5 L17 25.5 L6 25.5 Z"/>
-    <path class="bang-loader__bowl" fill-rule="evenodd" d="M6 25 L46 25 A12 12 0 0 1 58 37 L58 48 A12 12 0 0 1 46 60 L18 60 A12 12 0 0 1 6 48 Z M20 34 L44 34 A3 3 0 0 1 47 37 L47 48 A3 3 0 0 1 44 51 L20 51 A3 3 0 0 1 17 48 L17 37 A3 3 0 0 1 20 34 Z"/>
+    <path class="bang-loader__bowl" fill-rule="evenodd" d="M6 25 L52 25 A6 6 0 0 1 58 31 L58 54 A6 6 0 0 1 52 60 L12 60 A6 6 0 0 1 6 54 Z M17 34 L47 34 L47 51 L17 51 Z"/>
   </g>
   <circle class="bang-loader__dot" cx="32" cy="42.5" r="4.5"/>
   <g class="bang-loader__spark"><path d="M46 5 V1"/><path d="M53 12 H57"/><path d="M39 12 H35"/><path d="M51 7 L54 4"/><path d="M41 7 L38 4"/></g>
