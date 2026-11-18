@@ -66,6 +66,12 @@
 3. 色コードは `bang-theme` の JSON だけに書く。本文には書かない。
 4. `banger snap` で全停止点を見て、読めない箇所と警告がないことを確かめる。
 
+## コマンド
+
+- `banger theme init [file] [--from <preset>] [--force]`: ひな形から `theme.json` を作る。既定は `signal` で、ファイル名は `theme.json`。既存のファイルは `--force` が無いと上書きしない。
+- `banger theme apply <theme.json> <deck.html>`: `theme.json` を検証して発表に埋め込む。`bang-root` を `theme="custom"` にし、`bang-theme` のブロックを挿入または置換する。2 回実行しても結果は同じ。テーマを直したら各発表に `apply` し直す。
+- 警告 (未知のキー、コントラスト不足など) は `warning:` で stderr に出る。
+
 ## ひな形
 
 4 つとも、種の色はコントラストの基準を満たし、警告は出ない。
