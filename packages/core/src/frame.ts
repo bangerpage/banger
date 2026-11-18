@@ -54,6 +54,8 @@ ${unsafeCSS(
       background: var(--bang-color-paper);
       color: var(--bang-color-ink);
       font-family: var(--bang-font-sans);
+      /* Without this a heading that opens with 「 starts half an em to the right of the text below it. */
+      text-spacing-trim: trim-start;
       justify-content: center;
     }
   `;

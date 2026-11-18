@@ -28,11 +28,15 @@ export class BangColumns extends BangElement {
   /** Column widths such as "1:2". Must have one number per child, otherwise columns are equal. */
   @property() ratio?: string;
 
+  /** Vertical alignment of the columns. `stretch` makes every column as tall as the tallest one, so a chart or image in one column fills the height. */
+  @property() align: "stretch" | "start" | "center" | "end" = "stretch";
+
   /** Space between columns. */
   @property() gap: "xs" | "s" | "m" | "l" | "xl" | "2xl" = "m";
 
   render() {
     const gap = pick(this, "gap", SIZES, "m");
+    const align = pick(this, "align", ["stretch", "start", "center", "end"] as const, "stretch");
     const count = Math.max(this.children.length, 1);
     const raw = this.getAttribute("ratio");
     let parts: number[] = Array.from({ length: count }, () => 1);
@@ -48,7 +52,7 @@ export class BangColumns extends BangElement {
     }
     const template = parts.map((n) => `minmax(0, ${n}fr)`).join(" ");
     return html`<style>
-        :host { grid-template-columns: ${template}; gap: var(--bang-gap-${gap}); }
+        :host { grid-template-columns: ${template}; gap: var(--bang-gap-${gap}); align-items: ${align}; }
       </style><slot @slotchange=${() => this.requestUpdate()}></slot>`;
   }
 }

@@ -49,6 +49,7 @@ Places children side by side.
 | Attribute | Values | Default | Description |
 | --- | --- | --- | --- |
 | `ratio` | string | - | Column widths such as "1:2". Must have one number per child, otherwise columns are equal. |
+| `align` | `stretch`, `start`, `center`, `end` | `stretch` | Vertical alignment of the columns. `stretch` makes every column as tall as the tallest one, so a chart or image in one column fills the height. |
 | `gap` | `xs`, `s`, `m`, `l`, `xl`, `2xl` | `m` | Space between columns. |
 
 Slots:
