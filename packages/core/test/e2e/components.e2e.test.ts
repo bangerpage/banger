@@ -82,6 +82,7 @@ describe("components", () => {
     expect(Math.abs(x - y)).toBeLessThanOrEqual(1);
     expect(warnings.some((w) => w.includes('ratio="1:2:3"'))).toBe(true);
     expect((await style(page, "#cols")).alignItems).toBe("center");
+    expect(await page.evaluate(() => getComputedStyle(document.querySelector("#cols > bang-text")!).textAlign)).toBe("start");
     expect((await style(page, "#badcols")).alignItems).toBe("stretch");
     const stack = await style(page, "#stack");
     expect(stack.rowGap).toBe("48px");

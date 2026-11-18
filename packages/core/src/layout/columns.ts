@@ -22,6 +22,8 @@ export class BangColumns extends BangElement {
       display: grid;
       flex: 0 1 auto;
       min-height: 0;
+      /* The browser reads an align attribute as a legacy text-align hint, which would centre the text inside every column. */
+      text-align: start;
     }
   `;
 
