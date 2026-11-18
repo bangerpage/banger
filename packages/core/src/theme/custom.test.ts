@@ -303,7 +303,7 @@ describe("custom theme", () => {
         expect(resolveTheme(def).warnings, name).toEqual([]);
         const parsed = parseThemeJson(serializeTheme(def));
         expect(parsed.warnings, name).toEqual([]);
-        expect(Object.keys(def).sort(), name).toEqual([...THEME_KEYS].filter((k) => k !== "fontsHref").sort());
+        expect(Object.keys(def).sort(), name).toEqual([...THEME_KEYS].filter((k) => k !== "fontsHref" && k !== "paperGradient").sort());
         expect(def.fontSans).toBe(themeFontStacks.sans);
       }
     });
@@ -341,4 +341,45 @@ describe("frameToneColors", () => {
       expect(ratio(colors["signal-text"], colors.paper)).toBeGreaterThanOrEqual(4.5);
     },
   );
+});
+
+describe("paperGradient", () => {
+  it("parses a gradient, defaults the angle and normalizes the colours", () => {
+    const { definition, warnings } = parseThemeJson('{ "paperGradient": { "colors": ["#fff6d6", "#FC0"] } }');
+    expect(warnings).toEqual([]);
+    expect(definition?.paperGradient).toEqual({ angle: 180, colors: ["#FFF6D6", "#FFCC00"] });
+  });
+
+  it.each([
+    ['{ "colors": ["#FFFFFF"] }'],
+    ['{ "colors": ["#FFFFFF", "#000000", "#111111", "#222222"] }'],
+    ['{ "angle": 400, "colors": ["#FFFFFF", "#000000"] }'],
+    ['{ "colors": ["#FFFFFF", "red"] }'],
+    ['{ "colors": ["#FFFFFF", "#000000"], "type": "radial" }'],
+    ['"linear-gradient(#FFF, #000)"'],
+  ])("ignores %s with a warning", (gradient) => {
+    const { definition, warnings } = parseThemeJson(`{ "paperGradient": ${gradient} }`);
+    expect(definition?.paperGradient).toBeUndefined();
+    expect(warnings).toHaveLength(1);
+  });
+
+  it("uses the first colour as paper, builds the ground and keeps derived text readable on every colour", () => {
+    const resolved = resolveTheme({ paperGradient: { angle: 135, colors: ["#FFF6D6", "#FFC800"] } });
+    expect(resolved.colors.paper).toBe("#FFF6D6");
+    expect(resolved.ground).toBe("linear-gradient(135deg, #FFF6D6, #FFC800)");
+    for (const ground of ["#FFF6D6", "#FFC800"]) {
+      expect(ratio(resolved.colors["signal-text"], ground)).toBeGreaterThanOrEqual(4.5);
+    }
+    expect(resolveTheme({}).ground).toBeNull();
+  });
+
+  it("warns when text is hard to read on any gradient colour", () => {
+    const { warnings } = resolveTheme({ paperGradient: { angle: 180, colors: ["#FFFFFF", "#333333"] } });
+    expect(warnings.some((w) => w.includes("paperGradient color #333333"))).toBe(true);
+  });
+
+  it("round-trips through serializeTheme", () => {
+    const definition: ThemeDefinition = { base: "light", paperGradient: { angle: 90, colors: ["#FFFFFF", "#EEEEEE"] } };
+    expect(parseThemeJson(serializeTheme(definition)).definition).toEqual(definition);
+  });
 });

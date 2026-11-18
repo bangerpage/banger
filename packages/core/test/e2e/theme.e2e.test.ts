@@ -305,4 +305,20 @@ describe("frame tone", () => {
     const expected = frameToneColors(colors, "accent");
     expect((await frameColors(page)).ground).toBe(rgbOf(expected.paper));
   });
+
+  it("paints a paperGradient ground on default frames and keeps tone frames solid", async () => {
+    const json = '{ "paperGradient": { "angle": 135, "colors": ["#FFF6D6", "#FFC800"] } }';
+    const grounds = async (tone: string | null) => {
+      const { page } = await variant((html) => {
+        const themed = withJson(json)(html);
+        return tone ? themed.replace('<bang-frame id="main"', `<bang-frame id="main" tone="${tone}"`) : themed;
+      });
+      return page.evaluate(() => {
+        const inner = document.querySelector("bang-frame")!.shadowRoot!.querySelector(".frame") as HTMLElement;
+        return getComputedStyle(inner).backgroundImage;
+      });
+    };
+    expect(await grounds(null)).toBe("linear-gradient(135deg, rgb(255, 246, 214), rgb(255, 200, 0))");
+    expect(await grounds("accent")).toBe("none");
+  });
 });

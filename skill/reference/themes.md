@@ -23,6 +23,7 @@
 
 - `base`: `light` または `dark` (既定 `light`)。
 - 色の種: `paper` (地) `surface` (面) `ink` (本文) `inkMuted` (補足) `line` (罫線) `signal` (強調の塗り)。
+- `paperGradient`: フレームの地のグラデーション。`{ "angle": 135, "colors": ["#FFF6D6", "#FFC800"] }` のように、角度 (0〜360、既定 180 で上から下) と 2〜3 色を書く。
 - フォント: `fontSans` `fontDisplay` `fontMono`。
 - `fontsHref`: Google Fonts の css2 の URL。
 
@@ -34,11 +35,20 @@
 - `line-strong` `on-signal` `signal-text` `focus` は種から計算で決まり、書けない。
 - 種を変えなければ土台の手選びの値が使われるので、`signal` のひな形はそのまま `theme="light"` と同じ見た目になる。
 
+## グラデーションの地
+
+`paperGradient` を書くと、通常のフレームの地がグラデーションになる。地を単色より柔らかく見せたいときに使う。
+
+- `paper` を書かなければ、グラデーションの 1 色目が `paper` になる。補足や強調の文字色は、グラデーションのどの色の上でも読めるように計算される。
+- 本文と補足と強調色の濃さの差は、グラデーションのすべての色に対して確かめられ、足りなければ警告が出る。
+- `tone="accent"` と `tone="inverse"` のフレームは単色のまま。
+- 近い色どうし (地の色を少し明るくした色から地の色へ、など) にすると、文字の読みやすさを保ちやすい。
+
 各色が画面のどこに出るか:
 
 | 種 | 出る場所 |
 |---|---|
-| `paper` | フレームの地 |
+| `paper` | フレームの地 (`paperGradient` があればグラデーションの地) |
 | `ink` | 本文と見出しの文字、グラフの 1 本目の系列 |
 | `inkMuted` | `tone="muted"` の文字、グラフの 3 本目の系列 |
 | `signal` | `tone="accent"` の文字とグラフの 2 本目の系列 (どちらも `signal` から作った `signal-text` で塗る) |

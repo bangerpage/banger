@@ -364,6 +364,7 @@ export class BangRoot extends BangElement {
     const vars: Record<string, string> = {};
     for (const [token, value] of Object.entries(resolved.colors)) vars[`--bang-color-${token}`] = value;
     for (const [role, value] of Object.entries(resolved.fonts)) vars[`--bang-font-${role}`] = value;
+    if (resolved.ground) vars["--bang-ground"] = resolved.ground;
     for (const [name, value] of Object.entries(vars)) this.style.setProperty(name, value);
     this.themeVars = Object.keys(vars);
     this.applyFrameTones(resolved.colors);

@@ -30,6 +30,7 @@ export class BangFrame extends BangElement {
     }
     :host([tone="accent"]),
     :host([tone="inverse"]) {
+      --bang-ground: var(--bang-color-paper);
       --bang-tone-default: var(--bang-color-ink);
       --bang-tone-muted: var(--bang-color-ink-muted);
       --bang-tone-accent: var(--bang-color-signal-text);
@@ -51,7 +52,7 @@ ${unsafeCSS(
       width: 100%;
       height: 100%;
       overflow: hidden;
-      background: var(--bang-color-paper);
+      background: var(--bang-ground, var(--bang-color-paper));
       color: var(--bang-color-ink);
       font-family: var(--bang-font-sans);
       /* Without this a heading that opens with 「 starts half an em to the right of the text below it. */

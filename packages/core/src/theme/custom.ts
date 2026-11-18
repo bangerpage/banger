@@ -3,7 +3,7 @@ import { themeColorTokens } from "./theme.generated.js";
 
 export const THEME_COLOR_KEYS = ["paper", "surface", "ink", "inkMuted", "line", "signal"] as const;
 export const THEME_FONT_KEYS = ["fontSans", "fontDisplay", "fontMono"] as const;
-export const THEME_KEYS = ["base", ...THEME_COLOR_KEYS, ...THEME_FONT_KEYS, "fontsHref"] as const;
+export const THEME_KEYS = ["base", ...THEME_COLOR_KEYS, "paperGradient", ...THEME_FONT_KEYS, "fontsHref"] as const;
 
 export interface ThemeDefinition {
   base?: "light" | "dark";
@@ -13,6 +13,8 @@ export interface ThemeDefinition {
   inkMuted?: string;
   line?: string;
   signal?: string;
+  /** A linear gradient for the frame ground. `paper` defaults to its first colour; text contrast is checked against every colour. */
+  paperGradient?: PaperGradient;
   fontSans?: string;
   fontDisplay?: string;
   fontMono?: string;
@@ -20,6 +22,12 @@ export interface ThemeDefinition {
 }
 
 export type ThemeColorToken = keyof typeof themeColorTokens.light;
+
+export interface PaperGradient {
+  /** Degrees as in CSS linear-gradient(); 180 runs top to bottom. */
+  angle: number;
+  colors: string[];
+}
 
 export interface FontsRequest {
   href: string;
@@ -33,6 +41,8 @@ export interface ParsedTheme {
 
 export interface ResolvedTheme {
   colors: Record<ThemeColorToken, string>;
+  /** CSS for the frame ground when a gradient is set, otherwise null and the ground is `paper`. */
+  ground: string | null;
   fonts: { sans?: string; display?: string; mono?: string };
   fontsRequest: FontsRequest | null;
   warnings: string[];
@@ -133,6 +143,14 @@ export function parseThemeJson(text: string): ParsedTheme {
       const rgb = typeof value === "string" ? parseHex(value) : null;
       if (rgb) definition[key as (typeof THEME_COLOR_KEYS)[number]] = toHex(rgb);
       else warnings.push(`theme: "${key}" must be a #RGB or #RRGGBB color; ignored`);
+    } else if (key === "paperGradient") {
+      const gradient = parsePaperGradient(value);
+      if (gradient) definition.paperGradient = gradient;
+      else {
+        warnings.push(
+          'theme: "paperGradient" must be { "angle": 0-360, "colors": [2 or 3 #RGB or #RRGGBB colors] }; ignored',
+        );
+      }
     } else if (key === "fontsHref") {
       const request = typeof value === "string" ? parseFontsHref(value) : null;
       if (request) definition.fontsHref = request.href;
@@ -152,8 +170,19 @@ export function parseThemeJson(text: string): ParsedTheme {
   return { definition, warnings };
 }
 
+function parsePaperGradient(value: unknown): PaperGradient | null {
+  if (typeof value !== "object" || value === null || Array.isArray(value)) return null;
+  const { angle = 180, colors, ...rest } = value as Record<string, unknown>;
+  if (Object.keys(rest).length > 0) return null;
+  if (typeof angle !== "number" || !Number.isFinite(angle) || angle < 0 || angle > 360) return null;
+  if (!Array.isArray(colors) || colors.length < 2 || colors.length > 3) return null;
+  const hexes = colors.map((c) => (typeof c === "string" ? parseHex(c) : null));
+  if (hexes.some((c) => c === null)) return null;
+  return { angle, colors: hexes.map((c) => toHex(c as Rgb)) };
+}
+
 export function serializeTheme(definition: ThemeDefinition): string {
-  const ordered: Record<string, string> = {};
+  const ordered: Record<string, unknown> = {};
   for (const key of THEME_KEYS) {
     const value = definition[key];
     if (value !== undefined) ordered[key] = value;
@@ -171,7 +200,9 @@ export function resolveTheme(definition: ThemeDefinition): ResolvedTheme {
   };
   const rgbOf = (hex: string): Rgb => parseHex(hex) as Rgb;
 
-  const paper = given(definition.paper) ?? B.paper;
+  const gradient = definition.paperGradient ?? null;
+  const paper = given(definition.paper) ?? gradient?.colors[0] ?? B.paper;
+  const gradientGrounds = (gradient?.colors ?? []).map(rgbOf);
   const ink = given(definition.ink) ?? B.ink;
   const signal = given(definition.signal) ?? B.signal;
   const surface =
@@ -180,7 +211,7 @@ export function resolveTheme(definition: ThemeDefinition): ResolvedTheme {
     given(definition.inkMuted) ??
     (paper === B.paper && surface === B.surface && ink === B.ink
       ? B["ink-muted"]
-      : toHex(shiftUntil(rgbOf(paper), rgbOf(ink), [rgbOf(paper), rgbOf(surface)], 4.5)));
+      : toHex(shiftUntil(rgbOf(paper), rgbOf(ink), [rgbOf(paper), rgbOf(surface), ...gradientGrounds], 4.5)));
   const line =
     given(definition.line) ??
     (paper === B.paper && ink === B.ink ? B.line : toHex(mix(rgbOf(paper), rgbOf(ink), 0.1)));
@@ -195,7 +226,7 @@ export function resolveTheme(definition: ThemeDefinition): ResolvedTheme {
   const signalText =
     signal === B.signal && paper === B.paper && surface === B.surface
       ? B["signal-text"]
-      : toHex(shiftUntil(rgbOf(signal), rgbOf(ink), [rgbOf(paper), rgbOf(surface)], 4.5));
+      : toHex(shiftUntil(rgbOf(signal), rgbOf(ink), [rgbOf(paper), rgbOf(surface), ...gradientGrounds], 4.5));
 
   const colors: Record<ThemeColorToken, string> = {
     paper,
@@ -211,22 +242,24 @@ export function resolveTheme(definition: ThemeDefinition): ResolvedTheme {
   };
 
   const warnings: string[] = [];
-  const inkRatio = contrastRatio(rgbOf(ink), rgbOf(paper));
-  if (inkRatio < 4.5) {
-    warnings.push(`theme: ink ${ink} on paper ${paper} is ${ratioText(inkRatio)}:1; 4.5:1 or more is needed to read text`);
+  for (const ground of [paper, ...(gradient?.colors.filter((c) => c !== paper) ?? [])]) {
+    const on = ground === paper ? `paper ${paper}` : `paperGradient color ${ground}`;
+    const inkRatio = contrastRatio(rgbOf(ink), rgbOf(ground));
+    if (inkRatio < 4.5) {
+      warnings.push(`theme: ink ${ink} on ${on} is ${ratioText(inkRatio)}:1; 4.5:1 or more is needed to read text`);
+    }
+    const mutedRatio = contrastRatio(rgbOf(inkMuted), rgbOf(ground));
+    if (mutedRatio < 4.5) {
+      warnings.push(`theme: inkMuted ${inkMuted} on ${on} is ${ratioText(mutedRatio)}:1; 4.5:1 or more is needed to read text`);
+    }
+    const signalRatio = contrastRatio(rgbOf(signal), rgbOf(ground));
+    if (signalRatio < 3) {
+      warnings.push(
+        `theme: signal ${signal} on ${on} is ${ratioText(signalRatio)}:1; 3:1 or more is needed for a fill to stand out`,
+      );
+    }
   }
-  const mutedRatio = contrastRatio(rgbOf(inkMuted), rgbOf(paper));
-  if (mutedRatio < 4.5) {
-    warnings.push(
-      `theme: inkMuted ${inkMuted} on paper ${paper} is ${ratioText(mutedRatio)}:1; 4.5:1 or more is needed to read text`,
-    );
-  }
-  const signalRatio = contrastRatio(rgbOf(signal), rgbOf(paper));
-  if (signalRatio < 3) {
-    warnings.push(
-      `theme: signal ${signal} on paper ${paper} is ${ratioText(signalRatio)}:1; 3:1 or more is needed for a fill to stand out`,
-    );
-  }
+  const ground = gradient ? `linear-gradient(${gradient.angle}deg, ${gradient.colors.join(", ")})` : null;
 
   const fonts: ResolvedTheme["fonts"] = {};
   if (definition.fontSans !== undefined) fonts.sans = definition.fontSans;
@@ -234,7 +267,7 @@ export function resolveTheme(definition: ThemeDefinition): ResolvedTheme {
   if (definition.fontMono !== undefined) fonts.mono = definition.fontMono;
 
   const fontsRequest = definition.fontsHref === undefined ? null : parseFontsHref(definition.fontsHref);
-  return { colors, fonts, fontsRequest, warnings };
+  return { colors, ground, fonts, fontsRequest, warnings };
 }
 
 export const FRAME_TONES = ["accent", "inverse"] as const;
