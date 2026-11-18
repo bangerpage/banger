@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { contrastRatio, mix, parseHex, toHex, type Rgb } from "./color.js";
 import {
+  frameToneColors,
   isFontStack,
   parseFontsHref,
   parseThemeJson,
@@ -318,4 +319,26 @@ describe("custom theme", () => {
       expect(presetTheme("signal").paper).toBe(themeColorTokens.light.paper);
     });
   });
+});
+
+describe("frameToneColors", () => {
+  it("inverting a Signal theme gives the other Signal theme", () => {
+    expect(frameToneColors(themeColorTokens.light, "inverse")).toEqual(themeColorTokens.dark);
+    expect(frameToneColors(themeColorTokens.dark, "inverse")).toEqual(themeColorTokens.light);
+  });
+
+  it("grounds an accent frame on signal with on-signal text", () => {
+    const colors = frameToneColors(themeColorTokens.light, "accent");
+    expect(colors.paper).toBe(themeColorTokens.light.signal);
+    expect(colors.ink).toBe(themeColorTokens.light["on-signal"]);
+  });
+
+  it.each(PRESET_NAMES.flatMap((name) => (["accent", "inverse"] as const).map((tone) => [name, tone] as const)))(
+    "keeps body and muted text readable for %s / %s",
+    (name, tone) => {
+      const colors = frameToneColors(resolveTheme(presetTheme(name)).colors, tone);
+      expect(ratio(colors["ink-muted"], colors.paper)).toBeGreaterThanOrEqual(4.5);
+      expect(ratio(colors["signal-text"], colors.paper)).toBeGreaterThanOrEqual(4.5);
+    },
+  );
 });

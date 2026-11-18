@@ -37,8 +37,8 @@ import {
 } from "./state.js";
 import { readStop } from "./stop.js";
 import { readThemeJson } from "./theme-element.js";
-import { parseThemeJson, resolveTheme } from "./theme/custom.js";
-import { themeCss } from "./theme/theme.generated.js";
+import { FRAME_TONES, frameToneColors, parseThemeJson, resolveTheme, type ThemeColorToken } from "./theme/custom.js";
+import { themeColorTokens, themeCss } from "./theme/theme.generated.js";
 
 export type RootMode = "live" | "export" | "presenter";
 
@@ -336,11 +336,13 @@ export class BangRoot extends BangElement {
       this.themeWarnings = warnings;
       for (const w of warnings) warnOnce(`theme|${w}`, `[banger] ${w}`);
     };
-    if (this.getAttribute("theme") !== "custom") {
+    const theme = this.getAttribute("theme");
+    if (theme !== "custom") {
       clear();
-      const key = `\0ignored|${text === null ? "none" : "present"}`;
+      const key = `\0ignored|${theme}|${text === null ? "none" : "present"}`;
       if (key === this.themeKey) return;
       this.themeKey = key;
+      this.applyFrameTones(themeColorTokens[theme === "dark" ? "dark" : "light"]);
       report(text === null ? [] : ['theme: <bang-theme> is ignored unless theme="custom"']);
       return;
     }
@@ -364,8 +366,18 @@ export class BangRoot extends BangElement {
     for (const [role, value] of Object.entries(resolved.fonts)) vars[`--bang-font-${role}`] = value;
     for (const [name, value] of Object.entries(vars)) this.style.setProperty(name, value);
     this.themeVars = Object.keys(vars);
+    this.applyFrameTones(resolved.colors);
     if (resolved.fontsRequest) ensureThemeFonts(resolved.fontsRequest);
     report(warnings);
+  }
+
+  /** Publishes each frame tone's colours as --bang-frame-<tone>-<token>; bang-frame[tone] maps them onto its own --bang-color-*. */
+  private applyFrameTones(colors: Record<ThemeColorToken, string>): void {
+    for (const tone of FRAME_TONES) {
+      for (const [token, value] of Object.entries(frameToneColors(colors, tone))) {
+        this.style.setProperty(`--bang-frame-${tone}-${token}`, value);
+      }
+    }
   }
 
   private applyMotionPreference(): void {

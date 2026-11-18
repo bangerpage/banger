@@ -3,7 +3,8 @@ import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import type { Browser, Page } from "playwright-core";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
-import { parseThemeJson, resolveTheme } from "../../src/theme/custom.js";
+import { frameToneColors, parseThemeJson, resolveTheme } from "../../src/theme/custom.js";
+import { themeColorTokens } from "../../src/theme/theme.generated.js";
 import { launch, openDeck, serveCore, type CoreServer, type Deck, type OpenOptions } from "./helpers.js";
 
 let browser: Browser;
@@ -274,5 +275,34 @@ describe("custom theme", () => {
       expect(state.checks).toEqual([true, true]);
       expect(elapsed).toBeLessThan(10000);
     });
+  });
+});
+
+describe("frame tone", () => {
+  const frameColors = (page: Page) =>
+    page.evaluate(() => {
+      const frame = document.querySelector("bang-frame") as HTMLElement;
+      const inner = frame.shadowRoot!.querySelector(".frame") as HTMLElement;
+      const text = document.querySelector("bang-text")!.shadowRoot!.firstElementChild as HTMLElement;
+      return { ground: getComputedStyle(inner).backgroundColor, text: getComputedStyle(text ?? frame).color };
+    });
+
+  it.each([
+    ["light", "accent"],
+    ["light", "inverse"],
+    ["dark", "inverse"],
+  ] as const)("grounds a %s frame with tone=%s on the derived colours", async (theme, tone) => {
+    const { page } = await variant((html) =>
+      html.replace('theme="custom"', `theme="${theme}"`).replace('<bang-frame id="main"', `<bang-frame id="main" tone="${tone}"`),
+    );
+    const expected = frameToneColors(themeColorTokens[theme], tone);
+    expect(await frameColors(page)).toEqual({ ground: rgbOf(expected.paper), text: rgbOf(expected.ink) });
+  });
+
+  it("derives the tone colours from a custom theme", async () => {
+    const { page } = await variant((html) => html.replace('<bang-frame id="main"', '<bang-frame id="main" tone="accent"'));
+    const colors = resolveTheme(parseThemeJson(fixture.match(/<script type="application\/json">([\s\S]*?)<\/script>/)![1]).definition ?? {}).colors;
+    const expected = frameToneColors(colors, "accent");
+    expect((await frameColors(page)).ground).toBe(rgbOf(expected.paper));
   });
 });

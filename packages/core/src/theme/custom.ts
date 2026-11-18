@@ -1,4 +1,4 @@
-import { contrastRatio, mix, parseHex, shiftUntil, toHex, type Rgb } from "./color.js";
+import { contrastRatio, mix, parseHex, relativeLuminance, shiftUntil, toHex, type Rgb } from "./color.js";
 import { themeColorTokens } from "./theme.generated.js";
 
 export const THEME_COLOR_KEYS = ["paper", "surface", "ink", "inkMuted", "line", "signal"] as const;
@@ -236,3 +236,19 @@ export function resolveTheme(definition: ThemeDefinition): ResolvedTheme {
   const fontsRequest = definition.fontsHref === undefined ? null : parseFontsHref(definition.fontsHref);
   return { colors, fonts, fontsRequest, warnings };
 }
+
+export const FRAME_TONES = ["accent", "inverse"] as const;
+export type FrameTone = (typeof FRAME_TONES)[number];
+
+/**
+ * Colours for a frame grounded on the theme's signal (accent) or ink (inverse). They go through resolveTheme so the
+ * derived text colours keep their contrast; inverting a Signal theme lands exactly on the other Signal theme.
+ */
+export function frameToneColors(colors: Record<ThemeColorToken, string>, tone: FrameTone): Record<ThemeColorToken, string> {
+  const paper = tone === "accent" ? colors.signal : colors.ink;
+  const ink = tone === "accent" ? colors["on-signal"] : colors.paper;
+  const signal = tone === "accent" ? colors["on-signal"] : colors.signal;
+  const base = relativeLuminance(parseHex(paper) as Rgb) < 0.18 ? "dark" : "light";
+  return resolveTheme({ base, paper, ink, signal }).colors;
+}
+
