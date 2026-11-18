@@ -23,7 +23,7 @@ export class BangStack extends BangElement {
     :host {
       display: flex;
       flex-direction: column;
-      flex: 1 1 0;
+      flex: 0 1 auto;
       min-height: 0;
     }
   `;

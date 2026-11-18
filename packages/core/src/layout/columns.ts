@@ -20,7 +20,7 @@ export class BangColumns extends BangElement {
   static styles = css`
     :host {
       display: grid;
-      flex: 1 1 0;
+      flex: 0 1 auto;
       min-height: 0;
     }
   `;

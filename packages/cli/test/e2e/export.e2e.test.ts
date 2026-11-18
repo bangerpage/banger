@@ -130,7 +130,7 @@ describe("export", () => {
     await writeFile(join(dir, "notes.txt"), "keep");
     const fewer = await deckCopy("fewer", (html) =>
       html
-        .replace(/\s*<bang-stop frame="points" region="0,0,0.5,0.5">.*<\/bang-stop>/, "")
+        .replace(/\s*<bang-stop frame="points" region="0,0,0.5,1">.*<\/bang-stop>/, "")
         .replace(/\s*<bang-stop frame="points" region="0.5,0,0.5,1">.*<\/bang-stop>/, ""),
     );
     expect((await runBin(["snap", fewer, "--out-dir", dir])).code).toBe(0);

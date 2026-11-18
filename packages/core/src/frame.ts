@@ -37,6 +37,7 @@ export class BangFrame extends BangElement {
       background: var(--bang-color-paper);
       color: var(--bang-color-ink);
       font-family: var(--bang-font-sans);
+      justify-content: center;
     }
   `;
 
