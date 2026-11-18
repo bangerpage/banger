@@ -77,6 +77,8 @@ pnpm -C packages/core exec playwright-core install chromium   # once, for the e2
 pnpm test:e2e
 ```
 
+The CLI and the examples load `packages/*/dist`, so run `pnpm build` after pulling before trying them from this checkout.
+
 Generated files (`skill/reference/components.md`, the runtime URL in the starter, the example and the CLI fixtures) are committed. After changing a component's attributes or JSDoc, run `pnpm gen` and commit the result; CI runs `pnpm gen:check`.
 
 ## Release
