@@ -104,10 +104,15 @@ export async function openDeck(
   await page.goto(`${server.origin}/${fixture}${opts.query ? `?${opts.query}` : ""}${opts.hash ?? ""}`, {
     waitUntil: "commit",
   });
-  await page.waitForFunction(() => {
-    const root = document.querySelector("bang-root") as unknown as { getPath?: () => unknown[] } | null;
-    return !!root?.getPath;
-  });
+  // Interval polling: the default polls on requestAnimationFrame, which a test may replace with a stub.
+  await page.waitForFunction(
+    () => {
+      const root = document.querySelector("bang-root") as unknown as { getPath?: () => unknown[] } | null;
+      return !!root?.getPath;
+    },
+    undefined,
+    { polling: 20 },
+  );
   await page.waitForTimeout(50);
   return { page, context, warnings, errors };
 }

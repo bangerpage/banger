@@ -30,6 +30,8 @@ describe("workspace", () => {
     expect(pkg.repository.directory).toBe("packages/core");
     expect(pkg.exports["."].types).toBe("./dist/index.d.ts");
     expect(pkg.exports["."].import).toBe("./dist/index.js");
+    expect(pkg.exports["./theme"].types).toBe("./dist/theme/index.d.ts");
+    expect(pkg.exports["./theme"].import).toBe("./dist/theme/index.js");
     expect(pkg.exports["./package.json"]).toBeDefined();
     const build = readJson("packages/core/tsconfig.build.json");
     expect(build.compilerOptions.rootDir).toBe("src");

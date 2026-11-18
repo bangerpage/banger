@@ -48,6 +48,37 @@ describe("build", () => {
     expect(chunkOutputs.some((o) => inputsOf(o).some((input) => input.includes("node_modules/") && input.includes("/echarts/")))).toBe(true);
   });
 
+  it("AC-CTHEME-9 emits a theme entry that imports only relative paths and bundles no lit or element code", async () => {
+    expect(existsSync(join(dist, "theme/index.js"))).toBe(true);
+    expect(existsSync(join(dist, "theme/index.d.ts"))).toBe(true);
+    const entry = join(dist, "theme/index.js");
+    const source = readFileSync(entry, "utf8");
+    const imports = [...source.matchAll(BARE_IMPORT)].map((m) => m[1]);
+    for (const spec of imports) expect(spec, spec).toMatch(/^\.{1,2}\//);
+    const chunkSources = imports
+      .filter((spec) => spec.includes("chunks/"))
+      .map((spec) => readFileSync(join(dirname(entry), spec), "utf8"));
+    for (const text of chunkSources) {
+      for (const match of text.matchAll(BARE_IMPORT)) expect(match[1]).toMatch(/^\.{1,2}\//);
+    }
+    const inputs = Object.keys(meta.outputs["dist/theme/index.js"]?.inputs ?? {});
+    expect(inputs.length).toBeGreaterThan(0);
+    const chunkInputs = imports
+      .filter((spec) => spec.includes("chunks/"))
+      .flatMap((spec) => Object.keys(meta.outputs[`dist/${spec.replace(/^\.\.\//, "")}`]?.inputs ?? {}));
+    for (const input of [...inputs, ...chunkInputs]) {
+      expect(input).not.toContain("node_modules/lit");
+      expect(input).not.toMatch(/src\/(root|element)\.ts$/);
+    }
+    const mod = (await import(entry)) as Record<string, unknown>;
+    expect(Array.isArray(mod.PRESET_NAMES)).toBe(true);
+    for (const name of ["parseThemeJson", "resolveTheme", "serializeTheme", "presetTheme"]) {
+      expect(mod[name], name).toBeTypeOf("function");
+    }
+    const indexSource = readFileSync(join(dist, "index.js"), "utf8");
+    expect(indexSource).not.toContain("midnight");
+  });
+
   it("AC-PKG-6 lists every bundled package with its license text", () => {
     const text = readFileSync(join(pkgRoot, "THIRD-PARTY-LICENSES.txt"), "utf8");
     const names = collectBundledPackages(meta);

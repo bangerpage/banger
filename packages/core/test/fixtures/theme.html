@@ -1,0 +1,33 @@
+<!doctype html>
+<html lang="en">
+<head><meta charset="utf-8"><title>theme</title></head>
+<body>
+<script type="module" src="/dist/index.js"></script>
+<bang-root theme="custom">
+  <bang-theme>
+    <script type="application/json">
+      { "base": "dark", "paper": "#0F1B2D", "ink": "#F2F5FA", "signal": "#FFB000" }
+    </script>
+  </bang-theme>
+  <bang-frame id="main" at="0,0">
+    <bang-title>Custom theme</bang-title>
+    <bang-text>Colors come from the theme definition.</bang-text>
+    <bang-chart id="bars">
+      <script type="application/json">
+        {
+          "xAxis": { "type": "category", "data": ["2024", "2025"] },
+          "yAxis": { "type": "value" },
+          "series": [
+            { "type": "bar", "name": "North", "data": [3, 5] },
+            { "type": "bar", "name": "South", "data": [2, 4] }
+          ]
+        }
+      </script>
+    </bang-chart>
+  </bang-frame>
+  <bang-path>
+    <bang-stop frame="main"></bang-stop>
+  </bang-path>
+</bang-root>
+</body>
+</html>
