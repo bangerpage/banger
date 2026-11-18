@@ -70,6 +70,7 @@ A 1920x1080 area of the canvas. Content that does not fit is clipped.
 | --- | --- | --- | --- |
 | `at` | string | `0,0` | Grid position as "col,row" (integers from 0). |
 | `span` | string | `1,1` | Number of grid cells covered as "w,h" (integers from 1). |
+| `tone` | `default`, `accent`, `inverse` | `default` | The frame's ground: `default` uses the theme's paper, `accent` the theme's signal, `inverse` the theme's ink. Text colours follow so they stay readable. Use it for covers and section dividers. |
 
 Slots:
 

@@ -94,3 +94,28 @@
   </bang-path>
 </bang-root>
 ```
+
+## 表紙と章扉を地の色で区切る
+
+表紙や章扉のフレームだけ地を変える。`tone="accent"` はテーマの強調色の地、`tone="inverse"` はテーマの本文の色の地になり、文字の色も読める色に変わる。色はテーマから決まるので、ここでも色コードは書かない。地を変えたフレームでは `tone="accent"` の文字も本文と同じ色になるので、強調は大きさで付ける。
+
+```html
+<bang-root theme="light">
+  <bang-frame id="cover" at="0,0" tone="accent">
+    <bang-stack>
+      <bang-title size="2xl">めくらないプレゼン</bang-title>
+      <bang-text tone="muted">Banger / 2026</bang-text>
+    </bang-stack>
+  </bang-frame>
+  <bang-frame id="chapter" at="1,0" tone="inverse">
+    <bang-stack>
+      <bang-text tone="muted">Lv.1</bang-text>
+      <bang-title size="2xl">数字を知る</bang-title>
+    </bang-stack>
+  </bang-frame>
+  <bang-path>
+    <bang-stop frame="cover"></bang-stop>
+    <bang-stop frame="chapter"></bang-stop>
+  </bang-path>
+</bang-root>
+```
