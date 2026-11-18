@@ -16,7 +16,7 @@ export async function buildEntry() {
   rmSync(join(pkgRoot, "dist"), { recursive: true, force: true });
   const result = await build({
     absWorkingDir: pkgRoot,
-    entryPoints: ["src/index.ts"],
+    entryPoints: ["src/index.ts", "src/theme/index.ts"],
     bundle: true,
     format: "esm",
     splitting: true,

@@ -1,5 +1,7 @@
 import { fontsHref } from "./theme/theme.generated.js";
+import { warnOnce } from "./attrs.js";
 import { withTimeout } from "./ready.js";
+import type { FontsRequest } from "./theme/custom.js";
 
 const FONT_FACES: { family: string; weights: number[] }[] = [
   { family: "Bricolage Grotesque", weights: [800] },
@@ -9,7 +11,8 @@ const FONT_FACES: { family: string; weights: number[] }[] = [
 
 let stylesheetStatus: Promise<"load" | "error"> | null = null;
 let settledWarnings: string[] | null = null;
-let lastLoad: { text: string; result: Promise<string[]> } | null = null;
+let themeSheet: { request: FontsRequest; status: Promise<"load" | "error"> } | null = null;
+let lastLoad: { key: string; result: Promise<string[]> } | null = null;
 
 const baseCss = `
 html, body { margin: 0; overflow: hidden; background: var(--bang-color-paper, #F6F5F1); }
@@ -55,25 +58,67 @@ export function ensureBaseStyle(mode: "live" | "export" | "presenter"): void {
   head.append(style);
 }
 
-/** Resolves with warnings once the Google Fonts stylesheet has loaded, failed or timed out. */
+/** Adds the theme's Google Fonts stylesheet; only the first `fontsHref` of a page is used. */
+export function ensureThemeFonts(request: FontsRequest): void {
+  if (themeSheet) {
+    if (themeSheet.request.href !== request.href) {
+      warnOnce(
+        `themefonts|${request.href}`,
+        "[banger] the theme fonts stylesheet is set once per page; a different fontsHref is ignored",
+      );
+    }
+    return;
+  }
+  const link = document.createElement("link");
+  link.id = "bang-theme-fonts";
+  link.rel = "stylesheet";
+  link.href = request.href;
+  const status = new Promise<"load" | "error">((resolve) => {
+    link.addEventListener("load", () => resolve("load"));
+    link.addEventListener("error", () => resolve("error"));
+  });
+  document.head.append(link);
+  themeSheet = { request, status };
+  settledWarnings = null;
+}
+
+async function settleSheet(
+  status: Promise<"load" | "error"> | null | undefined,
+  timeoutMs: number,
+  messages: { failed: string; timedOut: string },
+): Promise<{ warnings: string[]; settled: boolean }> {
+  if (!status) return { warnings: [], settled: true };
+  try {
+    const result = await withTimeout(status, timeoutMs);
+    return { warnings: result === "error" ? [messages.failed] : [], settled: true };
+  } catch {
+    return { warnings: [messages.timedOut], settled: false };
+  }
+}
+
+/** Resolves with warnings once the Google Fonts stylesheets (base and theme) have loaded, failed or timed out. */
 export async function fontsSettled(timeoutMs: number): Promise<string[]> {
   if (settledWarnings) return settledWarnings;
-  if (!stylesheetStatus) return [];
-  let result: string[];
-  try {
-    const status = await withTimeout(stylesheetStatus, timeoutMs);
-    result = status === "error" ? ["fonts stylesheet failed to load; system fonts are used"] : [];
-  } catch {
-    return ["fonts stylesheet timed out; system fonts are used"];
-  }
-  settledWarnings = result;
+  const sheet = themeSheet;
+  const [base, theme] = await Promise.all([
+    settleSheet(stylesheetStatus, timeoutMs, {
+      failed: "fonts stylesheet failed to load; system fonts are used",
+      timedOut: "fonts stylesheet timed out; system fonts are used",
+    }),
+    settleSheet(sheet?.status, timeoutMs, {
+      failed: "theme fonts stylesheet failed to load; the font stack falls back",
+      timedOut: "theme fonts stylesheet timed out; the font stack falls back",
+    }),
+  ]);
+  const result = [...base.warnings, ...theme.warnings];
+  if (base.settled && theme.settled && themeSheet === sheet) settledWarnings = result;
   return result;
 }
 
 async function runLoadFonts(text: string, timeoutMs: number): Promise<string[]> {
   const warnings = new Set(await fontsSettled(timeoutMs));
   await Promise.all(
-    FONT_FACES.flatMap(({ family, weights }) =>
+    [...FONT_FACES, ...(themeSheet?.request.families ?? [])].flatMap(({ family, weights }) =>
       weights.map(async (weight) => {
         try {
           await withTimeout(document.fonts.load(`${weight} 1em "${family}"`, text), timeoutMs);
@@ -93,8 +138,9 @@ async function runLoadFonts(text: string, timeoutMs: number): Promise<string[]> 
 
 /** Loads the faces needed for `text`; repeated calls with the same text reuse one run. */
 export function loadFonts(text: string, timeoutMs: number): Promise<string[]> {
-  if (lastLoad?.text === text) return lastLoad.result;
+  const key = `${text}\0${themeSheet?.request.href ?? ""}`;
+  if (lastLoad?.key === key) return lastLoad.result;
   const result = runLoadFonts(text, timeoutMs);
-  lastLoad = { text, result };
+  lastLoad = { key, result };
   return result;
 }

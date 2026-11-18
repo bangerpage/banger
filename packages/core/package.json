@@ -16,6 +16,10 @@
       "types": "./dist/index.d.ts",
       "import": "./dist/index.js"
     },
+    "./theme": {
+      "types": "./dist/theme/index.d.ts",
+      "import": "./dist/theme/index.js"
+    },
     "./package.json": "./package.json",
     "./custom-elements.json": "./custom-elements.json"
   },

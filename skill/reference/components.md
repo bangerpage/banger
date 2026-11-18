@@ -162,7 +162,7 @@ The presentation root: lays frames out on a canvas and moves the camera between 
 
 | Attribute | Values | Default | Description |
 | --- | --- | --- | --- |
-| `theme` | `light`, `dark` | `light` | Color theme. |
+| `theme` | `light`, `dark`, `custom` | `light` | Color theme. "custom" reads the colors and fonts from a bang-theme child. |
 
 Slots:
 
@@ -243,6 +243,33 @@ A paragraph of body text.
 Slots:
 
 - default: The text.
+
+## bang-theme
+
+The colors and fonts of a deck. Used by `<bang-root theme="custom">`; ignored otherwise. Draws nothing.
+
+Every key is optional. Keys left out take the value of the base theme. Colors are `#RGB` or `#RRGGBB` only. `line-strong`, `on-signal`, `signal-text` and `focus` are computed from the seeds and cannot be written. Only the first `bang-theme` is used. Contrast below the limits warns and is never corrected.
+
+- `base`: `"light"` (default) or `"dark"`.
+- Colors: `paper`, `surface`, `ink`, `inkMuted`, `line`, `signal`.
+- Fonts (CSS font-family lists): `fontSans`, `fontDisplay`, `fontMono`.
+- `fontsHref`: a Google Fonts `https://fonts.googleapis.com/css2?...` URL that loads the families.
+
+```html
+<bang-root theme="custom">
+  <bang-theme>
+    <script type="application/json">
+      { "base": "dark", "paper": "#0F1B2D", "ink": "#F2F5FA", "signal": "#FFB000" }
+    </script>
+  </bang-theme>
+</bang-root>
+```
+
+No attributes.
+
+Slots:
+
+- default: A script element of type application/json holding the theme.
 
 ## bang-title
 

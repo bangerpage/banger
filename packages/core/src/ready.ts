@@ -69,11 +69,11 @@ export function collectText(root: Element): string {
 
 export async function collectReady(
   root: Element,
-  opts: { timeoutMs?: number; fontsTimeoutMs?: number } = {},
+  opts: { timeoutMs?: number; fontsTimeoutMs?: number; extraWarnings?: readonly string[] } = {},
 ): Promise<ReadyReport> {
   const timeoutMs = opts.timeoutMs ?? READY_TIMEOUT_MS;
   const fontsTimeoutMs = opts.fontsTimeoutMs ?? FONTS_TIMEOUT_MS;
-  const warnings = new Set<string>();
+  const warnings = new Set<string>(opts.extraWarnings ?? []);
   (await fontsSettled(fontsTimeoutMs)).forEach((w) => warnings.add(w));
 
   const items: ReadyItem[] = [];

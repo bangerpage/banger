@@ -67,3 +67,34 @@ export const themeCss = `:host {
 }
 `;
 export const fontsHref = "https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,800&family=Noto+Sans+JP:wght@400;700&family=JetBrains+Mono:wght@400&display=swap";
+export const themeColorTokens = {
+  "light": {
+    "paper": "#F6F5F1",
+    "surface": "#FFFFFF",
+    "ink": "#141414",
+    "ink-muted": "#55534E",
+    "line": "#E2E0D9",
+    "line-strong": "#8A877F",
+    "signal": "#FF4A1C",
+    "on-signal": "#141414",
+    "signal-text": "#C2330E",
+    "focus": "#C2330E"
+  },
+  "dark": {
+    "paper": "#141414",
+    "surface": "#1E1E1D",
+    "ink": "#F6F5F1",
+    "ink-muted": "#CFCBC2",
+    "line": "#2E2D2B",
+    "line-strong": "#6E6B65",
+    "signal": "#FF4A1C",
+    "on-signal": "#141414",
+    "signal-text": "#FF6A43",
+    "focus": "#FF6A43"
+  }
+} as const;
+export const themeFontStacks = {
+  "display": "\"Bricolage Grotesque\", \"Noto Sans JP\", system-ui, sans-serif",
+  "sans": "\"Noto Sans JP\", system-ui, -apple-system, \"Hiragino Sans\", sans-serif",
+  "mono": "\"JetBrains Mono\", ui-monospace, SFMono-Regular, Menlo, monospace"
+} as const;

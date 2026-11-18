@@ -18,7 +18,7 @@ import {
   type Rect,
   type Size,
 } from "./camera.js";
-import { ensureBaseStyle } from "./base-style.js";
+import { ensureBaseStyle, ensureThemeFonts } from "./base-style.js";
 import { BangElement, defineOnce, type StepAware } from "./element.js";
 import { openPresenter, PresenterSync, renderPresenter } from "./presenter.js";
 import { collectReady, type ReadyReport } from "./ready.js";
@@ -36,6 +36,8 @@ import {
   type StopModel,
 } from "./state.js";
 import { readStop } from "./stop.js";
+import { readThemeJson } from "./theme-element.js";
+import { parseThemeJson, resolveTheme } from "./theme/custom.js";
 import { themeCss } from "./theme/theme.generated.js";
 
 export type RootMode = "live" | "export" | "presenter";
@@ -195,8 +197,8 @@ export class BangRoot extends BangElement {
     `,
   ];
 
-  /** Color theme. */
-  @property() theme: "light" | "dark" = "light";
+  /** Color theme. "custom" reads the colors and fonts from a bang-theme child. */
+  @property() theme: "light" | "dark" | "custom" = "light";
 
   @state() private stage: Size = FULL_STAGE;
   @state() private statusText = "";
@@ -222,6 +224,9 @@ export class BangRoot extends BangElement {
   private clockTimer: ReturnType<typeof setInterval> | undefined;
   private startedAt = 0;
   private motionQuery: MediaQueryList | null = null;
+  private themeKey: string | null = null;
+  private themeVars: string[] = [];
+  private themeWarnings: string[] = [];
 
   private readonly onKeydown = (event: KeyboardEvent) => this.handleKey(event);
   private readonly onHashChange = () => {
@@ -235,6 +240,7 @@ export class BangRoot extends BangElement {
     this.mode = modeOf();
     this.setAttribute("data-mode", this.mode);
     ensureBaseStyle(this.mode);
+    this.applyTheme();
     this.motionQuery = window.matchMedia("(prefers-reduced-motion: reduce)");
     this.motionQuery.addEventListener("change", this.onMotionChange);
     this.applyMotionPreference();
@@ -269,6 +275,10 @@ export class BangRoot extends BangElement {
     this.stopTween();
   }
 
+  protected willUpdate(changed: PropertyValues): void {
+    if (changed.has("theme")) this.applyTheme();
+  }
+
   protected firstUpdated(_changed: PropertyValues): void {
     this.buildPath();
     if (this.mode !== "export") {
@@ -282,7 +292,7 @@ export class BangRoot extends BangElement {
   }
 
   render() {
-    pick(this, "theme", ["light", "dark"] as const, "light");
+    pick(this, "theme", ["light", "dark", "custom"] as const, "light");
     if (this.mode === "presenter") {
       const info = this.path.stops[this.current.stop];
       return html`${renderPresenter({
@@ -308,11 +318,55 @@ export class BangRoot extends BangElement {
   }
 
   private onSlotChange = () => {
+    this.applyTheme();
     if (!this.initialized) return;
     this.buildPath();
     this.current = clamp(this.current, this.path);
     void this.commit(this.current, { animate: false, source: "hash", overview: this.inOverview });
   };
+
+  /** Overlays the colors and fonts of the bang-theme child as inline variables when theme="custom". */
+  private applyTheme(): void {
+    const text = readThemeJson(this);
+    const clear = () => {
+      for (const name of this.themeVars) this.style.removeProperty(name);
+      this.themeVars = [];
+    };
+    const report = (warnings: string[]) => {
+      this.themeWarnings = warnings;
+      for (const w of warnings) warnOnce(`theme|${w}`, `[banger] ${w}`);
+    };
+    if (this.getAttribute("theme") !== "custom") {
+      clear();
+      const key = `\0ignored|${text === null ? "none" : "present"}`;
+      if (key === this.themeKey) return;
+      this.themeKey = key;
+      report(text === null ? [] : ['theme: <bang-theme> is ignored unless theme="custom"']);
+      return;
+    }
+    const key = text ?? "\0none";
+    if (key === this.themeKey) return;
+    this.themeKey = key;
+    const warnings: string[] = [];
+    let definition = {};
+    if (text === null) {
+      warnings.push('theme: theme="custom" needs a <bang-theme> child with a JSON script; the light theme is used');
+    } else {
+      const parsed = parseThemeJson(text);
+      warnings.push(...parsed.warnings);
+      definition = parsed.definition ?? {};
+    }
+    const resolved = resolveTheme(definition);
+    warnings.push(...resolved.warnings);
+    clear();
+    const vars: Record<string, string> = {};
+    for (const [token, value] of Object.entries(resolved.colors)) vars[`--bang-color-${token}`] = value;
+    for (const [role, value] of Object.entries(resolved.fonts)) vars[`--bang-font-${role}`] = value;
+    for (const [name, value] of Object.entries(vars)) this.style.setProperty(name, value);
+    this.themeVars = Object.keys(vars);
+    if (resolved.fontsRequest) ensureThemeFonts(resolved.fontsRequest);
+    report(warnings);
+  }
 
   private applyMotionPreference(): void {
     this.reducedMotion = this.motionQuery?.matches ?? false;
@@ -604,7 +658,7 @@ export class BangRoot extends BangElement {
 
   /** Waits for every component's latest render and for fonts. Call after `goto` resolves. */
   ready(opts?: { timeoutMs?: number; fontsTimeoutMs?: number }): Promise<ReadyReport> {
-    return collectReady(this, opts);
+    return collectReady(this, { ...opts, extraWarnings: this.themeWarnings });
   }
 
   private showStatus(text: string): void {
