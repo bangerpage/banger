@@ -58,3 +58,30 @@ export async function extractPdf(path: string): Promise<PdfInfo> {
 export function pngSize(buffer: Buffer): { width: number; height: number } {
   return { width: buffer.readUInt32BE(16), height: buffer.readUInt32BE(20) };
 }
+
+/** The color of one pixel of a PNG as `#RRGGBB`, read back through a canvas in the browser. */
+export async function pixelAt(png: Buffer, x: number, y: number): Promise<string> {
+  const { launchBrowser } = await import("../../src/browser.js");
+  const browser = await launchBrowser();
+  try {
+    const page = await browser.newPage();
+    return await page.evaluate(
+      async ({ url, x, y }) => {
+        const image = new Image();
+        image.src = url;
+        await image.decode();
+        const canvas = document.createElement("canvas");
+        canvas.width = image.width;
+        canvas.height = image.height;
+        const context = canvas.getContext("2d");
+        if (!context) throw new Error("no 2d context");
+        context.drawImage(image, 0, 0);
+        const [r, g, b] = context.getImageData(x, y, 1, 1).data;
+        return `#${[r, g, b].map((v) => (v ?? 0).toString(16).padStart(2, "0")).join("")}`.toUpperCase();
+      },
+      { url: `data:image/png;base64,${png.toString("base64")}`, x, y },
+    );
+  } finally {
+    await browser.close();
+  }
+}

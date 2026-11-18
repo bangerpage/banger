@@ -32,6 +32,10 @@ describe("bin", () => {
     ["export with a bad --steps", ["export", "deck.html", "--pdf", "--steps", "some"]],
     ["snap with a bad --scale", ["snap", "deck.html", "--scale", "3"]],
     ["snap with a bad --stop", ["snap", "deck.html", "--stop", "x"]],
+    ["theme without a subcommand", ["theme"]],
+    ["theme with an unknown subcommand", ["theme", "frob"]],
+    ["theme apply without files", ["theme", "apply"]],
+    ["theme init with an unknown preset", ["theme", "init", "--from", "nope"]],
     ["unknown option", ["snap", "deck.html", "--nope"]],
   ])("%s exits 2 with a banger: message", async (_name, argv) => {
     expect(await main(argv)).toBe(2);
@@ -41,6 +45,8 @@ describe("bin", () => {
   it("--help and --version exit 0", async () => {
     expect(await main(["--help"])).toBe(0);
     expect(stdout).toContain("usage: banger");
+    expect(stdout).toContain("theme init");
+    expect(stdout).toContain("theme apply");
     stdout = "";
     expect(await main(["--version"])).toBe(0);
     expect(stdout.trim()).toMatch(/^\d+\.\d+\.\d+/);

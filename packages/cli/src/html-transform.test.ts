@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { CORE_PACKAGE } from "./core-package.js";
-import { findRuntimeScript, injectBeforeBodyEnd, rewriteRuntimeScript, runtimeVersionWarning } from "./html-transform.js";
+import { applyThemeBlock, findRuntimeScript, injectBeforeBodyEnd, rewriteRuntimeScript, runtimeVersionWarning } from "./html-transform.js";
 
 const page = (src: string) =>
   `<!doctype html>\n<html><head><title>t &amp; u</title></head><body>\n<script type="module" src="${src}"></script>\n<bang-root></bang-root>\n</body></html>\n`;
@@ -61,5 +61,64 @@ describe("html-transform", () => {
         `runtime script ${src} is not a recognized CDN URL and is not replaced with the local core`,
       );
     });
+  });
+});
+
+describe("applyThemeBlock", () => {
+  const json = '{\n  "base": "dark"\n}';
+  const block = (indent: string, eol = "\n") =>
+    [
+      "<bang-theme>",
+      `${indent}  <script type="application/json">`,
+      `${indent}    {`,
+      `${indent}      "base": "dark"`,
+      `${indent}    }`,
+      `${indent}  </script>`,
+      `${indent}</bang-theme>`,
+    ].join(eol);
+  const apply = (html: string) => {
+    const result = applyThemeBlock(html, json);
+    if (!result || "error" in result) throw new Error("expected a result");
+    return result;
+  };
+
+  it("inserts a block with inherited indentation and adds the theme attribute", () => {
+    const html = "<body>\n  <bang-root>\n    <bang-frame></bang-frame>\n  </bang-root>\n</body>\n";
+    const out = apply(html).html;
+    expect(out).toBe(
+      `<body>\n  <bang-root theme="custom">\n    ${block("    ")}\n    <bang-frame></bang-frame>\n  </bang-root>\n</body>\n`,
+    );
+  });
+
+  it("replaces theme=light and an existing block, and is idempotent", () => {
+    const html = '<bang-root theme="light">\n  <bang-theme><script type="application/json">{}</script></bang-theme>\n  <bang-frame></bang-frame>\n</bang-root>\n';
+    const once = apply(html);
+    expect(once.html).toBe(`<bang-root theme="custom">\n  ${block("  ")}\n  <bang-frame></bang-frame>\n</bang-root>\n`);
+    expect(apply(once.html).html).toBe(once.html);
+  });
+
+  it("keeps CRLF", () => {
+    const html = "<bang-root>\r\n  <bang-frame></bang-frame>\r\n</bang-root>\r\n";
+    const out = apply(html).html;
+    expect(out).toBe(`<bang-root theme="custom">\r\n  ${block("  ", "\r\n")}\r\n  <bang-frame></bang-frame>\r\n</bang-root>\r\n`);
+    expect(out.replace(/\r\n/g, "")).not.toContain("\n");
+  });
+
+  it("returns null without bang-root and ignores template and script contents", () => {
+    expect(applyThemeBlock("<p>hi</p>", json)).toBeNull();
+    expect(applyThemeBlock("<template><bang-root></bang-root></template>", json)).toBeNull();
+    expect(applyThemeBlock('<script>var s = "<bang-root>";</script>', json)).toBeNull();
+  });
+
+  it("counts extra bang-theme blocks", () => {
+    const html = "<bang-root theme=custom>\n<bang-theme></bang-theme>\n<bang-theme></bang-theme>\n</bang-root>";
+    expect(apply(html).extraBlocks).toBe(1);
+  });
+
+  it("reports an unclosed bang-theme and foreign children without changing anything", () => {
+    expect(applyThemeBlock("<bang-root><bang-theme><bang-frame></bang-frame></bang-root>", json)).toEqual({ error: "unclosed-theme" });
+    const foreign = '<bang-root><bang-theme><script type="application/json">{}</script><bang-text>x</bang-text></bang-theme></bang-root>';
+    expect(applyThemeBlock(foreign, json)).toEqual({ error: "foreign-children" });
+    expect(applyThemeBlock("<bang-root><bang-theme>stray</bang-theme></bang-root>", json)).toEqual({ error: "foreign-children" });
   });
 });

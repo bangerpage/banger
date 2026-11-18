@@ -46,6 +46,8 @@ describe("pack", () => {
     for (const file of [
       "dist/index.js",
       "dist/index.d.ts",
+      "dist/theme/index.js",
+      "dist/theme/index.d.ts",
       "custom-elements.json",
       "LICENSE",
       "NOTICE",
@@ -55,6 +57,7 @@ describe("pack", () => {
     }
     const pkg = JSON.parse(await readFile(join(coreDir, "package.json"), "utf8")) as { exports: Record<string, unknown> };
     expect(pkg.exports["./custom-elements.json"]).toBeDefined();
+    expect(pkg.exports["./theme"]).toBeDefined();
   });
 
   it("AC-PKG-4 the cli tarball carries an executable bin and the library entry", async () => {
