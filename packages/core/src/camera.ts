@@ -140,11 +140,17 @@ export function clipFor(
   return { top: y, right: x, bottom: y, left: x };
 }
 
+/**
+ * `layer: false` gives a 2D transform. A 3D one puts the canvas on its own compositor layer, which moves smoothly but
+ * may be drawn from a raster made at the previous zoom, so stills taken from it differ from run to run.
+ */
 export function toTransform(
   pose: CameraPose,
   stage: Size,
+  layer = true,
 ): { tx: number; ty: number; scale: number; css: string } {
   const tx = stage.w / 2 - pose.cx * pose.zoom;
   const ty = stage.h / 2 - pose.cy * pose.zoom;
-  return { tx, ty, scale: pose.zoom, css: `translate3d(${tx}px, ${ty}px, 0) scale(${pose.zoom})` };
+  const move = layer ? `translate3d(${tx}px, ${ty}px, 0)` : `translate(${tx}px, ${ty}px)`;
+  return { tx, ty, scale: pose.zoom, css: `${move} scale(${pose.zoom})` };
 }

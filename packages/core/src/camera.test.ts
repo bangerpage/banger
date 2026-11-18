@@ -69,6 +69,7 @@ describe("camera", () => {
   it("toTransform has no rotation component", () => {
     const { css, tx, ty, scale } = toTransform({ cx: 480, cy: 270, zoom: 2 }, stage);
     expect(css).toMatch(/^translate3d\(.+\) scale\(.+\)$/);
+    expect(toTransform({ cx: 480, cy: 270, zoom: 2 }, stage, false).css).toMatch(/^translate\(.+\) scale\(.+\)$/);
     expect(css).not.toMatch(/rotate|matrix|skew/);
     expect(tx).toBe(960 - 960);
     expect(ty).toBe(540 - 540);

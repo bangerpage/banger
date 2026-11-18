@@ -502,7 +502,7 @@ export class BangRoot extends BangElement {
 
   private applyPose(pose: CameraPose): void {
     const canvas = this.canvasEl();
-    if (canvas) canvas.style.transform = toTransform(pose, this.stageNow).css;
+    if (canvas) canvas.style.transform = toTransform(pose, this.stageNow, this.mode !== "export").css;
   }
 
   private applyClip(): void {
