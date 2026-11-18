@@ -115,13 +115,16 @@ export async function fontsSettled(timeoutMs: number): Promise<string[]> {
   return result;
 }
 
+/** `timeoutMs` bounds the whole run, so a chart waiting on fonts gives up before the ready() timeout and draws with fallbacks. */
 async function runLoadFonts(text: string, timeoutMs: number): Promise<string[]> {
+  const deadline = Date.now() + timeoutMs;
+  const left = () => Math.max(0, deadline - Date.now());
   const warnings = new Set(await fontsSettled(timeoutMs));
   await Promise.all(
     [...FONT_FACES, ...(themeSheet?.request.families ?? [])].flatMap(({ family, weights }) =>
       weights.map(async (weight) => {
         try {
-          await withTimeout(document.fonts.load(`${weight} 1em "${family}"`, text), timeoutMs);
+          await withTimeout(document.fonts.load(`${weight} 1em "${family}"`, text), left());
         } catch (error) {
           warnings.add(error instanceof Error && error.message === "timed out" ? "fonts timed out" : `font load failed: ${family}`);
         }
@@ -129,7 +132,7 @@ async function runLoadFonts(text: string, timeoutMs: number): Promise<string[]> 
     ),
   );
   try {
-    await withTimeout(document.fonts.ready, timeoutMs);
+    await withTimeout(document.fonts.ready, left());
   } catch {
     warnings.add("fonts timed out");
   }
