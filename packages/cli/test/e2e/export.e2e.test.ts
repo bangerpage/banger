@@ -111,6 +111,19 @@ describe("export", () => {
     expect(await countPathOps(withOut)).toBeGreaterThan(await countPathOps(withoutOut));
   });
 
+  it("free.html snaps byte-identically without warnings (AC-HATCH-5)", async () => {
+    const a = join(work, "free-a");
+    const b = join(work, "free-b");
+    const runA = await runBin(["snap", fixture("free.html"), "--out-dir", a]);
+    const runB = await runBin(["snap", fixture("free.html"), "--out-dir", b]);
+    expect(runA.code, runA.stderr).toBe(0);
+    expect(runB.code, runB.stderr).toBe(0);
+    expect(runA.stderr).not.toMatch(/warn|bang-free/i);
+    const names = await readdir(a);
+    expect(names.length).toBeGreaterThan(0);
+    for (const name of names) expect((await readFile(join(a, name))).equals(await readFile(join(b, name))), name).toBe(true);
+  });
+
   it("export --pdf of a custom theme with shadow, band, gradient cover and crumb keeps one page per stop (AC-PDF-1)", async () => {
     const out = join(work, "custom-card.pdf");
     const result = await runBin(["export", fixture("custom-card.html"), "--pdf", "--out", out]);

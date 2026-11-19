@@ -67,7 +67,7 @@ describe("skill", () => {
     for (const heading of ["## 作業の流れ", "## 原則", "## コマンド", "## エスケープハッチ"]) expect(md).toContain(heading);
     expect(md).toContain("banger snap");
     expect(md).toMatch(/`style` 属性.*書かない/);
-    expect(md).toMatch(/bang-free.*最後の手段/);
+    expect(md).toMatch(/bang-free.*部品に無い/);
   });
 
   it("AC-SKILL-5 enum attributes are inline unions and runtime URLs match the core package", () => {
@@ -179,6 +179,42 @@ describe("skill", () => {
     const readme = read("docs/design-system/README.md");
     expect(readme).toMatch(/bang-shape.*カスタムテーマ/);
     expect(readme).toContain("`<i>`");
+  });
+
+  it("AC-DOC-C1 the escape hatch section has the new wording", () => {
+    const md = read("skill/SKILL.md");
+    const section = md.split(/^## /m).find((s) => s.startsWith("エスケープハッチ\n")) ?? "";
+    expect(section).not.toBe("");
+    for (const gone of ["fallback", "bangReady", "最後の手段"]) expect(section, gone).not.toContain(gone);
+    expect(section).toContain("繰り返し使った形は部品の候補");
+    expect(md).toMatch(/`style` 属性.*`bang-free`/);
+  });
+
+  it("AC-DOC-C3 patterns, the design system and components carry the bang-free recipes", () => {
+    for (const heading of ["地図を逃げ道で組む", "曲線の矢印と丸囲みを重ねる"]) {
+      const section = patternSection(heading);
+      expect(section, heading).toContain("```html");
+      expect(section, heading).not.toMatch(/#[0-9a-fA-F]{3,8}\b|rgba?\(|box-shadow|\sstyle=/);
+    }
+    expect(patternSection("曲線の矢印と丸囲みを重ねる")).toContain("制御点");
+    expect(read("docs/design-system/README.md")).toMatch(/bang-free.*カスタムテーマ/);
+    const free = read("skill/reference/components.md").split(/^## /m).find((s) => s.startsWith("bang-free\n")) ?? "";
+    expect(free).not.toBe("");
+    expect(free).toContain("| `overlay` |");
+  });
+
+  it("AC-DOC-C4 concept.md describes the escape hatch as it is built", () => {
+    const lines = read("docs/concept.md").split("\n");
+    const row = lines.find((l) => l.startsWith("| エスケープハッチ |")) ?? "";
+    const bullet = lines.find((l) => l.startsWith("- エスケープハッチは")) ?? "";
+    for (const line of [row, bullet]) {
+      expect(line).not.toBe("");
+      expect(line).not.toContain("Shadow DOM");
+      expect(line).not.toContain("fallback");
+    }
+    for (const word of ["Light DOM", "@scope", "overlay"]) expect(row).toContain(word);
+    const promise = lines.find((l) => l.startsWith("3. ") && l.includes("bang-embed")) ?? "";
+    expect(promise).toContain("`bang-free` は実際の描画のまま");
   });
 
   it("AC-LEAD-1 themes.md has a leading guide section", () => {

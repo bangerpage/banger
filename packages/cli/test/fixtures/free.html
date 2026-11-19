@@ -1,0 +1,42 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8">
+  <title>Banger free</title>
+</head>
+<body>
+<script type="module" src="https://cdn.jsdelivr.net/npm/@bangerpage/core@0.1.0/dist/index.js"></script>
+<bang-root>
+  <bang-frame id="flow" at="0,0">
+    <bang-title size="m">自由な図</bang-title>
+    <bang-free>
+      <style>
+        .row { display: grid; grid-template-columns: 1fr 1fr; gap: 32px; align-items: center; }
+        .box { border: 2px solid var(--bang-color-ink-muted); padding: 32px; font-size: 40px; color: var(--bang-color-ink); }
+        img { width: 96px; height: 96px; }
+        svg { width: 160px; height: 80px; color: var(--bang-color-signal-text); }
+      </style>
+      <div class="row">
+        <div class="box" data-step="1">段階で出る箱 <img src="assets/pixel.png" alt=""></div>
+        <svg viewBox="0 0 160 80"><ellipse cx="80" cy="40" rx="70" ry="30" fill="none" stroke="currentColor" stroke-width="4"></ellipse></svg>
+      </div>
+    </bang-free>
+  </bang-frame>
+  <bang-frame id="over" at="1,0">
+    <bang-title size="m">重ねる注記</bang-title>
+    <bang-text>本文</bang-text>
+    <bang-free overlay>
+      <style>
+        .note { position: absolute; left: 1200px; top: 700px; width: 500px; padding: 16px 24px; border: 1px solid var(--bang-color-line); background: var(--bang-color-surface); color: var(--bang-color-ink); font-size: 32px; }
+        .layer { position: relative; }
+      </style>
+      <div class="layer"><div class="note">注記</div></div>
+    </bang-free>
+  </bang-frame>
+  <bang-path>
+    <bang-stop frame="flow" steps="1"></bang-stop>
+    <bang-stop frame="over"></bang-stop>
+  </bang-path>
+</bang-root>
+</body>
+</html>
