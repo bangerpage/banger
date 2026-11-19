@@ -112,6 +112,11 @@ describe("bang-free", () => {
     expect((await rect(p, "#w")).height).toBeLessThan(100);
   });
 
+  it("fills a stack that sits in a centring column", async () => {
+    const { page: p } = await deck(`<bang-frame id="a"><bang-title>T</bang-title><bang-columns ratio="1:1" align="center"><bang-stack id="s"><bang-text>t</bang-text><bang-free id="f"><svg viewBox="0 0 100 50" style="width: 100%; height: 100%"><rect width="100" height="50"></rect></svg></bang-free></bang-stack><bang-text>right</bang-text></bang-columns></bang-frame>`);
+    expect((await rect(p, "#f")).height).toBeGreaterThan(300);
+  });
+
   it("AC-HATCH-4 overlay covers the frame without moving the other parts", async () => {
     const body = (overlay: string) =>
       `<bang-frame id="a"><bang-title id="t">T</bang-title><bang-text id="x">text</bang-text>${overlay}</bang-frame>`;

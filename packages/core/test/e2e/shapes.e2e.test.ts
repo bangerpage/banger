@@ -46,7 +46,7 @@ const rectOf = (page: Page, selector: string) =>
     return { width: Math.round(r.width), height: Math.round(r.height) };
   }, selector);
 
-const KINDS = ["arrow-up", "arrow-down", "arrow-right", "ok", "ng"] as const;
+const KINDS = ["arrow-up", "arrow-down", "arrow-left", "arrow-right", "ok", "ng"] as const;
 const placed = (kind: string) => `<bang-shape kind="${kind}"></bang-shape>`;
 
 describe("bang-shape", () => {
@@ -130,6 +130,7 @@ describe("bang-shape", () => {
     expect(out).toEqual([
       ["arrow-up", null, null, "true"],
       ["arrow-down", null, null, "true"],
+      ["arrow-left", null, null, "true"],
       ["arrow-right", null, null, "true"],
       ["ok", "img", "OK", null],
       ["ng", "img", "NG", null],

@@ -40,6 +40,23 @@ const style = (page: Page, selector: string) =>
   }, selector);
 
 describe("components", () => {
+  it("sizes a stat caption with label-size and keeps xs by default", async () => {
+    const { page } = await open("deck.html");
+    const sizes = await page.evaluate(() => {
+      const make = (attrs: string) => {
+        const host = document.createElement("div");
+        host.innerHTML = `<bang-stat value="1" label="caption" ${attrs}></bang-stat>`;
+        document.querySelector("bang-frame")!.append(host);
+        return host.firstElementChild as HTMLElement & { updateComplete: Promise<unknown> };
+      };
+      return Promise.all([make(""), make('label-size="m"')].map(async (el) => {
+        await el.updateComplete;
+        return getComputedStyle(el.shadowRoot!.querySelector(".label")!).fontSize;
+      }));
+    });
+    expect(sizes).toEqual(["28px", "48px"]);
+  });
+
   it("AC-CMP-2 title, text and stat use the presentation scale and tones", async () => {
     const { page } = await open("deck.html", { query: "mode=export" });
     const title = await style(page, "bang-title");

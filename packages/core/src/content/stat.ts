@@ -24,8 +24,6 @@ export class BangStat extends BangElement {
     }
     .label {
       font-family: var(--bang-font-sans);
-      font-size: var(--bang-size-xs);
-      line-height: var(--bang-leading-xs);
       color: var(--bang-tone-muted);
     }
   `;
@@ -36,6 +34,9 @@ export class BangStat extends BangElement {
   /** Caption under the value. */
   @property() label?: string;
 
+  /** Size of the caption. Raise it when a large value sits next to body text and the caption reads too small. */
+  @property({ attribute: "label-size" }) labelSize: "xs" | "s" | "m" | "l" | "xl" | "2xl" = "xs";
+
   /** Size of the value. */
   @property() size: "xs" | "s" | "m" | "l" | "xl" | "2xl" = "xl";
 
@@ -45,10 +46,12 @@ export class BangStat extends BangElement {
   render() {
     const size = pick(this, "size", SIZES, "xl");
     const tone = pick(this, "tone", TONES, "default");
+    const labelSize = pick(this, "label-size", SIZES, "xs");
     const value = this.getAttribute("value");
     if (value === null) warnOnce("stat|value", "[banger] <bang-stat> needs a value attribute");
     return html`<style>
         .value { font-size: var(--bang-size-${size}); line-height: calc(var(--bang-leading-${size}) * var(--bang-heading-leading-scale, 1)); color: var(--bang-tone-${tone}); }
+        .label { font-size: var(--bang-size-${labelSize}); line-height: var(--bang-leading-${labelSize}); }
       </style><div class="value">${value ?? ""}</div>${this.label ? html`<div class="label">${this.label}</div>` : ""}`;
   }
 }

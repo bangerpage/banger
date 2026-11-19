@@ -230,7 +230,7 @@ Slots:
 
 A small flat symbol that sits in the flow: a thick arrow or an ok / ng mark.
 
-Put it inside a `bang-text` line, a `bang-list` item, a `bang-columns` child or a `bang-stack` child. `kind` picks the form: `arrow-up`, `arrow-down` and `arrow-right` are thick arrows twice as wide as tall, drawn at 60% of the theme text colour so they read as grey; `ok` (a ring) and `ng` (a cross) are square and take the tone colour as is. It is drawn as a vector, so a PDF carries it as a shape, not as text: a tool that extracts text will not see its meaning.
+Put it inside a `bang-text` line, a `bang-list` item, a `bang-columns` child or a `bang-stack` child. `kind` picks the form: `arrow-up`, `arrow-down`, `arrow-left` and `arrow-right` are thick arrows twice as wide as tall, drawn at 60% of the theme text colour so they read as grey; `ok` (a ring) and `ng` (a cross) are square and take the tone colour as is. It is drawn as a vector, so a PDF carries it as a shape, not as text: a tool that extracts text will not see its meaning.
 
 ```html
 <bang-shape kind="arrow-down" size="l"></bang-shape>
@@ -239,7 +239,7 @@ Put it inside a `bang-text` line, a `bang-list` item, a `bang-columns` child or 
 
 | Attribute | Values | Default | Description |
 | --- | --- | --- | --- |
-| `kind` | `arrow-up`, `arrow-down`, `arrow-right`, `ok`, `ng` | `arrow-down` | Which form to draw. |
+| `kind` | `arrow-up`, `arrow-down`, `arrow-left`, `arrow-right`, `ok`, `ng` | `arrow-down` | Which form to draw. |
 | `size` | `xs`, `s`, `m`, `l`, `xl`, `2xl` | `m` | Height of the form (a square mark is as wide as it is tall; an arrow is twice as wide). |
 | `tone` | `default`, `muted`, `accent` | `default` | Colour. |
 
@@ -275,6 +275,7 @@ A large number with a caption.
 | --- | --- | --- | --- |
 | `value` | string, required | - | Required. The number or short text to show. |
 | `label` | string | - | Caption under the value. |
+| `label-size` | `xs`, `s`, `m`, `l`, `xl`, `2xl` | `xs` | Size of the caption. Raise it when a large value sits next to body text and the caption reads too small. |
 | `size` | `xs`, `s`, `m`, `l`, `xl`, `2xl` | `xl` | Size of the value. |
 | `tone` | `default`, `muted`, `accent` | `default` | Color of the value. |
 

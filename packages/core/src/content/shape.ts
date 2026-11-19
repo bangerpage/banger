@@ -3,7 +3,7 @@ import { property } from "lit/decorators.js";
 import { pick, SIZES, TONES } from "../attrs.js";
 import { BangElement, defineOnce } from "../element.js";
 
-export const SHAPE_KINDS = ["arrow-up", "arrow-down", "arrow-right", "ok", "ng"] as const;
+export const SHAPE_KINDS = ["arrow-up", "arrow-down", "arrow-left", "arrow-right", "ok", "ng"] as const;
 
 const ARROW_VIEWBOX = "0 0 64 32";
 const MARK_VIEWBOX = "0 0 32 32";
@@ -12,6 +12,7 @@ const MARK_VIEWBOX = "0 0 32 32";
 const SHAPES = {
   "arrow-down": { viewBox: ARROW_VIEWBOX, d: "M16 0H48V12H64L32 32L0 12H16Z", width: 2 },
   "arrow-up": { viewBox: ARROW_VIEWBOX, d: "M16 32H48V20H64L32 0L0 20H16Z", width: 2 },
+  "arrow-left": { viewBox: ARROW_VIEWBOX, d: "M64 8H24V0L0 16L24 32V24H64Z", width: 2 },
   "arrow-right": { viewBox: ARROW_VIEWBOX, d: "M0 8H40V0L64 16L40 32V24H0Z", width: 2 },
   ok: {
     viewBox: MARK_VIEWBOX,
@@ -24,7 +25,7 @@ const SHAPES = {
 /**
  * A small flat symbol that sits in the flow: a thick arrow or an ok / ng mark.
  *
- * Put it inside a `bang-text` line, a `bang-list` item, a `bang-columns` child or a `bang-stack` child. `kind` picks the form: `arrow-up`, `arrow-down` and `arrow-right` are thick arrows twice as wide as tall, drawn at 60% of the theme text colour so they read as grey; `ok` (a ring) and `ng` (a cross) are square and take the tone colour as is. It is drawn as a vector, so a PDF carries it as a shape, not as text: a tool that extracts text will not see its meaning.
+ * Put it inside a `bang-text` line, a `bang-list` item, a `bang-columns` child or a `bang-stack` child. `kind` picks the form: `arrow-up`, `arrow-down`, `arrow-left` and `arrow-right` are thick arrows twice as wide as tall, drawn at 60% of the theme text colour so they read as grey; `ok` (a ring) and `ng` (a cross) are square and take the tone colour as is. It is drawn as a vector, so a PDF carries it as a shape, not as text: a tool that extracts text will not see its meaning.
  *
  * ```html
  * <bang-shape kind="arrow-down" size="l"></bang-shape>
@@ -50,7 +51,7 @@ export class BangShape extends BangElement {
 
   // The union is spelled as literals because scripts/gen-skill.mjs reads this form; do not fold it into (typeof SHAPE_KINDS)[number].
   /** Which form to draw. */
-  @property() kind: "arrow-up" | "arrow-down" | "arrow-right" | "ok" | "ng" = "arrow-down";
+  @property() kind: "arrow-up" | "arrow-down" | "arrow-left" | "arrow-right" | "ok" | "ng" = "arrow-down";
 
   /** Height of the form (a square mark is as wide as it is tall; an arrow is twice as wide). */
   @property() size: "xs" | "s" | "m" | "l" | "xl" | "2xl" = "m";
