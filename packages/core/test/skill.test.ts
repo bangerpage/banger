@@ -137,6 +137,50 @@ describe("skill", () => {
     for (const attr of ["crumb", "ground"]) expect(frame, attr).toContain(`| \`${attr}\` |`);
   });
 
+  const patternSection = (heading: string) =>
+    read("skill/reference/patterns.md").split(/^## /m).find((s) => s.startsWith(`${heading}\n`)) ?? "";
+  const SHAPE_PATTERNS = ["○ と ✖ で良し悪しを分ける", "矢印でカードをつなぐ", "出典をカードの外に置く"];
+
+  it("AC-SHAPE-6 components.md has the bang-shape section with kind, size and tone rows", () => {
+    const section = read("skill/reference/components.md").split(/^## /m).find((s) => s.startsWith("bang-shape\n")) ?? "";
+    expect(section).not.toBe("");
+    for (const [attr, values, fallback] of [
+      ["kind", ["arrow-up", "arrow-down", "arrow-right", "ok", "ng"], "arrow-down"],
+      ["size", ["xs", "s", "m", "l", "xl", "2xl"], "m"],
+      ["tone", ["default", "muted", "accent"], "default"],
+    ] as const) {
+      const row = section.split("\n").find((line) => line.startsWith(`| \`${attr}\` |`)) ?? "";
+      for (const value of values) expect(row, `${attr} ${value}`).toContain(`\`${value}\``);
+      expect(row, attr).toContain(`| \`${fallback}\` |`);
+    }
+  });
+
+  it("AC-ITAL-1 the text, title and list sections mention <i> and none mentions <em>", () => {
+    const md = read("skill/reference/components.md");
+    for (const tag of ["bang-text", "bang-title", "bang-list"]) {
+      const section = md.split(/^## /m).find((s) => s.startsWith(`${tag}\n`)) ?? "";
+      expect(section, tag).toContain("`<i>`");
+      expect(section, tag).not.toContain("<em>");
+    }
+  });
+
+  it("AC-DOC-C2 SKILL, patterns and the design system carry bang-shape and <i>", () => {
+    const skill = read("skill/SKILL.md");
+    expect(skill).toContain("bang-shape");
+    expect(skill).toContain("`<i>`");
+    const emphasis = patternSection("文中の強調と入れ子の箇条書き");
+    expect(emphasis).toContain("`<i>`");
+    expect(emphasis).not.toContain("`<b>` (太字) と `<mark>` (マーカー) だけ");
+    for (const heading of SHAPE_PATTERNS) {
+      const section = patternSection(heading);
+      expect(section, heading).toContain("```html");
+      expect(section, heading).not.toMatch(/#[0-9a-fA-F]{3,8}\b|rgba?\(|box-shadow|\sstyle=/);
+    }
+    const readme = read("docs/design-system/README.md");
+    expect(readme).toMatch(/bang-shape.*カスタムテーマ/);
+    expect(readme).toContain("`<i>`");
+  });
+
   it("AC-LEAD-1 themes.md has a leading guide section", () => {
     const themes = read("skill/reference/themes.md");
     const section = themes.split(/^## /m).find((s) => s.startsWith("行間の目安\n")) ?? "";

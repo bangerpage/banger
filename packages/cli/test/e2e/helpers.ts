@@ -55,6 +55,20 @@ export async function extractPdf(path: string): Promise<PdfInfo> {
   return { title, pages: doc.numPages, views, texts };
 }
 
+/** The number of path-construction operators across every page: a drawn shape adds some, text does not. */
+export async function countPathOps(path: string): Promise<number> {
+  const pdfjs = await import("pdfjs-dist/legacy/build/pdf.mjs");
+  const data = new Uint8Array(await readFile(path));
+  const doc = await pdfjs.getDocument({ data, useSystemFonts: true }).promise;
+  let count = 0;
+  for (let i = 1; i <= doc.numPages; i++) {
+    const page = await doc.getPage(i);
+    const { fnArray } = await page.getOperatorList();
+    count += fnArray.filter((fn) => fn === pdfjs.OPS.constructPath).length;
+  }
+  return count;
+}
+
 export function pngSize(buffer: Buffer): { width: number; height: number } {
   return { width: buffer.readUInt32BE(16), height: buffer.readUInt32BE(20) };
 }

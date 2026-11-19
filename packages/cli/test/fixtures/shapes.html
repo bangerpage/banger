@@ -1,0 +1,30 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8">
+  <title>Banger shapes</title>
+</head>
+<body>
+<script type="module" src="https://cdn.jsdelivr.net/npm/@bangerpage/core@0.1.0/dist/index.js"></script>
+<bang-root>
+  <bang-frame id="marks" at="0,0">
+    <bang-title size="m">図形と引用</bang-title>
+    <bang-stack align="center">
+      <bang-shape kind="arrow-up"></bang-shape>
+      <bang-shape kind="arrow-down"></bang-shape>
+      <bang-shape kind="arrow-right"></bang-shape>
+      <bang-shape kind="ok"></bang-shape>
+      <bang-shape kind="ng" tone="accent"></bang-shape>
+    </bang-stack>
+  </bang-frame>
+  <bang-frame id="quote" at="1,0">
+    <bang-title size="m">引用</bang-title>
+    <bang-text><i>Simplicity is the ultimate sophistication.</i></bang-text>
+  </bang-frame>
+  <bang-path>
+    <bang-stop frame="marks"></bang-stop>
+    <bang-stop frame="quote"></bang-stop>
+  </bang-path>
+</bang-root>
+</body>
+</html>

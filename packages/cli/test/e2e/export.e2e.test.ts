@@ -6,7 +6,7 @@ import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { chromium } from "playwright-core";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
-import { binPath, extractPdf, fixture, pngSize, runBin } from "./helpers.js";
+import { binPath, countPathOps, extractPdf, fixture, pngSize, runBin } from "./helpers.js";
 
 const preload = join(dirname(fileURLToPath(import.meta.url)), "preload/block-font-files.mjs");
 const corePackageName = (
@@ -87,6 +87,28 @@ describe("export", () => {
       mismatched,
       `mismatched: ${mismatched.join(", ")}\nstderr A: ${runA.stderr}\nstderr B: ${runB.stderr}`,
     ).toEqual([]);
+  });
+
+  it("shapes.html snaps byte-identically and its PDF draws the shapes as vector paths (AC-SHAPE-5)", async () => {
+    const a = join(work, "shapes-a");
+    const b = join(work, "shapes-b");
+    const runA = await runBin(["snap", fixture("shapes.html"), "--out-dir", a]);
+    const runB = await runBin(["snap", fixture("shapes.html"), "--out-dir", b]);
+    expect(runA.code, runA.stderr).toBe(0);
+    expect(runB.code, runB.stderr).toBe(0);
+    const names = await readdir(a);
+    expect(names).toHaveLength(2);
+    for (const name of names) expect((await readFile(join(a, name))).equals(await readFile(join(b, name))), name).toBe(true);
+
+    const plainDir = join(work, "shapes-plain");
+    await mkdir(plainDir, { recursive: true });
+    const plain = join(plainDir, "shapes.html");
+    await writeFile(plain, (await readFile(fixture("shapes.html"), "utf8")).replace(/<bang-shape[^>]*><\/bang-shape>\s*/g, ""));
+    const withOut = join(work, "shapes-with.pdf");
+    const withoutOut = join(work, "shapes-without.pdf");
+    expect((await runBin(["export", fixture("shapes.html"), "--pdf", "--out", withOut])).code).toBe(0);
+    expect((await runBin(["export", plain, "--pdf", "--out", withoutOut])).code).toBe(0);
+    expect(await countPathOps(withOut)).toBeGreaterThan(await countPathOps(withoutOut));
   });
 
   it("export --pdf of a custom theme with shadow, band, gradient cover and crumb keeps one page per stop (AC-PDF-1)", async () => {

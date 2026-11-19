@@ -99,6 +99,10 @@ describe("theme", () => {
     expect(css).not.toMatch(/--bang-(text-|heading-|cover-ground|band-ground|card-shadow|highlight|band-border)/);
   });
 
+  it("adds no shape, free-box or italic rule to the generated css", () => {
+    expect(css).not.toMatch(/bang-shape|bang-free|font-style/);
+  });
+
   it("defines the six presentation sizes and gaps", () => {
     const sizes = { xs: 28, s: 36, m: 48, l: 64, xl: 96, "2xl": 144 };
     const gaps = { xs: 16, s: 24, m: 32, l: 48, xl: 64, "2xl": 96 };
