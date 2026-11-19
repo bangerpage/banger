@@ -1,6 +1,6 @@
 import { css, html, type PropertyValues } from "lit";
 import { property } from "lit/decorators.js";
-import { pick, pickInt, SIZES, TONES } from "../attrs.js";
+import { pick, pickInt, SIZES, TONES, warnOnce } from "../attrs.js";
 import { defineOnce, StepAware } from "../element.js";
 
 /**
@@ -15,8 +15,18 @@ import { defineOnce, StepAware } from "../element.js";
  * </bang-list>
  * ```
  *
+ * Nest a list by placing a `bang-list` right after the parent `li`, as a direct child of the parent list. Never put it inside the `li`: the HTML parser closes the parent `li` and breaks the nesting. The nested list has no depth limit, but every level looks the same, based on the outermost list: one size smaller, the same tone, a hollow marker. Its `size`, `tone` and `step` are ignored, and it appears together with the preceding parent item.
+ *
+ * ```html
+ * <bang-list step="1">
+ *   <li>Parent</li>
+ *   <bang-list><li>Child</li></bang-list>
+ *   <li>Next</li>
+ * </bang-list>
+ * ```
+ *
  * @element bang-list
- * @slot - `li` items.
+ * @slot - `li` items and nested `bang-list`.
  */
 export class BangList extends StepAware {
   static styles = css`
@@ -48,8 +58,14 @@ export class BangList extends StepAware {
       border-radius: 50%;
       background: var(--bang-marker);
     }
+    :host([data-bang-nested]) ::slotted(li)::before {
+      background: none;
+      border: 0.08em solid var(--bang-marker);
+      box-sizing: border-box;
+    }
     :host([ordered]) ::slotted(li)::before {
       content: counter(item) ".";
+      border: 0;
       top: 0;
       width: auto;
       height: auto;
@@ -80,22 +96,56 @@ export class BangList extends StepAware {
     return this.hasAttribute("step") ? pickInt(this, "step", 1, 999, 0) || undefined : undefined;
   }
 
+  private nestedIn(): BangList | null {
+    const parent = this.parentElement;
+    return parent instanceof BangList ? parent : null;
+  }
+
+  private rootList(): BangList {
+    let list: BangList = this;
+    for (let up = list.nestedIn(); up; up = list.nestedIn()) list = up;
+    return list;
+  }
+
+  protected willUpdate(changed: PropertyValues): void {
+    super.willUpdate(changed);
+    this.toggleAttribute("data-bang-nested", this.nestedIn() !== null);
+  }
+
   get stepCount(): number {
+    if (this.nestedIn()) return 0;
     const step = this.firstStep();
     return step === undefined ? 0 : step + this.items().length - 1;
   }
 
   protected updated(changed: PropertyValues): void {
     super.updated(changed);
+    if (this.nestedIn()) return;
     const step = this.firstStep();
     const items = this.items();
     const visible = step === undefined ? items.length : Math.min(Math.max(this.frameStep - step + 1, 0), items.length);
     items.forEach((li, i) => li.toggleAttribute("data-bang-hidden", i >= visible));
+    let previous: Element | undefined;
+    for (const child of this.children) {
+      if (child.localName === "li") previous = child;
+      else if (child.localName === "bang-list") {
+        child.toggleAttribute("data-bang-hidden", previous?.hasAttribute("data-bang-hidden") ?? false);
+      }
+    }
   }
 
   render() {
-    const size = pick(this, "size", SIZES, "s");
-    const tone = pick(this, "tone", TONES, "default");
+    const nested = this.nestedIn() !== null;
+    const base = nested ? this.rootList() : this;
+    const rootSize = pick(base, "size", SIZES, "s");
+    const size = nested ? SIZES[Math.max(SIZES.indexOf(rootSize) - 1, 0)] : rootSize;
+    const tone = pick(base, "tone", TONES, "default");
+    if (nested && (this.hasAttribute("size") || this.hasAttribute("tone") || this.hasAttribute("step"))) {
+      warnOnce(
+        "list|nested",
+        "[banger] <bang-list> next to its parent li takes its size and tone from the outermost list; its size, tone and step are ignored",
+      );
+    }
     return html`<style>
         :host {
           font-size: var(--bang-size-${size});
@@ -103,6 +153,9 @@ export class BangList extends StepAware {
           --bang-lh: calc(var(--bang-leading-${size}) * var(--bang-text-leading-scale, 1));
           --bang-marker: var(--bang-tone-${tone});
           color: var(--bang-tone-${tone});
+        }
+        ::slotted(bang-list) {
+          margin-left: calc(var(--bang-size-${size}) * 1.2);
         }
       </style><ul><slot @slotchange=${() => this.requestUpdate()}></slot></ul>`;
   }

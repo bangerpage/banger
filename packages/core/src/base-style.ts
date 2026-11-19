@@ -16,7 +16,7 @@ let lastLoad: { key: string; result: Promise<string[]> } | null = null;
 
 const baseCss = `
 html, body { margin: 0; overflow: hidden; background: var(--bang-color-paper, #F6F5F1); }
-[data-step], bang-list > li { transition: opacity var(--bang-duration-fast, 200ms); }
+[data-step], bang-list > li, bang-list > bang-list { transition: opacity var(--bang-duration-fast, 200ms); }
 [data-bang-hidden] { opacity: 0; pointer-events: none; }
 /* Layouts keep their natural height so the frame can centre them; only those holding a chart or image grow. Set here because document rules outrank :host. */
 bang-stack:has(bang-chart, bang-image), bang-columns:has(bang-chart, bang-image), bang-card:has(bang-chart, bang-image) { flex: 1 1 0; }

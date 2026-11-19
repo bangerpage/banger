@@ -126,6 +126,16 @@ Inside the text, only `<b>` (bold: one step heavier than the surroundings), `<ma
 </bang-list>
 ```
 
+Nest a list by placing a `bang-list` right after the parent `li`, as a direct child of the parent list. Never put it inside the `li`: the HTML parser closes the parent `li` and breaks the nesting. The nested list has no depth limit, but every level looks the same, based on the outermost list: one size smaller, the same tone, a hollow marker. Its `size`, `tone` and `step` are ignored, and it appears together with the preceding parent item.
+
+```html
+<bang-list step="1">
+  <li>Parent</li>
+  <bang-list><li>Child</li></bang-list>
+  <li>Next</li>
+</bang-list>
+```
+
 | Attribute | Values | Default | Description |
 | --- | --- | --- | --- |
 | `size` | `xs`, `s`, `m`, `l`, `xl`, `2xl` | `s` | Text size. |
@@ -135,7 +145,7 @@ Inside the text, only `<b>` (bold: one step heavier than the surroundings), `<ma
 
 Slots:
 
-- default: `li` items.
+- default: `li` items and nested `bang-list`.
 
 ## bang-notes
 

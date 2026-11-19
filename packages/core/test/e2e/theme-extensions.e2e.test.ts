@@ -377,3 +377,125 @@ describe("inline emphasis", () => {
     expect((await style(plain.page, "#m", ["backgroundImage"])).backgroundImage).toContain("60%");
   });
 });
+
+describe("nested list", () => {
+  const nest = (parentAttrs: string, nestedAttrs = "") =>
+    `<bang-frame id="a"><bang-list id="p" ${parentAttrs}><li id="pl1">Parent one</li><bang-list id="n1" ${nestedAttrs}><li id="nl1">Child one</li><bang-list id="n2"><li id="nl2">Grandchild</li></bang-list></bang-list><li id="pl2">Parent two</li><li id="pl3">Parent three</li></bang-list></bang-frame>`;
+  const style = (page: Page, selector: string, props: string[], pseudo?: string) =>
+    page.evaluate(
+      ([sel, ps, pe]) => {
+        const cs = getComputedStyle(document.querySelector(sel) as HTMLElement, pe || null);
+        return Object.fromEntries(ps.map((p) => [p, (cs as unknown as Record<string, string>)[p]]));
+      },
+      [selector, props, pseudo ?? ""] as const,
+    );
+  const hidden = (page: Page, selectors: string[]) =>
+    page.evaluate((sels) => sels.map((s) => document.querySelector(s)!.hasAttribute("data-bang-hidden")), selectors);
+
+  it("AC-NEST-1 draws a smaller hollow marker, hangs wrapped lines and aligns with the parent text", async () => {
+    const d = await deck("{}", nest('size="m" tone="accent"'));
+    const parent = await style(d.page, "#p", ["fontSize", "color"]);
+    const n1 = await style(d.page, "#n1", ["fontSize", "color"]);
+    const n2 = await style(d.page, "#n2", ["fontSize", "color"]);
+    expect(parent.fontSize).toBe("48px");
+    expect(n1.fontSize).toBe("36px");
+    expect(n2.fontSize).toBe("36px");
+    expect(n1.color).toBe(parent.color);
+    expect(n2.color).toBe(n1.color);
+    const marker = await style(d.page, "#nl1", ["borderTopStyle", "backgroundColor"], "::before");
+    expect(marker.borderTopStyle).toBe("solid");
+    expect(marker.backgroundColor).toBe("rgba(0, 0, 0, 0)");
+    const xs = await deck("{}", nest('size="xs"'));
+    expect((await style(xs.page, "#n1", ["fontSize"])).fontSize).toBe("28px");
+    const align = await d.page.evaluate(() => {
+      const left = (s: string) => document.querySelector(s)!.getBoundingClientRect().left;
+      const textLeft = (s: string) => {
+        const r = document.createRange();
+        r.selectNodeContents(document.querySelector(s)!);
+        return r.getClientRects()[0].left;
+      };
+      return { parentText: textLeft("#pl1"), nestedBox: left("#n1") };
+    });
+    expect(Math.abs(align.nestedBox - align.parentText)).toBeLessThanOrEqual(1);
+    const wrapped = await deck(
+      "{}",
+      `<bang-frame id="a"><bang-list id="p" size="m"><li>P</li><bang-list id="n"><li id="w">${"wrapping words ".repeat(14)}</li></bang-list></bang-list></bang-frame>`,
+    );
+    const lines = await wrapped.page.evaluate(() => {
+      const r = document.createRange();
+      r.selectNodeContents(document.querySelector("#w")!);
+      const rects = [...r.getClientRects()];
+      return { count: rects.length, first: rects[0].left, last: rects[rects.length - 1].left };
+    });
+    expect(lines.count).toBeGreaterThanOrEqual(2);
+    expect(Math.abs(lines.first - lines.last)).toBeLessThanOrEqual(1);
+  });
+
+  it("AC-NEST-2 reveals the nested list with the preceding parent item and ignores it for step counts", async () => {
+    const d = await deck("{}", nest('step="1"'));
+    expect(await hidden(d.page, ["#pl1", "#n1", "#nl1", "#pl2"])).toEqual([true, true, false, true]);
+    await d.page.evaluate(async () => {
+      const list = document.querySelector("#p") as any;
+      list.frameStep = 1;
+      await list.updateComplete;
+    });
+    expect(await hidden(d.page, ["#pl1", "#n1", "#nl1", "#pl2"])).toEqual([false, false, false, true]);
+    const counts = await d.page.evaluate(() => ["#p", "#n1", "#n2"].map((s) => (document.querySelector(s) as any).stepCount));
+    expect(counts).toEqual([3, 0, 0]);
+    const noisy = await deck("{}", nest('step="1"', 'step="5"'));
+    expect(await noisy.page.evaluate(() => (document.querySelector("#n1") as any).stepCount)).toBe(0);
+    await ready(noisy.page);
+    await ready(d.page);
+    for (const dk of [d, noisy]) expect(dk.warnings.some((w) => w.includes("needs 3 steps"))).toBe(true);
+    expect(noisy.warnings.some((w) => /needs (?!3 )\d+ steps/.test(w))).toBe(false);
+  });
+
+  it("AC-NEST-3 leaves a top-level list unchanged", async () => {
+    const d = await deck("{}", `<bang-frame id="a"><bang-list id="p"><li id="a1">A</li></bang-list><bang-list id="o" ordered><li id="o1">B</li></bang-list></bang-frame>`);
+    expect(await d.page.evaluate(() => document.querySelector("#p")!.hasAttribute("data-bang-nested"))).toBe(false);
+    const bullet = await style(d.page, "#a1", ["borderTopWidth", "backgroundColor"], "::before");
+    expect(bullet.borderTopWidth).toBe("0px");
+    expect(bullet.backgroundColor).not.toBe("rgba(0, 0, 0, 0)");
+    const num = await style(d.page, "#o1", ["content", "borderTopWidth"], "::before");
+    expect(num.content).toContain(".");
+    expect(num.borderTopWidth).toBe("0px");
+  });
+
+  it("AC-NEST-4 ignores size, tone and step on a nested list with one warning, and numbers an ordered one", async () => {
+    const d = await deck("{}", nest('size="m"', 'size="xl" tone="accent" step="3"'));
+    await ready(d.page);
+    expect((await style(d.page, "#n1", ["fontSize"])).fontSize).toBe("36px");
+    expect(d.warnings.filter((w) => w.includes("next to its parent li"))).toHaveLength(1);
+    const ordered = await deck("{}", nest("", "ordered"));
+    const m = await style(ordered.page, "#nl1", ["content", "borderTopWidth"], "::before");
+    expect(m.content).toContain(".");
+    expect(m.borderTopWidth).toBe("0px");
+  });
+
+  it("AC-NEST-5 keeps a sibling nested list and loses one written inside li", async () => {
+    const d = await deck("{}", nest(""));
+    const sibling = await d.page.evaluate(() => {
+      const p = document.querySelector("#p")!;
+      return {
+        next: document.querySelector("#pl1")!.nextElementSibling?.id,
+        lastParent: document.querySelector("#pl3")!.parentElement?.id,
+        childLi: !!document.querySelector("#p > bang-list > li"),
+        count: p.children.length,
+      };
+    });
+    expect(sibling).toEqual({ next: "n1", lastParent: "p", childLi: true, count: 4 });
+    const inside = await deck(
+      "{}",
+      `<bang-frame id="a"><bang-list id="p"><li id="x">A<bang-list id="n"><li id="c">c</li></bang-list></li><li id="y">B</li></bang-list></bang-frame>`,
+    );
+    const broken = await inside.page.evaluate(() => ({
+      nChildren: document.querySelector("#n")!.children.length,
+      cParent: document.querySelector("#c")!.parentElement?.id,
+      yParent: document.querySelector("#y")!.parentElement?.id,
+    }));
+    // The parser closes the parent li at the child li, so #n is left empty, #c becomes a direct child of #p and #y falls out of #p.
+    expect(broken.nChildren).toBe(0);
+    expect(broken.cParent).toBe("p");
+    expect(broken.yParent).not.toBe("p");
+  });
+});
