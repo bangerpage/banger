@@ -119,3 +119,68 @@
   </bang-path>
 </bang-root>
 ```
+
+## 表紙だけをグラデーションにする
+
+表紙だけに斜めのグラデーションを掛けたいときは、`coverGradient` を持つカスタムテーマを作り、表紙のフレームに `ground="cover"` を書く。ほかのフレームは通常の地のまま。色コードは `bang-theme` の JSON だけに書く。
+
+```html
+<bang-root theme="custom">
+  <bang-theme>
+    <script type="application/json">
+      {
+        "paper": "#FFC800",
+        "ink": "#141414",
+        "signal": "#141414",
+        "coverGradient": { "angle": 135, "colors": ["#FFFFFF", "#FFC800"] }
+      }
+    </script>
+  </bang-theme>
+  <bang-frame id="cover" at="0,0" ground="cover">
+    <bang-title size="2xl">めくらないプレゼン</bang-title>
+  </bang-frame>
+  <bang-frame id="body" at="1,0">
+    <bang-title size="m">本編</bang-title>
+  </bang-frame>
+  <bang-path>
+    <bang-stop frame="cover"></bang-stop>
+    <bang-stop frame="body"></bang-stop>
+  </bang-path>
+</bang-root>
+```
+
+## パンくずと影つきカードと帯で 1 章を組む
+
+章の名前を左上の小さな行 (`crumb`) に置き、本文は `bang-card grow` で面にまとめ、まとめは `bang-card kind="band"` の帯に置く。`crumb` は上の余白に収まるので、本文の位置は動かない。影は `cardShadow` を `"soft"` にしたカスタムテーマだけで出る。
+
+```html
+<bang-root theme="custom">
+  <bang-theme>
+    <script type="application/json">
+      {
+        "paper": "#FFC800",
+        "surface": "#EEEEEE",
+        "ink": "#141414",
+        "signal": "#141414",
+        "bandGradient": { "angle": 90, "colors": ["#FFFFFF", "#FFC800"] },
+        "cardShadow": "soft"
+      }
+    </script>
+  </bang-theme>
+  <bang-frame id="lv2" at="0,0" crumb="Lv.2 お客さまと隣接組織を知る">
+    <bang-title size="m">見出し</bang-title>
+    <bang-card grow>
+      <bang-text>カードの中の本文</bang-text>
+    </bang-card>
+  </bang-frame>
+  <bang-frame id="points" at="1,0" crumb="Lv.2 まとめ">
+    <bang-card kind="band">
+      <bang-list><li>帯の中の箇条書き</li></bang-list>
+    </bang-card>
+  </bang-frame>
+  <bang-path>
+    <bang-stop frame="lv2"></bang-stop>
+    <bang-stop frame="points"></bang-stop>
+  </bang-path>
+</bang-root>
+```

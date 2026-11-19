@@ -6,7 +6,7 @@ import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
 import { parseUnion, renderComponentsMd, stampText } from "../../../scripts/gen-skill.mjs";
 import { SUPPORTED_SERIES_TYPES } from "../src/content/chart-impl.js";
-import { parseThemeJson, PRESET_NAMES, presetTheme, serializeTheme, THEME_KEYS } from "../src/theme/index.js";
+import { parseThemeJson, PRESET_NAMES, presetTheme, resolveTheme, serializeTheme, THEME_KEYS } from "../src/theme/index.js";
 
 const root = join(dirname(fileURLToPath(import.meta.url)), "../../..");
 const read = (path: string) => readFileSync(join(root, path), "utf8");
@@ -117,6 +117,24 @@ describe("skill", () => {
       expect(parsed.warnings, block).toEqual([]);
       expect(parsed.definition, block).not.toBeNull();
     }
+  });
+
+  it("AC-DOC-1 the docs carry the shadow and gradient exception, the new element and the new attributes", () => {
+    const readme = read("docs/design-system/README.md");
+    expect(readme).toMatch(/カスタムテーマ.*影/);
+    expect(readme).toContain("グラデーション");
+    const patterns = read("skill/reference/patterns.md");
+    for (const needle of ["bang-card", "crumb=", 'ground="cover"']) expect(patterns, needle).toContain(needle);
+    const themes = read("skill/reference/themes.md");
+    for (const block of [...themes.matchAll(/```json\n([\s\S]*?)\n```/g)].map((m) => m[1])) {
+      const parsed = parseThemeJson(block);
+      expect(resolveTheme(parsed.definition ?? {}).warnings, block).toEqual([]);
+    }
+    const components = read("skill/reference/components.md");
+    const card = components.split(/^## /m).find((s) => s.startsWith("bang-card\n")) ?? "";
+    expect(card).not.toBe("");
+    const frame = components.split(/^## /m).find((s) => s.startsWith("bang-frame\n")) ?? "";
+    for (const attr of ["crumb", "ground"]) expect(frame, attr).toContain(`| \`${attr}\` |`);
   });
 
   it("AC-CTHEME-11 SKILL.md allows color codes only in the theme definition and points to themes.md", () => {
