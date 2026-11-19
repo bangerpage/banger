@@ -373,6 +373,15 @@ describe("paperGradient", () => {
     expect(resolveTheme({}).ground).toBeNull();
   });
 
+  it("derives muted and link text against the gradient even when the seeds match the base", () => {
+    const resolved = resolveTheme({ paperGradient: { angle: 180, colors: ["#F6F5F1", "#FFB000"] } });
+    expect(resolved.colors.paper).toBe(themeColorTokens.light.paper);
+    for (const ground of ["#F6F5F1", "#FFB000"]) {
+      expect(ratio(resolved.colors["ink-muted"], ground)).toBeGreaterThanOrEqual(4.5);
+      expect(ratio(resolved.colors["signal-text"], ground)).toBeGreaterThanOrEqual(4.5);
+    }
+  });
+
   it("warns when text is hard to read on any gradient colour", () => {
     const { warnings } = resolveTheme({ paperGradient: { angle: 180, colors: ["#FFFFFF", "#333333"] } });
     expect(warnings.some((w) => w.includes("paperGradient color #333333"))).toBe(true);

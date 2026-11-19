@@ -209,7 +209,7 @@ export function resolveTheme(definition: ThemeDefinition): ResolvedTheme {
     given(definition.surface) ?? (paper === B.paper ? B.surface : toHex(mix(rgbOf(paper), rgbOf(ink), 0.06)));
   const inkMuted =
     given(definition.inkMuted) ??
-    (paper === B.paper && surface === B.surface && ink === B.ink
+    (gradientGrounds.length === 0 && paper === B.paper && surface === B.surface && ink === B.ink
       ? B["ink-muted"]
       : toHex(shiftUntil(rgbOf(paper), rgbOf(ink), [rgbOf(paper), rgbOf(surface), ...gradientGrounds], 4.5)));
   const line =
@@ -224,7 +224,7 @@ export function resolveTheme(definition: ThemeDefinition): ResolvedTheme {
       ? ON_SIGNAL_DARK
       : ON_SIGNAL_LIGHT;
   const signalText =
-    signal === B.signal && paper === B.paper && surface === B.surface
+    gradientGrounds.length === 0 && signal === B.signal && paper === B.paper && surface === B.surface
       ? B["signal-text"]
       : toHex(shiftUntil(rgbOf(signal), rgbOf(ink), [rgbOf(paper), rgbOf(surface), ...gradientGrounds], 4.5));
 
