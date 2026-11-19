@@ -81,7 +81,7 @@ describe("bang-shape", () => {
         <bang-shape id="bad2" kind="left"></bang-shape>
         <bang-shape id="arrow" kind="arrow-right" tone="muted"></bang-shape>
         <bang-shape id="ng" kind="ng" tone="accent"></bang-shape>
-        <div id="ref-arrow" style="color: color-mix(in srgb, var(--bang-tone-muted) 40%, transparent)"></div>
+        <div id="ref-arrow" style="color: color-mix(in srgb, var(--bang-tone-muted) 60%, transparent)"></div>
         <div id="ref-ng" style="color: var(--bang-tone-accent)"></div></bang-frame>`,
     );
     await ready(page);
@@ -102,7 +102,7 @@ describe("bang-shape", () => {
     const source = readFileSync(join(repoRoot, "packages/core/src/content/shape.ts"), "utf8");
     expect(source).not.toMatch(/#[0-9a-fA-F]{3,8}\b|rgba?\(/);
     const probe = (frameAttrs: string) =>
-      `<bang-frame id="a" ${frameAttrs}><bang-shape id="m" kind="ok"></bang-shape><bang-shape id="ar" kind="arrow-down"></bang-shape><div id="r" style="color: var(--bang-tone-default)"></div><div id="ra" style="color: color-mix(in srgb, var(--bang-tone-default) 40%, transparent)"></div></bang-frame>`;
+      `<bang-frame id="a" ${frameAttrs}><bang-shape id="m" kind="ok"></bang-shape><bang-shape id="ar" kind="arrow-down"></bang-shape><div id="r" style="color: var(--bang-tone-default)"></div><div id="ra" style="color: color-mix(in srgb, var(--bang-tone-default) 60%, transparent)"></div></bang-frame>`;
     const read = (page: Page) =>
       page.evaluate(() => ["#m", "#r", "#ar", "#ra"].map((s) => getComputedStyle(document.querySelector(s)!).color));
     for (const attrs of ['tone="accent"', 'tone="inverse"']) {

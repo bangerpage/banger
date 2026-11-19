@@ -18,13 +18,13 @@ const SHAPES = {
     d: "M16 0a16 16 0 1 0 0 32a16 16 0 1 0 0-32zM16 5a11 11 0 1 1 0 22a11 11 0 1 1 0-22z",
     width: 1,
   },
-  ng: { viewBox: MARK_VIEWBOX, d: "M4 0L16 12L28 0L32 4L20 16L32 28L28 32L16 20L4 32L0 28L12 16L0 4Z", width: 1 },
+  ng: { viewBox: MARK_VIEWBOX, d: "M6 0L16 10L26 0L32 6L22 16L32 26L26 32L16 22L6 32L0 26L10 16L0 6Z", width: 1 },
 } as const;
 
 /**
  * A small flat symbol that sits in the flow: a thick arrow or an ok / ng mark.
  *
- * Put it inside a `bang-text` line, a `bang-list` item, a `bang-columns` child or a `bang-stack` child. `kind` picks the form: `arrow-up`, `arrow-down` and `arrow-right` are thick arrows twice as wide as tall, drawn at 40% of the theme text colour so they read as grey; `ok` (a ring) and `ng` (a cross) are square and take the tone colour as is. It is drawn as a vector, so a PDF carries it as a shape, not as text: a tool that extracts text will not see its meaning.
+ * Put it inside a `bang-text` line, a `bang-list` item, a `bang-columns` child or a `bang-stack` child. `kind` picks the form: `arrow-up`, `arrow-down` and `arrow-right` are thick arrows twice as wide as tall, drawn at 60% of the theme text colour so they read as grey; `ok` (a ring) and `ng` (a cross) are square and take the tone colour as is. It is drawn as a vector, so a PDF carries it as a shape, not as text: a tool that extracts text will not see its meaning.
  *
  * ```html
  * <bang-shape kind="arrow-down" size="l"></bang-shape>
@@ -64,7 +64,7 @@ export class BangShape extends BangElement {
     const tone = pick(this, "tone", TONES, "default");
     const shape = SHAPES[kind];
     const isMark = kind === "ok" || kind === "ng";
-    const color = isMark ? `var(--bang-tone-${tone})` : `color-mix(in srgb, var(--bang-tone-${tone}) 40%, transparent)`;
+    const color = isMark ? `var(--bang-tone-${tone})` : `color-mix(in srgb, var(--bang-tone-${tone}) 60%, transparent)`;
     const style = html`<style>
       :host { height: var(--bang-size-${size}); width: calc(var(--bang-size-${size}) * ${shape.width}); color: ${color}; }
     </style>`;

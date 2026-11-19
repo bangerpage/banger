@@ -41,9 +41,10 @@ description: HTML 1 枚で「めくらない」プレゼンテーション (キ�
 `bang-free` (自由な HTML・CSS・SVG を書く箱) は、部品に無い図 (地図・曲線の矢印・丸囲み・重ねる注記) に使う。部品で書けるものは部品を先に使う。繰り返し使った形は部品の候補として人に伝える。
 
 - 中身は `bang-free` の直下にルート要素を 1 つ置き、規則は直下の `<style>` に書く。規則はその `bang-free` の中だけに効く。
-- 色は `var(--bang-color-*)` と `color-mix(in srgb, var(--bang-color-ink) 40%, transparent)` だけで書く。色コードは書かない。
+- 色はテーマの変数だけで書く。文字や線は `var(--bang-color-*)` と `color-mix(in srgb, var(--bang-color-ink) 60%, transparent)`、帯と同じ塗りは `var(--bang-band-ground)`、表紙の塗りは `var(--bang-cover-ground)`。色コードは書かない。
 - `style` 属性は配置の px のためだけに、`bang-free` の中で書いてよい。`<script>` は書かない。
 - 位置は grid と、1 つのセルへの重ね (`grid-area: 1 / 1`) を先に考え、絶対座標は最後に使う。座標は `banger snap` の画像を見て直す。
-- 他の内容の上に注記や矢印を重ねるときは、フレームの最後の子に `overlay` つきの `bang-free` を 1 つ置く。座標はフレームの左上が原点。先頭の子にしない。
+- 他の内容の上に注記や矢印を重ねるときは、フレームの最後の子に `overlay` つきの `bang-free` を 1 つ置く。座標はフレームの左上が原点の px (1920×1080)。先頭の子にしない。
+- 箱の中の図を座標で組むときは、箱の大きさに頼らない。SVG に `viewBox` (元の図の座標) を書いて `width: 100%; height: 100%` で箱に合わせる。縦横比を保つなら `preserveAspectRatio` は既定のまま、箱いっぱいに伸ばすなら `none`。図をフレームの px で置きたいときは `overlay` を使う。
 - 箱の外へ 2px を超えて出た部分は切られる。はみ出しと色コードは `banger snap` の警告に出るので直す。
 - `data-step` は中の要素にも効く。`id` はデッキ全体で一意にする。
