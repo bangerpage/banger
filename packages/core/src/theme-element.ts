@@ -17,7 +17,8 @@ export function readThemeJson(root: Element): string | null {
  * - `coverGradient`: the same shape, the ground of frames that set `ground="cover"`.
  * - `bandGradient`: the same shape, the fill of `<bang-card kind="band">`.
  * - `typography`: `weightText`, `weightHeading` (100-900 in steps of 100), `leadingText`, `leadingHeading` (a 0.8-1.6 multiplier of each size's leading), `trackingText`, `trackingHeading` (em, -0.1 to 0.3). Headings are title and stat; text is text and list.
- * - `cardShadow`: `"none"` (default) or `"soft"`, the shadow of `<bang-card>` panels.
+ * - `cardShadow`: `"none"` (default) or `"soft"`. A soft shadow inside the edge of `<bang-card>` panels.
+ * - `highlight`: one `#RGB` or `#RRGGBB` color, the highlighter of `<mark>`. Defaults to `signal` at 40% opacity.
  * - Fonts (CSS font-family lists): `fontSans`, `fontDisplay`, `fontMono`.
  * - `fontsHref`: a Google Fonts `https://fonts.googleapis.com/css2?...` URL that loads the families.
  *

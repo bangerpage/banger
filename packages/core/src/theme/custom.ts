@@ -19,6 +19,7 @@ export const THEME_KEYS = [
   "bandGradient",
   "typography",
   "cardShadow",
+  "highlight",
   ...THEME_FONT_KEYS,
   "fontsHref",
 ] as const;
@@ -43,6 +44,8 @@ export interface ThemeDefinition {
   typography?: ThemeTypography;
   /** `soft` gives `<bang-card>` panels a soft shadow; `none` (default) keeps them flat. */
   cardShadow?: "none" | "soft";
+  /** The colour of `<mark>` (`#RGB` / `#RRGGBB`). Defaults to `signal` at 40% opacity. Body text stays `ink`. */
+  highlight?: string;
   fontSans?: string;
   fontDisplay?: string;
   fontMono?: string;
@@ -230,6 +233,10 @@ export function parseThemeJson(text: string): ParsedTheme {
     } else if (key === "cardShadow") {
       if (value === "none" || value === "soft") definition.cardShadow = value;
       else warnings.push('theme: "cardShadow" must be "none" or "soft"; ignored');
+    } else if (key === "highlight") {
+      const rgb = typeof value === "string" ? parseHex(value) : null;
+      if (rgb) definition.highlight = toHex(rgb);
+      else warnings.push('theme: "highlight" must be a #RGB or #RRGGBB color; ignored');
     } else if (key === "fontsHref") {
       const request = typeof value === "string" ? parseFontsHref(value) : null;
       if (request) definition.fontsHref = request.href;
@@ -405,10 +412,21 @@ export function resolveTheme(definition: ThemeDefinition): ResolvedTheme {
     if (t.trackingHeading !== undefined) vars["--bang-heading-tracking"] = `${t.trackingHeading}em`;
   }
   if (cover) vars["--bang-cover-ground"] = gradientCss(cover);
-  if (band) vars["--bang-band-ground"] = gradientCss(band);
+  if (band) {
+    vars["--bang-band-ground"] = gradientCss(band);
+    vars["--bang-band-border"] = "transparent";
+  }
+  const highlight = given(definition.highlight);
+  if (highlight) {
+    vars["--bang-highlight"] = highlight;
+    const ratio = contrastRatio(rgbOf(ink), rgbOf(highlight));
+    if (ratio < 4.5) {
+      warnings.push(`theme: ink ${ink} on highlight ${highlight} is ${ratioText(ratio)}:1; 4.5:1 or more is needed to read text`);
+    }
+  }
   if (definition.cardShadow === "soft") {
     const darker = relativeLuminance(rgbOf(ink)) <= relativeLuminance(rgbOf(paper)) ? rgbOf(ink) : rgbOf(paper);
-    vars["--bang-card-shadow"] = `0 8px 32px rgba(${darker.r}, ${darker.g}, ${darker.b}, 0.18)`;
+    vars["--bang-card-shadow"] = `inset 0 0 36px rgba(${darker.r}, ${darker.g}, ${darker.b}, 0.3)`;
   }
 
   if (fontsRequest && t) {

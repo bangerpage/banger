@@ -28,6 +28,7 @@
 - `bandGradient`: 帯用のグラデーション。同じ形で、`<bang-card kind="band">` の地になる。
 - `typography`: 太さ・行間・字間。次の「組版」を見る。
 - `cardShadow`: `"none"` (既定) か `"soft"`。`soft` のとき `<bang-card>` に影が出る。
+- `highlight`: `#RGB` / `#RRGGBB` の 1 色。`<mark>` の蛍光ペンの色。書かなければ `signal` の 40% の半透明。次の「マーカー」を見る。
 - フォント: `fontSans` `fontDisplay` `fontMono`。
 - `fontsHref`: Google Fonts の css2 の URL。
 
@@ -68,6 +69,7 @@
 - `leadingText` `leadingHeading`: 行間の倍率 (0.8〜1.6)。各サイズの行間に掛けるので、サイズごとの階層は保たれる。
 - `trackingText` `trackingHeading`: 字間 (em 単位、-0.1〜0.3)。見出しの既定は -0.03、本文の既定は 0。日本語の見出しは負の字間が仮名に合わないので、0 か少し正の値にする。
 - 範囲外の値と未知のキーは、そのキーだけ警告されて無視される。
+- 文中の `<b>` は周りより 1 段太い太さで描かれる (400 は 700、800 は 900)。`weightText` を 600 以上にするなら、`fontsHref` に 900 までの太さを要求する。
 - 太さは `fontsHref` で読み込んだ太さに揃える。`fontSans` と `fontDisplay` の先頭のファミリが `fontsHref` でその太さを要求していないと警告が出る。`fontSans` と `fontDisplay` を書かないと、組み込みの書体の太さ (Noto Sans JP の 400 と 700、Bricolage Grotesque の 800) に限られる。太さを変えるときは `fontSans` / `fontDisplay` と `fontsHref` を書く。
 
 ```json
@@ -102,6 +104,18 @@
   "coverGradient": { "angle": 135, "colors": ["#FFFFFF", "#FFC800"] },
   "bandGradient": { "angle": 90, "colors": ["#FFFFFF", "#FFC800"] }
 }
+```
+
+## マーカー
+
+文中の `<mark>` は、文字の下半分だけを色で塗る蛍光ペンで描かれる。文字色は周りの `tone` に関わらず `ink` のまま。折り返した行にも各行に帯が出る。
+
+- 色は `highlight` で決める。書かなければ `signal` の 40% の半透明になる。
+- `highlight` と `ink` の対比が 4.5:1 未満だと警告が出る。色は直されず、書いた色のまま描かれる。
+- `tone="accent"` / `tone="inverse"` のフレームの中では、色の帯ではなく文字色の下線になる (地が `signal` / `ink` になり、薄い帯の上で文字が地と同化するため)。
+
+```json
+{ "paper": "#FFD83D", "ink": "#141414", "signal": "#C8260A", "highlight": "#FFF6B0" }
 ```
 
 ## カードの影

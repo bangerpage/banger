@@ -27,6 +27,8 @@ const NEW_VARS = [
   "--bang-cover-ground",
   "--bang-band-ground",
   "--bang-card-shadow",
+  "--bang-highlight",
+  "--bang-band-border",
 ];
 const GRADIENTS = '"signal": "#141414", "coverGradient": { "angle": 135, "colors": ["#FFFFFF", "#FFC800"] }, "bandGradient": { "angle": 90, "colors": ["#FFFFFF", "#FFC800"] }';
 const FULL = `{ "paper": "#FFC800", "ink": "#141414", ${GRADIENTS}, "cardShadow": "soft" }`;
@@ -226,7 +228,9 @@ describe("card", () => {
   it("AC-CARD-2 shadows panels only for soft custom themes", async () => {
     const soft = await deck(FULL, panel);
     await ready(soft.page);
-    expect(await shadow(soft.page)).toContain("rgba(20, 20, 20, 0.18) 0px 8px 32px");
+    const softShadow = await shadow(soft.page);
+    expect(softShadow).toContain("rgba(20, 20, 20, 0.3) 0px 0px 36px");
+    expect(softShadow).toContain("inset");
     for (const [json, theme] of [['{ "cardShadow": "none" }', "custom"], ["{}", "custom"], ["{}", "light"], ["{}", "dark"]] as const) {
       const d = await deck(json, panel, theme);
       await ready(d.page);
@@ -287,5 +291,89 @@ describe("card", () => {
       expect(h.child).toBeGreaterThan(0);
       expect(h.card).toBeCloseTo(1080 - 96, 0);
     }
+  });
+});
+
+describe("inline emphasis", () => {
+  const HL = '"highlight": "#FFF6B0"';
+  const EMPH = [
+    `<bang-frame id="a">`,
+    `<bang-title id="ti">A <b>bold</b> <mark>mark</mark></bang-title>`,
+    `<bang-text id="tx" size="s">A <b>bold</b> <mark>mark</mark></bang-text>`,
+    `<bang-text id="ta" tone="accent">A <mark>mark</mark></bang-text>`,
+    `<bang-text id="tm" tone="muted">A <mark>mark</mark></bang-text>`,
+    `<bang-list id="ls"><li>A <b>bold</b> <mark>mark</mark></li></bang-list>`,
+    `</bang-frame>`,
+  ].join("");
+  const style = (page: Page, selector: string, props: string[]) =>
+    page.evaluate(
+      ([sel, ps]) => {
+        const el = document.querySelector(sel) as HTMLElement;
+        const cs = getComputedStyle(el);
+        return Object.fromEntries(ps.map((p) => [p, (cs as unknown as Record<string, string>)[p]]));
+      },
+      [selector, props] as const,
+    );
+
+  it("AC-EMPH-1 renders b one step heavier and br as a line break", async () => {
+    const light = await deck("{}", EMPH, "light");
+    expect((await style(light.page, "#tx b", ["fontWeight"])).fontWeight).toBe("700");
+    expect((await style(light.page, "#ti b", ["fontWeight"])).fontWeight).toBe("900");
+    expect((await style(light.page, "#ls b", ["fontWeight"])).fontWeight).toBe("700");
+    const custom = await deck('{ "typography": { "weightText": 500 } }', EMPH);
+    expect((await style(custom.page, "#tx b", ["fontWeight"])).fontWeight).toBe("700");
+    const height = async (inner: string) => {
+      const d = await deck("{}", `<bang-frame id="a"><bang-text id="t" size="s">${inner}</bang-text></bang-frame>`, "light");
+      return d.page.evaluate(() => document.querySelector("#t")!.getBoundingClientRect().height);
+    };
+    const one = await height("one");
+    const two = await height("one<br>two");
+    expect(two / one).toBeGreaterThan(1.8);
+    expect(two / one).toBeLessThan(2.2);
+  });
+
+  it("AC-EMPH-2 paints a lower-half band in ink, with the theme highlight or signal at 40%", async () => {
+    const props = ["backgroundImage", "color", "boxDecorationBreak", "printColorAdjust"];
+    const withHl = await deck(`{ "ink": "#141414", ${HL} }`, EMPH);
+    for (const sel of ["#ti mark", "#tx mark", "#ls mark", "#ta mark", "#tm mark"]) {
+      const m = await style(withHl.page, sel, props);
+      expect(m.backgroundImage, sel).toContain("linear-gradient");
+      expect(m.backgroundImage, sel).toContain("60%");
+      expect(m.backgroundImage, sel).toContain("rgb(255, 246, 176)");
+      expect(m.color, sel).toBe("rgb(20, 20, 20)");
+      expect(m.boxDecorationBreak, sel).toBe("clone");
+      expect(m.printColorAdjust, sel).toBe("exact");
+    }
+    const without = await deck('{ "ink": "#141414" }', EMPH);
+    const m = await style(without.page, "#tx mark", props);
+    expect(m.backgroundImage).toContain("0.4");
+    expect(m.backgroundImage).not.toContain("rgb(255, 246, 176)");
+    const wrapped = await deck(
+      "{}",
+      `<bang-frame id="a"><bang-text id="t" size="2xl">long mark<mark id="m">${"wrapping words ".repeat(12)}</mark></bang-text></bang-frame>`,
+    );
+    const rects = await wrapped.page.evaluate(() => document.querySelector("#m")!.getClientRects().length);
+    expect(rects).toBeGreaterThanOrEqual(2);
+  });
+
+  it("AC-EMPH-3 warns once and ignores an invalid highlight", async () => {
+    const d = await deck('{ "highlight": "yellow" }', EMPH);
+    const { warnings } = await ready(d.page);
+    expect(warnings.filter((w) => w.includes('"highlight"'))).toHaveLength(1);
+    expect(await inlineVars(d.page)).not.toContain("--bang-highlight");
+  });
+
+  it("AC-EMPH-5 underlines in the text colour inside accent and inverse frames", async () => {
+    for (const tone of ["accent", "inverse"]) {
+      const body = `<bang-frame id="a" tone="${tone}"><bang-text id="t">A <mark id="m">mark</mark></bang-text></bang-frame>`;
+      const d = await deck(`{ ${HL} }`, body);
+      const m = await style(d.page, "#m", ["backgroundImage", "color"]);
+      const t = await style(d.page, "#t", ["color"]);
+      expect(m.backgroundImage, tone).toContain("88%");
+      expect(m.backgroundImage, tone).not.toContain("60%");
+      expect(m.color, tone).toBe(t.color);
+    }
+    const plain = await deck(`{ ${HL} }`, `<bang-frame id="a"><bang-text>A <mark id="m">mark</mark></bang-text></bang-frame>`);
+    expect((await style(plain.page, "#m", ["backgroundImage"])).backgroundImage).toContain("60%");
   });
 });

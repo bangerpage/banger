@@ -22,6 +22,10 @@ html, body { margin: 0; overflow: hidden; background: var(--bang-color-paper, #F
 bang-stack:has(bang-chart, bang-image), bang-columns:has(bang-chart, bang-image), bang-card:has(bang-chart, bang-image) { flex: 1 1 0; }
 /* The frame centres its children; when it opens with a title, free space is split between these two auto margins so the title stays on top and the rest is centred below it. */
 bang-frame > bang-title:first-child, bang-frame:has(> bang-title:first-child) > :last-child { margin-bottom: auto; }
+/* Inline emphasis lives in the document: ::slotted() cannot reach a <mark> inside a list's li. The text colour is pinned to ink so the highlight contrast check holds whatever the surrounding tone. */
+bang-text mark, bang-title mark, bang-list mark { color: var(--bang-color-ink); background: linear-gradient(transparent 60%, var(--bang-highlight, color-mix(in srgb, var(--bang-color-signal) 40%, transparent)) 60%); -webkit-box-decoration-break: clone; box-decoration-break: clone; print-color-adjust: exact; -webkit-print-color-adjust: exact; }
+/* Tone frames flip the text colour and put signal or ink behind it, so a light band would swallow the text; underline in the text colour instead. */
+bang-frame[tone="accent"] :is(bang-text, bang-title, bang-list) mark, bang-frame[tone="inverse"] :is(bang-text, bang-title, bang-list) mark { color: inherit; background: linear-gradient(transparent 88%, currentColor 88%); }
 `;
 
 const exportCss = `

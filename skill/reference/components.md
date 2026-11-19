@@ -117,6 +117,8 @@ An image that fills the space left in its container.
 
 A bulleted or numbered list. Write items as `li` children.
 
+Inside the text, only `<b>` (bold: one step heavier than the surroundings), `<mark>` (highlighter: the theme's `highlight`, or the signal colour) and `<br>` (an intended line break) are used. Give them no attributes. Do not use `<br>` to tune wrapping.
+
 ```html
 <bang-list step="1">
   <li>First</li>
@@ -255,6 +257,8 @@ Slots:
 
 A paragraph of body text.
 
+Inside the text, only `<b>` (bold: one step heavier than the surroundings), `<mark>` (highlighter: the theme's `highlight`, or the signal colour) and `<br>` (an intended line break) are used. Give them no attributes. Do not use `<br>` to tune wrapping.
+
 ```html
 <bang-text size="s" tone="muted">Body text</bang-text>
 ```
@@ -280,7 +284,8 @@ Every key is optional. Keys left out take the value of the base theme. Colors ar
 - `coverGradient`: the same shape, the ground of frames that set `ground="cover"`.
 - `bandGradient`: the same shape, the fill of `<bang-card kind="band">`.
 - `typography`: `weightText`, `weightHeading` (100-900 in steps of 100), `leadingText`, `leadingHeading` (a 0.8-1.6 multiplier of each size's leading), `trackingText`, `trackingHeading` (em, -0.1 to 0.3). Headings are title and stat; text is text and list.
-- `cardShadow`: `"none"` (default) or `"soft"`, the shadow of `<bang-card>` panels.
+- `cardShadow`: `"none"` (default) or `"soft"`. A soft shadow inside the edge of `<bang-card>` panels.
+- `highlight`: one `#RGB` or `#RRGGBB` color, the highlighter of `<mark>`. Defaults to `signal` at 40% opacity.
 - Fonts (CSS font-family lists): `fontSans`, `fontDisplay`, `fontMono`.
 - `fontsHref`: a Google Fonts `https://fonts.googleapis.com/css2?...` URL that loads the families.
 
@@ -303,6 +308,8 @@ Slots:
 ## bang-title
 
 A heading.
+
+Inside the text, only `<b>` (bold: one step heavier than the surroundings), `<mark>` (highlighter: the theme's `highlight`, or the signal colour) and `<br>` (an intended line break) are used. Give them no attributes. Do not use `<br>` to tune wrapping. A `<b>` in a heading goes from 800 to 900, which looks the same unless `fontsHref` loads 900.
 
 ```html
 <bang-title size="xl">Hello</bang-title>

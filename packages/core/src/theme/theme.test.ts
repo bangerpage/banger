@@ -96,7 +96,7 @@ describe("theme", () => {
   });
 
   it("adds none of the custom-theme properties to the generated css", () => {
-    expect(css).not.toMatch(/--bang-(text-|heading-|cover-ground|band-ground|card-shadow)/);
+    expect(css).not.toMatch(/--bang-(text-|heading-|cover-ground|band-ground|card-shadow|highlight|band-border)/);
   });
 
   it("defines the six presentation sizes and gaps", () => {

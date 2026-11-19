@@ -6,6 +6,8 @@ import { BangElement, defineOnce } from "../element.js";
 /**
  * A paragraph of body text.
  *
+ * Inside the text, only `<b>` (bold: one step heavier than the surroundings), `<mark>` (highlighter: the theme's `highlight`, or the signal colour) and `<br>` (an intended line break) are used. Give them no attributes. Do not use `<br>` to tune wrapping.
+ *
  * ```html
  * <bang-text size="s" tone="muted">Body text</bang-text>
  * ```

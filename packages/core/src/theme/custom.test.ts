@@ -304,7 +304,7 @@ describe("custom theme", () => {
         expect(resolveTheme(def).warnings, name).toEqual([]);
         const parsed = parseThemeJson(serializeTheme(def));
         expect(parsed.warnings, name).toEqual([]);
-        expect(Object.keys(def).sort(), name).toEqual([...THEME_KEYS].filter((k) => !["fontsHref", "paperGradient", "coverGradient", "bandGradient", "typography", "cardShadow"].includes(k)).sort());
+        expect(Object.keys(def).sort(), name).toEqual([...THEME_KEYS].filter((k) => !["fontsHref", "paperGradient", "coverGradient", "bandGradient", "typography", "cardShadow", "highlight"].includes(k)).sort());
         expect(def.fontSans).toBe(themeFontStacks.sans);
       }
     });
@@ -414,6 +414,7 @@ describe("typography", () => {
       "bandGradient",
       "typography",
       "cardShadow",
+      "highlight",
     ]);
     expect(THEME_KEYS.at(-1)).toBe("fontsHref");
   });
@@ -523,12 +524,46 @@ describe("cardShadow", () => {
 
   it("uses the darker of ink and paper, and no var for none or unset", () => {
     expect(resolveTheme({ paper: "#FFC800", ink: "#141414", cardShadow: "soft" }).vars["--bang-card-shadow"]).toBe(
-      "0 8px 32px rgba(20, 20, 20, 0.18)",
+      "inset 0 0 36px rgba(20, 20, 20, 0.3)",
     );
     expect(resolveTheme({ paper: "#0A0A0A", ink: "#F0F0F0", cardShadow: "soft" }).vars["--bang-card-shadow"]).toBe(
-      "0 8px 32px rgba(10, 10, 10, 0.18)",
+      "inset 0 0 36px rgba(10, 10, 10, 0.3)",
     );
     expect(resolveTheme({ cardShadow: "none" }).vars).toEqual({});
     expect(resolveTheme({}).vars).toEqual({});
+  });
+});
+
+describe("highlight", () => {
+  it("normalises #RGB and ignores invalid values with one warning each", () => {
+    expect(parseThemeJson('{ "highlight": "#fe8" }').definition?.highlight).toBe("#FFEE88");
+    for (const bad of ['"yellow"', '"#GGG"', "12"]) {
+      const { definition, warnings } = parseThemeJson(`{ "highlight": ${bad} }`);
+      expect(definition?.highlight).toBeUndefined();
+      expect(warnings).toEqual(['theme: "highlight" must be a #RGB or #RRGGBB color; ignored']);
+    }
+  });
+
+  it("exposes --bang-highlight and warns when ink cannot be read on it", () => {
+    const ok = resolveTheme({ ink: "#141414", highlight: "#FFF6B0" });
+    expect(ok.vars["--bang-highlight"]).toBe("#FFF6B0");
+    expect(ok.warnings).toEqual([]);
+    const low = resolveTheme({ ink: "#141414", highlight: "#222222" });
+    expect(low.vars["--bang-highlight"]).toBe("#222222");
+    expect(low.warnings.some((w) => w.includes("on highlight #222222"))).toBe(true);
+    expect(resolveTheme({}).vars).toEqual({});
+  });
+
+  it("makes the band border transparent only with a bandGradient", () => {
+    const withBand = resolveTheme({ bandGradient: { angle: 90, colors: ["#FFFFFF", "#EEEEEE"] } });
+    expect(withBand.vars["--bang-band-border"]).toBe("transparent");
+    expect(resolveTheme({}).vars["--bang-band-border"]).toBeUndefined();
+  });
+
+  it("serializes highlight after cardShadow and round-trips", () => {
+    const definition = { cardShadow: "soft" as const, highlight: "#FFF6B0" };
+    const text = serializeTheme(definition);
+    expect(Object.keys(JSON.parse(text))).toEqual(["cardShadow", "highlight"]);
+    expect(parseThemeJson(text).definition).toEqual(definition);
   });
 });
