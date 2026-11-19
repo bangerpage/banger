@@ -66,7 +66,7 @@ export function renderComponentsMd(manifest) {
     "",
     "# Components",
     "",
-    `Every element accepts these global attributes: ${GLOBAL_ATTRS.map((a) => `\`${a}\``).join(" ")}. Never write a \`style\` attribute; pick values from the attributes below instead.`,
+    `Every element accepts these global attributes: ${GLOBAL_ATTRS.map((a) => `\`${a}\``).join(" ")}. Never write a \`style\` attribute except inside \`bang-free\`; pick values from the attributes below instead.`,
     "",
   ];
   for (const decl of decls) {

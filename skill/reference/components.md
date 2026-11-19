@@ -2,7 +2,7 @@
 
 # Components
 
-Every element accepts these global attributes: `id` `class` `slot` `data-*` `aria-*` `role` `hidden` `title` `lang` `dir` `tabindex`. Never write a `style` attribute; pick values from the attributes below instead.
+Every element accepts these global attributes: `id` `class` `slot` `data-*` `aria-*` `role` `hidden` `title` `lang` `dir` `tabindex`. Never write a `style` attribute except inside `bang-free`; pick values from the attributes below instead.
 
 ## bang-card
 
@@ -101,6 +101,25 @@ A 1920x1080 area of the canvas. Content that does not fit is clipped.
 Slots:
 
 - default: The frame's content.
+
+## bang-free
+
+An escape hatch for a figure no component can draw: a box that fills the space left in its container and holds free HTML, CSS and SVG.
+
+Put one root element directly under it, and write its rules in a `<style>` directly under `bang-free`; that `<style>` is wrapped in `@scope`, so its rules apply only inside the box. A `<style>` anywhere deeper is not wrapped. Take colours from the theme (`var(--bang-color-*)`), never colour codes. A `style` attribute is allowed only for placing things in px. Do not write a `<script>`. `data-step` on an inner element reveals it step by step. An `<img>` inside is awaited before export, but an SVG `<image>` is not. Whatever sticks out of the box is clipped.
+
+With `overlay`, the box covers the whole frame and the other parts do not move: place it as the only and last child of the `bang-frame`. Coordinates are px from the top-left of the frame (the same as in a `banger snap` image). `banger snap` warns about colour codes and about elements sticking out of the box.
+
+```html
+<bang-free>
+  <style>.map { display: grid; }</style>
+  <div class="map">...</div>
+</bang-free>
+```
+
+| Attribute | Values | Default | Description |
+| --- | --- | --- | --- |
+| `overlay` | boolean | `false` | Cover the whole frame, on top of the other parts. Put it as the last child of the frame. |
 
 ## bang-image
 

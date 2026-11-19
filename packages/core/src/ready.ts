@@ -1,5 +1,6 @@
 import { fontsSettled, loadFonts } from "./base-style.js";
 import { READY_TIMEOUT_MS, selectorOf } from "./element.js";
+import { freeWarnings } from "./free-check.js";
 
 export function withTimeout<T>(promise: Promise<T>, ms: number, message = "timed out"): Promise<T> {
   let timer: ReturnType<typeof setTimeout> | undefined;
@@ -84,5 +85,6 @@ export async function collectReady(
   const failed = await settleReady(items, timeoutMs);
 
   (await loadFonts(collectText(root), fontsTimeoutMs)).forEach((w) => warnings.add(w));
+  freeWarnings(root).forEach((w) => warnings.add(w));
   return { ok: failed.length === 0, failed, warnings: [...warnings] };
 }
