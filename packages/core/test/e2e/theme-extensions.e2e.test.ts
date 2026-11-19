@@ -517,6 +517,13 @@ describe("valign", () => {
   const card = (attr: string, inner = "<bang-text id=\"t\">x</bang-text>") =>
     `<bang-frame id="a"><bang-card id="c" grow${attr}>${inner}</bang-card></bang-frame>`;
 
+  it("keeps the top of a frame visible when its content is taller than the frame", async () => {
+    const tall = await deck("{}", `<bang-frame id="a"><bang-text id="t">${"x<br>".repeat(40)}</bang-text></bang-frame>`);
+    await ready(tall.page);
+    const [f, t] = await rects(tall.page, ["#a", "#t"]);
+    expect(t.top).toBeGreaterThanOrEqual(f.top);
+  });
+
   it("AC-VALIGN-1 centres card content, never cuts off the top, and falls back on a bad value", async () => {
     const centred = await deck("{}", card(' valign="center"'));
     await ready(centred.page);

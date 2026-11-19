@@ -78,7 +78,7 @@ ${unsafeCSS(
       font-family: var(--bang-font-sans);
       /* Without this a heading that opens with 「 starts half an em to the right of the text below it. */
       text-spacing-trim: trim-start;
-      justify-content: center;
+      justify-content: safe center;
     }
     :host([valign="spread"]) .frame {
       justify-content: space-between;
