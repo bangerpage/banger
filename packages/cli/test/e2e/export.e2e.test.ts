@@ -89,6 +89,29 @@ describe("export", () => {
     ).toEqual([]);
   });
 
+  it("export --pdf of a custom theme with shadow, band, gradient cover and crumb keeps one page per stop (AC-PDF-1)", async () => {
+    const out = join(work, "custom-card.pdf");
+    const result = await runBin(["export", fixture("custom-card.html"), "--pdf", "--out", out]);
+    expect(result.code, result.stderr).toBe(0);
+    const pdf = await extractPdf(out);
+    expect(pdf.pages).toBe(2);
+    const text = pdf.texts.map(squash);
+    expect(text[0]).toContain("めくらないプレゼン");
+    expect(text[1]).toContain("カードの本文");
+    expect(text[1]).toContain("帯の本文");
+    expect(text[1]).toContain("Lv.2");
+  });
+
+  it("snap output of the custom card deck is byte-identical across runs (AC-PDF-2)", async () => {
+    const a = join(work, "card-a");
+    const b = join(work, "card-b");
+    expect((await runBin(["snap", fixture("custom-card.html"), "--out-dir", a])).code).toBe(0);
+    expect((await runBin(["snap", fixture("custom-card.html"), "--out-dir", b])).code).toBe(0);
+    const names = await readdir(a);
+    expect(names).toHaveLength(2);
+    for (const name of names) expect((await readFile(join(a, name))).equals(await readFile(join(b, name))), name).toBe(true);
+  });
+
   it("snap sizes and defaults (AC-EXP-5)", async () => {
     const one = join(work, "one.png");
     expect((await runBin(["snap", fixture("basic.html"), "--stop", "1", "--step", "1", "--out", one])).code).toBe(0);

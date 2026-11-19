@@ -1,0 +1,42 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8">
+  <title>Banger custom card</title>
+</head>
+<body>
+<script type="module" src="https://cdn.jsdelivr.net/npm/@bangerpage/core@0.1.0/dist/index.js"></script>
+<bang-root theme="custom">
+  <bang-theme>
+    <script type="application/json">
+      {
+        "paper": "#FFC800",
+        "surface": "#EEEEEE",
+        "ink": "#141414",
+        "signal": "#141414",
+        "coverGradient": { "angle": 135, "colors": ["#FFFFFF", "#FFC800"] },
+        "bandGradient": { "angle": 90, "colors": ["#FFFFFF", "#FFC800"] },
+        "cardShadow": "soft",
+        "typography": { "weightText": 400, "weightHeading": 800, "leadingText": 1, "leadingHeading": 1, "trackingHeading": 0.04 }
+      }
+    </script>
+  </bang-theme>
+  <bang-frame id="cover" at="0,0" ground="cover">
+    <bang-title size="xl">めくらないプレゼン</bang-title>
+  </bang-frame>
+  <bang-frame id="body" at="1,0" crumb="Lv.2 お客さまを知る">
+    <bang-title size="m">見出し</bang-title>
+    <bang-card grow>
+      <bang-text>カードの本文</bang-text>
+    </bang-card>
+    <bang-card kind="band">
+      <bang-text>帯の本文</bang-text>
+    </bang-card>
+  </bang-frame>
+  <bang-path>
+    <bang-stop frame="cover"></bang-stop>
+    <bang-stop frame="body"></bang-stop>
+  </bang-path>
+</bang-root>
+</body>
+</html>
