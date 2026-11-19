@@ -138,6 +138,14 @@ describe("bang-shape", () => {
   });
 });
 
+describe("shape between cards", () => {
+  it("centres a shape in a stretched columns row", async () => {
+    const { page } = await deck(`<bang-frame id="a"><bang-columns id="c" ratio="6:1:6" align="stretch"><bang-card><bang-text>a<br>b<br>c<br>d</bang-text></bang-card><bang-shape id="s" kind="arrow-right"></bang-shape><bang-card><bang-text>e</bang-text></bang-card></bang-columns></bang-frame>`);
+    const [c, s] = await page.evaluate(() => ["#c", "#s"].map((q) => { const r = document.querySelector(q)!.getBoundingClientRect(); return (r.top + r.bottom) / 2; }));
+    expect(Math.abs(c - s)).toBeLessThanOrEqual(1);
+  });
+});
+
 describe("italic", () => {
   it("AC-ITAL-1 renders <i> in text, title and list item in italic", async () => {
     const { page } = await deck(

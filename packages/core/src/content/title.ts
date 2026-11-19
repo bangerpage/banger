@@ -19,6 +19,8 @@ export class BangTitle extends BangElement {
   static styles = css`
     :host {
       display: block;
+      /* Keeps a lone character off the last line, which narrow columns of Japanese text otherwise produce. */
+      text-wrap: pretty;
       font-family: var(--bang-font-display);
       font-weight: var(--bang-heading-weight, 800);
       letter-spacing: var(--bang-heading-tracking, -0.03em);

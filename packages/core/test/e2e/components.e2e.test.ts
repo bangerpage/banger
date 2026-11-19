@@ -40,6 +40,12 @@ const style = (page: Page, selector: string) =>
   }, selector);
 
 describe("components", () => {
+  it("wraps text, titles and lists with text-wrap: pretty", async () => {
+    const { page } = await open("deck.html");
+    const wraps = await page.evaluate(() => ["bang-title", "bang-text", "bang-list"].map((t) => getComputedStyle(document.querySelector(t)!).textWrap));
+    expect(wraps).toEqual(["pretty", "pretty", "pretty"]);
+  });
+
   it("sizes a stat caption with label-size and keeps xs by default", async () => {
     const { page } = await open("deck.html");
     const sizes = await page.evaluate(() => {

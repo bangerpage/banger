@@ -24,6 +24,8 @@ bang-stack > bang-card[kind="band"] { align-self: stretch; }
 bang-stack:has(bang-chart, bang-image, bang-free:not([overlay])), bang-columns:has(bang-chart, bang-image, bang-free:not([overlay])), bang-card:has(bang-chart, bang-image, bang-free:not([overlay])) { flex: 1 1 0; }
 /* A column that holds a free box takes the full row height even when the columns centre or end-align their cells; otherwise the box fills a content-high cell and collapses to 0. */
 bang-columns > :has(bang-free:not([overlay])) { align-self: stretch; }
+/* An arrow or mark between cards sits on the row's centre line, even when the columns stretch their cells. */
+bang-columns > bang-shape { align-self: center; justify-self: center; }
 /* The frame centres its children; when it opens with a title, free space is split between these two auto margins so the title stays on top and the rest is centred below it. */
 bang-frame:not([valign="spread"]) > bang-title:first-child, bang-frame:not([valign="spread"]):has(> bang-title:first-child) > :last-child { margin-bottom: auto; }
 bang-frame:not([valign="spread"]):has(> bang-title:first-child) > :nth-last-child(2):has(+ bang-free[overlay]:last-child) { margin-bottom: auto; }
