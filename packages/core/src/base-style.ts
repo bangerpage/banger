@@ -19,6 +19,8 @@ html, body { margin: 0; overflow: hidden; background: var(--bang-color-paper, #F
 [data-step], bang-list > li, bang-list > bang-list { transition: opacity var(--bang-duration-fast, 200ms); }
 [data-bang-hidden] { opacity: 0; pointer-events: none; }
 /* Layouts keep their natural height so the frame can centre them; only those holding a chart or image grow. Set here because document rules outrank :host. */
+/* A band spans its stack even when the stack centres or end-aligns its children. */
+bang-stack > bang-card[kind="band"] { align-self: stretch; }
 bang-stack:has(bang-chart, bang-image), bang-columns:has(bang-chart, bang-image), bang-card:has(bang-chart, bang-image) { flex: 1 1 0; }
 /* The frame centres its children; when it opens with a title, free space is split between these two auto margins so the title stays on top and the rest is centred below it. */
 bang-frame:not([valign="spread"]) > bang-title:first-child, bang-frame:not([valign="spread"]):has(> bang-title:first-child) > :last-child { margin-bottom: auto; }

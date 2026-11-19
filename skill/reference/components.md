@@ -20,7 +20,7 @@ theme sets `cardShadow: "soft"`); `band` has no visible border and is filled wit
 | --- | --- | --- | --- |
 | `kind` | `panel`, `band` | `panel` | `panel` is a framed surface; `band` is filled with the theme's band gradient. |
 | `grow` | boolean | `false` | Fill the rest of the parent frame's height. Without it the card is as tall as its content. |
-| `valign` | `start`, `center` | `start` | Vertical position of the content. `start` packs it to the top; `center` centres it and never cuts off the top when it overflows. |
+| `valign` | `start`, `center`, `spread` | `start` | Vertical position of the content. `start` packs it to the top; `center` centres it and never cuts off the top when it overflows; `spread` puts the first child at the top, the last at the bottom and spaces the rest evenly. |
 
 Slots:
 
@@ -129,7 +129,7 @@ Inside the text, only `<b>` (bold: one step heavier than the surroundings), `<ma
 </bang-list>
 ```
 
-Nest a list by placing a `bang-list` right after the parent `li`, as a direct child of the parent list. Never put it inside the `li`: the HTML parser closes the parent `li` and breaks the nesting. The nested list has no depth limit, but every level looks the same, based on the outermost list: one size smaller, the same tone, a hollow marker. Its `size`, `tone` and `step` are ignored, and it appears together with the preceding parent item.
+Nest a list by placing a `bang-list` right after the parent `li`, as a direct child of the parent list. Never put it inside the `li`: the HTML parser closes the parent `li` and breaks the nesting. The nested list has no depth limit, but every level looks the same, based on the outermost list: one size smaller, the same tone, a hollow marker. Write `size` on the nested list to pick its size (for example the same size as the parent). Its `tone` and `step` are ignored, and it appears together with the preceding parent item.
 
 ```html
 <bang-list step="1">

@@ -15,7 +15,7 @@ import { defineOnce, StepAware } from "../element.js";
  * </bang-list>
  * ```
  *
- * Nest a list by placing a `bang-list` right after the parent `li`, as a direct child of the parent list. Never put it inside the `li`: the HTML parser closes the parent `li` and breaks the nesting. The nested list has no depth limit, but every level looks the same, based on the outermost list: one size smaller, the same tone, a hollow marker. Its `size`, `tone` and `step` are ignored, and it appears together with the preceding parent item.
+ * Nest a list by placing a `bang-list` right after the parent `li`, as a direct child of the parent list. Never put it inside the `li`: the HTML parser closes the parent `li` and breaks the nesting. The nested list has no depth limit, but every level looks the same, based on the outermost list: one size smaller, the same tone, a hollow marker. Write `size` on the nested list to pick its size (for example the same size as the parent). Its `tone` and `step` are ignored, and it appears together with the preceding parent item.
  *
  * ```html
  * <bang-list step="1">
@@ -138,12 +138,12 @@ export class BangList extends StepAware {
     const nested = this.nestedIn() !== null;
     const base = nested ? this.rootList() : this;
     const rootSize = pick(base, "size", SIZES, "s");
-    const size = nested ? SIZES[Math.max(SIZES.indexOf(rootSize) - 1, 0)] : rootSize;
+    const size = nested ? pick(this, "size", SIZES, SIZES[Math.max(SIZES.indexOf(rootSize) - 1, 0)]) : rootSize;
     const tone = pick(base, "tone", TONES, "default");
-    if (nested && (this.hasAttribute("size") || this.hasAttribute("tone") || this.hasAttribute("step"))) {
+    if (nested && (this.hasAttribute("tone") || this.hasAttribute("step"))) {
       warnOnce(
         "list|nested",
-        "[banger] <bang-list> next to its parent li takes its size and tone from the outermost list; its size, tone and step are ignored",
+        "[banger] <bang-list> next to its parent li takes its tone from the outermost list; its tone and step are ignored",
       );
     }
     return html`<style>

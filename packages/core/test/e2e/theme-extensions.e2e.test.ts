@@ -465,11 +465,18 @@ describe("nested list", () => {
     expect(num.borderTopWidth).toBe("0px");
   });
 
-  it("AC-NEST-4 ignores size, tone and step on a nested list with one warning, and numbers an ordered one", async () => {
-    const d = await deck("{}", nest('size="m"', 'size="xl" tone="accent" step="3"'));
+  it("AC-NEST-4 ignores tone and step on a nested list with one warning, honours its size, and numbers an ordered one", async () => {
+    const d = await deck("{}", nest('size="m"', 'tone="accent" step="3"'));
     await ready(d.page);
     expect((await style(d.page, "#n1", ["fontSize"])).fontSize).toBe("36px");
     expect(d.warnings.filter((w) => w.includes("next to its parent li"))).toHaveLength(1);
+    const same = await deck("{}", nest('size="xs"', 'size="xs"'));
+    await ready(same.page);
+    expect((await style(same.page, "#n1", ["fontSize"])).fontSize).toBe("28px");
+    expect(same.warnings.filter((w) => w.includes("next to its parent li"))).toHaveLength(0);
+    const bigger = await deck("{}", nest('size="s"', 'size="m"'));
+    await ready(bigger.page);
+    expect((await style(bigger.page, "#n1", ["fontSize"])).fontSize).toBe("48px");
     const ordered = await deck("{}", nest("", "ordered"));
     const m = await style(ordered.page, "#nl1", ["content", "borderTopWidth"], "::before");
     expect(m.content).toContain(".");
@@ -545,6 +552,14 @@ describe("valign", () => {
     expect(bad.warnings.filter((w) => w.includes("valign")).length).toBe(1);
   });
 
+  it("spreads a card's first and last child to its edges", async () => {
+    const d = await deck("{}", card(' valign="spread"', '<bang-text id="t">top</bang-text><bang-text id="m">mid</bang-text><bang-text id="b">bottom</bang-text>'));
+    await ready(d.page);
+    const [c, t, b] = await rects(d.page, ["#c", "#t", "#b"]);
+    expect(t.top - c.top).toBeCloseTo(49, 0);
+    expect(c.bottom - b.bottom).toBeCloseTo(49, 0);
+  });
+
   it("AC-VALIGN-2 spreads a frame's first and last child to its edges", async () => {
     const frame = (attr: string) =>
       `<bang-frame id="a"${attr}><bang-title id="f" size="m">T</bang-title><bang-text id="l">name</bang-text></bang-frame>`;
@@ -573,6 +588,13 @@ describe("band", () => {
       const cs = getComputedStyle(el) as unknown as Record<string, string>;
       return { ...Object.fromEntries(ps.map((p) => [p, cs[p]])), height: el.getBoundingClientRect().height } as Record<(typeof props)[number], string> & { height: number };
     }, props);
+
+  it("spans the full width of a stack that centres its children", async () => {
+    const d = await deck(FULL, `<bang-frame id="a"><bang-stack id="s" align="center"><bang-text>x</bang-text><bang-card id="b" kind="band"><bang-text>short</bang-text></bang-card></bang-stack></bang-frame>`);
+    await ready(d.page);
+    const [s, b] = await d.page.evaluate(() => ["#s", "#b"].map((q) => document.querySelector(q)!.getBoundingClientRect().width));
+    expect(b).toBeCloseTo(s, 0);
+  });
 
   it("AC-BAND-1 hides the border with a transparent colour, keeps the box and rounds to 48px", async () => {
     const full = await deck(FULL, band());

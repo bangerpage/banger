@@ -42,6 +42,9 @@ export class BangCard extends BangElement {
     :host([valign="center"]) {
       justify-content: safe center;
     }
+    :host([valign="spread"]) {
+      justify-content: space-between;
+    }
     :host([grow]) {
       flex: 1 1 0;
     }
@@ -53,12 +56,12 @@ export class BangCard extends BangElement {
   /** Fill the rest of the parent frame's height. Without it the card is as tall as its content. */
   @property({ type: Boolean }) grow = false;
 
-  /** Vertical position of the content. `start` packs it to the top; `center` centres it and never cuts off the top when it overflows. */
-  @property() valign: "start" | "center" = "start";
+  /** Vertical position of the content. `start` packs it to the top; `center` centres it and never cuts off the top when it overflows; `spread` puts the first child at the top, the last at the bottom and spaces the rest evenly. */
+  @property() valign: "start" | "center" | "spread" = "start";
 
   render() {
     pick(this, "kind", ["panel", "band"] as const, "panel");
-    pick(this, "valign", ["start", "center"] as const, "start");
+    pick(this, "valign", ["start", "center", "spread"] as const, "start");
     return html`<slot></slot>`;
   }
 }
