@@ -93,7 +93,7 @@
 `coverGradient` と `bandGradient` を書くと、表紙のフレームと帯の箱だけをグラデーションにできる。形は `paperGradient` と同じ。本文では属性で選ぶ。
 
 - 表紙: フレームに `ground="cover"` を書くと、そのフレームの地が `coverGradient` になる。`coverGradient` が無いと通常の地のまま警告が出る。
-- 帯: `<bang-card kind="band">` の地が `bandGradient` になる。`bandGradient` が無いと `surface` の地になり警告が出る。
+- 帯: `<bang-card kind="band">` の地が `bandGradient` になる。枠線は出ない。`bandGradient` が無いと `surface` の地になり警告が出る。
 - `tone="accent"` と `tone="inverse"` のフレームの中では、帯は `surface` の地になり警告が出る。tone が文字色を入れ替えるため、使わない。
 
 ```json
@@ -118,9 +118,17 @@
 { "paper": "#FFD83D", "ink": "#141414", "signal": "#C8260A", "highlight": "#FFF6B0" }
 ```
 
+## 行間の目安
+
+`leadingText` は `--bang-leading-<size>` (xs 1.6、s 1.5、m 1.35、l 1.1) に掛ける倍率で、1 が既定。既定の行間は広くない。
+
+- 元の資料のような行送り (文字の高さの約 1.7 倍) にしたいときは、size s で `leadingText` を 1.15 にする。本文 36px の行送りが 54px から 62px になる。
+- size m 以上は既定のまま。
+- 詰めたいときは 0.9 前後にする。
+
 ## カードの影
 
-`cardShadow` を `"soft"` にすると、`<bang-card>` (`kind="panel"`) の周囲にやわらかい影が出る。影の色は `ink` と `paper` の暗い方から計算され、色は書けない。`"none"` (既定) と未指定は影なし。帯 (`kind="band"`) には影が出ない。
+`cardShadow` を `"soft"` にすると、`<bang-card>` (`kind="panel"`) の縁の内側に灰色のぼかしが出る。影の色は `ink` と `paper` の暗い方から計算され、色は書けない。`"none"` (既定) と未指定は影なし。帯 (`kind="band"`) には影が出ない。
 
 ```json
 { "paper": "#FFC800", "ink": "#141414", "signal": "#141414", "cardShadow": "soft" }

@@ -137,6 +137,28 @@ describe("skill", () => {
     for (const attr of ["crumb", "ground"]) expect(frame, attr).toContain(`| \`${attr}\` |`);
   });
 
+  it("AC-LEAD-1 themes.md has a leading guide section", () => {
+    const themes = read("skill/reference/themes.md");
+    const section = themes.split(/^## /m).find((s) => s.startsWith("行間の目安\n")) ?? "";
+    expect(section).toContain("leadingText");
+    expect(section).toContain("1.15");
+  });
+
+  it("AC-DOC-2 SKILL, patterns, components and the design system carry the new emphasis and valign", () => {
+    const skill = read("skill/SKILL.md");
+    expect(skill).toContain("<mark>");
+    expect(skill).toContain('valign="spread"');
+    const patterns = read("skill/reference/patterns.md");
+    for (const needle of ['valign="spread"', 'valign="center"', "<mark>", "入れ子の箇条書き"]) expect(patterns, needle).toContain(needle);
+    const components = read("skill/reference/components.md");
+    const section = (tag: string) => components.split(/^## /m).find((s) => s.startsWith(`${tag}\n`)) ?? "";
+    expect(section("bang-card")).toContain("| `valign` |");
+    expect(section("bang-frame")).toContain("| `valign` |");
+    for (const tag of ["bang-text", "bang-title", "bang-list"]) expect(section(tag), tag).toContain("<mark>");
+    expect(section("bang-theme")).toContain("highlight");
+    expect(read("docs/design-system/README.md")).toContain("highlight");
+  });
+
   it("AC-CTHEME-11 SKILL.md allows color codes only in the theme definition and points to themes.md", () => {
     const md = read("skill/SKILL.md");
     expect(md).toContain("reference/themes.md");

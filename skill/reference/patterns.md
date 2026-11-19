@@ -151,7 +151,7 @@
 
 ## パンくずと影つきカードと帯で 1 章を組む
 
-章の名前を左上の小さな行 (`crumb`) に置き、本文は `bang-card grow` で面にまとめ、まとめは `bang-card kind="band"` の帯に置く。`crumb` は上の余白に収まるので、本文の位置は動かない。影は `cardShadow` を `"soft"` にしたカスタムテーマだけで出る。
+章の名前を左上の小さな行 (`crumb`) に置き、本文は `bang-card grow` で面にまとめ、まとめは `bang-card kind="band"` の帯に置く。`crumb` は上の余白に収まるので、本文の位置は動かない。カードの中身を縦中央に置くときは `valign="center"` を書く。影は `cardShadow` を `"soft"` にしたカスタムテーマだけで出る。
 
 ```html
 <bang-root theme="custom">
@@ -169,7 +169,7 @@
   </bang-theme>
   <bang-frame id="lv2" at="0,0" crumb="Lv.2 お客さまと隣接組織を知る">
     <bang-title size="m">見出し</bang-title>
-    <bang-card grow>
+    <bang-card grow valign="center">
       <bang-text>カードの中の本文</bang-text>
     </bang-card>
   </bang-frame>
@@ -181,6 +181,62 @@
   <bang-path>
     <bang-stop frame="lv2"></bang-stop>
     <bang-stop frame="points"></bang-stop>
+  </bang-path>
+</bang-root>
+```
+
+## 文中の強調と入れ子の箇条書き
+
+文中の強調は `<b>` (太字) と `<mark>` (マーカー) だけを使う。属性は付けない。`<mark>` の色は、`highlight` を持つカスタムテーマで決まる。書かなければ強調色の 40% の半透明になる。入れ子の箇条書きは、親の `<li>` の直後に `<bang-list>` を置く。`<li>` の中には書かない (ブラウザが入れ子を壊す)。子は 1 段小さい文字と中抜きの丸で描かれ、段階表示は直前の親の項目と一緒に出る。
+
+```html
+<bang-root>
+  <bang-frame id="emph" at="0,0">
+    <bang-title size="m">強みは<mark>専門性</mark>にある</bang-title>
+    <bang-text>この数字は<b>去年の 2 倍</b>になった。</bang-text>
+    <bang-list size="m">
+      <li>エンジニアならではの<mark>専門性</mark></li>
+      <!-- 入れ子は li の中ではなく、親の li の直後に置く -->
+      <bang-list>
+        <li>設計の判断を言葉にできる</li>
+        <li>障害の原因を<b>数字</b>で話せる</li>
+      </bang-list>
+      <li>チームを越える視点</li>
+    </bang-list>
+  </bang-frame>
+  <bang-path>
+    <bang-stop frame="emph"></bang-stop>
+  </bang-path>
+</bang-root>
+```
+
+## 表紙の題名を上に、名前を下に置く
+
+表紙で題名を上端、名前を下端に分けたいときは、フレームに `valign="spread"` を書き、題名のまとまりと名前のまとまりを 2 つの `bang-stack` にする。最初の子が上端、最後の子が下端に付く。`ground="cover"` は `coverGradient` を持つカスタムテーマで効く。
+
+```html
+<bang-root theme="custom">
+  <bang-theme>
+    <script type="application/json">
+      {
+        "paper": "#FFC800",
+        "ink": "#141414",
+        "signal": "#141414",
+        "coverGradient": { "angle": 135, "colors": ["#FFFFFF", "#FFC800"] }
+      }
+    </script>
+  </bang-theme>
+  <bang-frame id="cover" at="0,0" ground="cover" valign="spread">
+    <bang-stack>
+      <bang-title size="2xl">めくらないプレゼン</bang-title>
+      <bang-text>2026 年の発表</bang-text>
+    </bang-stack>
+    <bang-stack>
+      <bang-text>山田 太郎</bang-text>
+    </bang-stack>
+  </bang-frame>
+  <bang-path>
+    <bang-stop frame="cover"></bang-stop>
   </bang-path>
 </bang-root>
 ```
