@@ -19,7 +19,7 @@ import {
   type Size,
 } from "./camera.js";
 import { ensureBaseStyle, ensureThemeFonts } from "./base-style.js";
-import { BangElement, defineOnce, type StepAware } from "./element.js";
+import { BangElement, defineOnce, selectorOf, type StepAware } from "./element.js";
 import { openPresenter, PresenterSync, renderPresenter } from "./presenter.js";
 import { collectReady, type ReadyReport } from "./ready.js";
 import {
@@ -319,6 +319,7 @@ export class BangRoot extends BangElement {
 
   private onSlotChange = () => {
     this.applyTheme();
+    for (const text of this.deckWarnings()) warnOnce(`deck|${text}`, `[banger] ${text}`);
     if (!this.initialized) return;
     this.buildPath();
     this.current = clamp(this.current, this.path);
@@ -365,11 +366,37 @@ export class BangRoot extends BangElement {
     for (const [token, value] of Object.entries(resolved.colors)) vars[`--bang-color-${token}`] = value;
     for (const [role, value] of Object.entries(resolved.fonts)) vars[`--bang-font-${role}`] = value;
     if (resolved.ground) vars["--bang-ground"] = resolved.ground;
+    Object.assign(vars, resolved.vars);
     for (const [name, value] of Object.entries(vars)) this.style.setProperty(name, value);
     this.themeVars = Object.keys(vars);
     this.applyFrameTones(resolved.colors);
     if (resolved.fontsRequest) ensureThemeFonts(resolved.fontsRequest);
     report(warnings);
+  }
+
+  /** Warnings that depend on the elements in the deck; rebuilt on every call so frames added later are covered. */
+  private deckWarnings(): string[] {
+    const out: string[] = [];
+    const toneOf = (el: Element | null) => {
+      const tone = el?.getAttribute("tone");
+      return tone === "accent" || tone === "inverse" ? tone : null;
+    };
+    for (const f of this.querySelectorAll("bang-frame[ground=cover]")) {
+      const sel = selectorOf(f);
+      const tone = toneOf(f);
+      if (tone) out.push(`${sel}: ground="cover" is ignored because tone="${tone}" is set; the tone ground is used`);
+      else if (this.style.getPropertyValue("--bang-cover-ground") === "") {
+        out.push(`${sel}: ground="cover" needs theme="custom" with a coverGradient; the normal ground is used`);
+      }
+    }
+    for (const c of this.querySelectorAll("bang-card[kind=band]")) {
+      const sel = selectorOf(c);
+      const tone = toneOf(c.closest("bang-frame"));
+      if (this.style.getPropertyValue("--bang-band-ground") === "") {
+        out.push(`${sel}: kind="band" needs theme="custom" with a bandGradient; the surface color is used`);
+      } else if (tone) out.push(`${sel}: kind="band" inside a frame with tone="${tone}" uses the surface color`);
+    }
+    return out;
   }
 
   /** Publishes each frame tone's colours as --bang-frame-<tone>-<token>; bang-frame[tone] maps them onto its own --bang-color-*. */
@@ -671,7 +698,7 @@ export class BangRoot extends BangElement {
 
   /** Waits for every component's latest render and for fonts. Call after `goto` resolves. */
   ready(opts?: { timeoutMs?: number; fontsTimeoutMs?: number }): Promise<ReadyReport> {
-    return collectReady(this, { ...opts, extraWarnings: this.themeWarnings });
+    return collectReady(this, { ...opts, extraWarnings: [...this.themeWarnings, ...this.deckWarnings()] });
   }
 
   private showStatus(text: string): void {

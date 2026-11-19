@@ -19,8 +19,8 @@ export class BangStat extends BangElement {
     }
     .value {
       font-family: var(--bang-font-display);
-      font-weight: 800;
-      letter-spacing: -0.03em;
+      font-weight: var(--bang-heading-weight, 800);
+      letter-spacing: var(--bang-heading-tracking, -0.03em);
     }
     .label {
       font-family: var(--bang-font-sans);
@@ -48,7 +48,7 @@ export class BangStat extends BangElement {
     const value = this.getAttribute("value");
     if (value === null) warnOnce("stat|value", "[banger] <bang-stat> needs a value attribute");
     return html`<style>
-        .value { font-size: var(--bang-size-${size}); line-height: var(--bang-leading-${size}); color: var(--bang-tone-${tone}); }
+        .value { font-size: var(--bang-size-${size}); line-height: calc(var(--bang-leading-${size}) * var(--bang-heading-leading-scale, 1)); color: var(--bang-tone-${tone}); }
       </style><div class="value">${value ?? ""}</div>${this.label ? html`<div class="label">${this.label}</div>` : ""}`;
   }
 }

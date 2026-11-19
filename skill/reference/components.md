@@ -4,6 +4,26 @@
 
 Every element accepts these global attributes: `id` `class` `slot` `data-*` `aria-*` `role` `hidden` `title` `lang` `dir` `tabindex`. Never write a `style` attribute; pick values from the attributes below instead.
 
+## bang-card
+
+A box that stacks its children. `panel` is a framed surface (with a soft shadow when the custom theme sets
+`cardShadow: "soft"`); `band` is filled with the custom theme's `bandGradient`.
+
+```html
+<bang-card grow>
+  <bang-text>Inside the card</bang-text>
+</bang-card>
+```
+
+| Attribute | Values | Default | Description |
+| --- | --- | --- | --- |
+| `kind` | `panel`, `band` | `panel` | `panel` is a framed surface; `band` is filled with the theme's band gradient. |
+| `grow` | boolean | `false` | Fill the rest of the parent frame's height. Without it the card is as tall as its content. |
+
+Slots:
+
+- default: Content to stack.
+
 ## bang-chart
 
 A chart drawn from an ECharts option written as JSON in a `script` child. Text size and colors come from the
@@ -72,6 +92,8 @@ A 1920x1080 area of the canvas. Content that does not fit is clipped.
 | `at` | string | `0,0` | Grid position as "col,row" (integers from 0). |
 | `span` | string | `1,1` | Number of grid cells covered as "w,h" (integers from 1). |
 | `tone` | `default`, `accent`, `inverse` | `default` | The frame's ground: `default` uses the theme's paper, `accent` the theme's signal, `inverse` the theme's ink. Text colours follow so they stay readable. Use it for covers and section dividers. |
+| `ground` | `default`, `cover` | `default` | Which ground the frame uses. `cover` applies the custom theme's `coverGradient`; `tone` wins over it, and without a `coverGradient` the normal ground stays. |
+| `crumb` | string | - | A small bold line at the top left, inside the top margin. It does not move the content and is cut to one line. |
 
 Slots:
 
@@ -254,6 +276,11 @@ Every key is optional. Keys left out take the value of the base theme. Colors ar
 
 - `base`: `"light"` (default) or `"dark"`.
 - Colors: `paper`, `surface`, `ink`, `inkMuted`, `line`, `signal`.
+- `paperGradient`: `{ "angle": 0-360, "colors": [2 or 3 colors] }`, the ground of every frame.
+- `coverGradient`: the same shape, the ground of frames that set `ground="cover"`.
+- `bandGradient`: the same shape, the fill of `<bang-card kind="band">`.
+- `typography`: `weightText`, `weightHeading` (100-900 in steps of 100), `leadingText`, `leadingHeading` (a 0.8-1.6 multiplier of each size's leading), `trackingText`, `trackingHeading` (em, -0.1 to 0.3). Headings are title and stat; text is text and list.
+- `cardShadow`: `"none"` (default) or `"soft"`, the shadow of `<bang-card>` panels.
 - Fonts (CSS font-family lists): `fontSans`, `fontDisplay`, `fontMono`.
 - `fontsHref`: a Google Fonts `https://fonts.googleapis.com/css2?...` URL that loads the families.
 

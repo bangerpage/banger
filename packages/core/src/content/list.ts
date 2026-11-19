@@ -21,6 +21,8 @@ export class BangList extends StepAware {
     :host {
       display: block;
       font-family: var(--bang-font-sans);
+      font-weight: var(--bang-text-weight, 400);
+      letter-spacing: var(--bang-text-tracking, normal);
       counter-reset: item;
     }
     ul {
@@ -95,8 +97,8 @@ export class BangList extends StepAware {
     return html`<style>
         :host {
           font-size: var(--bang-size-${size});
-          line-height: var(--bang-leading-${size});
-          --bang-lh: var(--bang-leading-${size});
+          line-height: calc(var(--bang-leading-${size}) * var(--bang-text-leading-scale, 1));
+          --bang-lh: calc(var(--bang-leading-${size}) * var(--bang-text-leading-scale, 1));
           --bang-marker: var(--bang-tone-${tone});
           color: var(--bang-tone-${tone});
         }

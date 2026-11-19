@@ -18,7 +18,8 @@ export class BangText extends BangElement {
     :host {
       display: block;
       font-family: var(--bang-font-sans);
-      font-weight: 400;
+      font-weight: var(--bang-text-weight, 400);
+      letter-spacing: var(--bang-text-tracking, normal);
     }
   `;
 
@@ -32,7 +33,7 @@ export class BangText extends BangElement {
     const size = pick(this, "size", SIZES, "s");
     const tone = pick(this, "tone", TONES, "default");
     return html`<style>
-        :host { font-size: var(--bang-size-${size}); line-height: var(--bang-leading-${size}); color: var(--bang-tone-${tone}); }
+        :host { font-size: var(--bang-size-${size}); line-height: calc(var(--bang-leading-${size}) * var(--bang-text-leading-scale, 1)); color: var(--bang-tone-${tone}); }
       </style><slot></slot>`;
   }
 }

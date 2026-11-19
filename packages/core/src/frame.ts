@@ -34,6 +34,7 @@ export class BangFrame extends BangElement {
       --bang-tone-default: var(--bang-color-ink);
       --bang-tone-muted: var(--bang-color-ink-muted);
       --bang-tone-accent: var(--bang-color-signal-text);
+      --bang-band-ground: initial;
     }
 ${unsafeCSS(
   FRAME_TONES.map(
@@ -43,7 +44,26 @@ ${unsafeCSS(
         .join("\n")}\n}`,
   ).join("\n"),
 )}
+    :host([ground="cover"]:not([tone="accent"]):not([tone="inverse"])) .frame {
+      background: var(--bang-cover-ground, var(--bang-ground, var(--bang-color-paper)));
+    }
+    .crumb {
+      position: absolute;
+      top: var(--bang-space-8);
+      left: var(--bang-space-24);
+      right: var(--bang-space-24);
+      overflow: hidden;
+      white-space: nowrap;
+      text-overflow: ellipsis;
+      font-family: var(--bang-font-display);
+      font-weight: var(--bang-heading-weight, 800);
+      letter-spacing: var(--bang-heading-tracking, -0.03em);
+      font-size: var(--bang-size-xs);
+      line-height: var(--bang-leading-xs);
+      color: var(--bang-tone-default);
+    }
     .frame {
+      position: relative;
       display: flex;
       flex-direction: column;
       gap: var(--bang-gap-l);
@@ -73,12 +93,23 @@ ${unsafeCSS(
    */
   @property() tone: "default" | "accent" | "inverse" = "default";
 
+  /**
+   * Which ground the frame uses. `cover` applies the custom theme's `coverGradient`; `tone` wins over it, and without a
+   * `coverGradient` the normal ground stays.
+   */
+  @property() ground: "default" | "cover" = "default";
+
+  /** A small bold line at the top left, inside the top margin. It does not move the content and is cut to one line. */
+  @property() crumb?: string;
+
   /** The step shown in this frame. Set by `bang-root`. */
   @property({ attribute: false }) currentStep = 0;
 
   render() {
     pick(this, "tone", ["default", "accent", "inverse"] as const, "default");
-    return html`<div class="frame"><slot></slot></div>`;
+    pick(this, "ground", ["default", "cover"] as const, "default");
+    const crumb = this.crumb?.trim();
+    return html`<div class="frame">${crumb ? html`<div class="crumb">${crumb}</div>` : ""}<slot></slot></div>`;
   }
 }
 

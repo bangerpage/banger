@@ -1,5 +1,5 @@
 import { readFileSync, readdirSync, statSync } from "node:fs";
-import { dirname, join } from "node:path";
+import { dirname, join, relative, sep } from "node:path";
 import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
 import {
@@ -64,18 +64,39 @@ describe("theme", () => {
     expect(dark).toContain("--bang-color-ink: #F6F5F1;");
   });
 
-  it("never mentions lime or box-shadow in the css or production sources", () => {
-    const forbidden = /\b(lime|box-shadow)\b/i;
-    expect(css).not.toMatch(forbidden);
+  const productionSources = () => {
     const srcRoot = join(here, "..");
     const walk = (dir: string): string[] =>
       readdirSync(dir).flatMap((name) => {
         const full = join(dir, name);
         return statSync(full).isDirectory() ? walk(full) : [full];
       });
-    for (const file of walk(srcRoot).filter((f) => f.endsWith(".ts") && !f.endsWith(".test.ts"))) {
-      expect(readFileSync(file, "utf8"), file).not.toMatch(forbidden);
+    return walk(srcRoot)
+      .filter((f) => f.endsWith(".ts") && !f.endsWith(".test.ts"))
+      .map((file) => ({ file, rel: relative(srcRoot, file).split(sep).join("/"), text: readFileSync(file, "utf8") }));
+  };
+
+  it("never mentions lime in the css or production sources", () => {
+    expect(css).not.toMatch(/\blime\b/i);
+    for (const { file, text } of productionSources()) expect(text, file).not.toMatch(/\blime\b/i);
+  });
+
+  it("keeps box-shadow out of the css and every production source except the card", () => {
+    const allowed = ["layout/card.ts"];
+    expect(css).not.toMatch(/\bbox-shadow\b/i);
+    const sources = productionSources();
+    for (const rel of allowed) {
+      const found = sources.find((s) => s.rel === rel);
+      expect(found, rel).toBeDefined();
+      expect(found?.text).toContain("box-shadow: var(--bang-card-shadow, none)");
     }
+    for (const { rel, text } of sources.filter((s) => !allowed.includes(s.rel))) {
+      expect(text, rel).not.toMatch(/\bbox-shadow\b/i);
+    }
+  });
+
+  it("adds none of the custom-theme properties to the generated css", () => {
+    expect(css).not.toMatch(/--bang-(text-|heading-|cover-ground|band-ground|card-shadow)/);
   });
 
   it("defines the six presentation sizes and gaps", () => {

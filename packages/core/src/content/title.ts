@@ -18,8 +18,8 @@ export class BangTitle extends BangElement {
     :host {
       display: block;
       font-family: var(--bang-font-display);
-      font-weight: 800;
-      letter-spacing: -0.03em;
+      font-weight: var(--bang-heading-weight, 800);
+      letter-spacing: var(--bang-heading-tracking, -0.03em);
     }
   `;
 
@@ -33,7 +33,7 @@ export class BangTitle extends BangElement {
     const size = pick(this, "size", SIZES, "l");
     const tone = pick(this, "tone", TONES, "default");
     return html`<style>
-        :host { font-size: var(--bang-size-${size}); line-height: var(--bang-leading-${size}); color: var(--bang-tone-${tone}); }
+        :host { font-size: var(--bang-size-${size}); line-height: calc(var(--bang-leading-${size}) * var(--bang-heading-leading-scale, 1)); color: var(--bang-tone-${tone}); }
       </style><slot></slot>`;
   }
 }

@@ -7,6 +7,7 @@ export { BangStop } from "./stop.js";
 export { BangNotes } from "./notes.js";
 export { BangStack } from "./layout/stack.js";
 export { BangColumns } from "./layout/columns.js";
+export { BangCard } from "./layout/card.js";
 export { BangTitle } from "./content/title.js";
 export { BangText } from "./content/text.js";
 export { BangList } from "./content/list.js";
