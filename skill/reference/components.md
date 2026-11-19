@@ -120,7 +120,7 @@ An image that fills the space left in its container.
 
 A bulleted or numbered list. Write items as `li` children.
 
-Inside the text, only `<b>` (bold: one step heavier than the surroundings), `<mark>` (highlighter: the theme's `highlight`, or the signal colour) and `<br>` (an intended line break) are used. Give them no attributes. Do not use `<br>` to tune wrapping.
+Inside the text, only `<b>` (bold: one step heavier than the surroundings), `<mark>` (highlighter: the theme's `highlight`, or the signal colour), `<br>` (an intended line break) and `<i>` (italic: for a quotation or the original text of a source) are used. Give them no attributes. Do not use `<br>` to tune wrapping.
 
 ```html
 <bang-list step="1">
@@ -207,6 +207,23 @@ Slots:
 
 - default: `bang-frame` elements and one `bang-path`.
 
+## bang-shape
+
+A small flat symbol that sits in the flow: a thick arrow or an ok / ng mark.
+
+Put it inside a `bang-text` line, a `bang-list` item, a `bang-columns` child or a `bang-stack` child. `kind` picks the form: `arrow-up`, `arrow-down` and `arrow-right` are thick arrows twice as wide as tall, drawn at 40% of the theme text colour so they read as grey; `ok` (a ring) and `ng` (a cross) are square and take the tone colour as is. It is drawn as a vector, so a PDF carries it as a shape, not as text: a tool that extracts text will not see its meaning.
+
+```html
+<bang-shape kind="arrow-down" size="l"></bang-shape>
+<bang-shape kind="ng" tone="accent"></bang-shape>
+```
+
+| Attribute | Values | Default | Description |
+| --- | --- | --- | --- |
+| `kind` | `arrow-up`, `arrow-down`, `arrow-right`, `ok`, `ng` | `arrow-down` | Which form to draw. |
+| `size` | `xs`, `s`, `m`, `l`, `xl`, `2xl` | `m` | Height of the form (a square mark is as wide as it is tall; an arrow is twice as wide). |
+| `tone` | `default`, `muted`, `accent` | `default` | Colour. |
+
 ## bang-stack
 
 Stacks children vertically.
@@ -270,7 +287,7 @@ Slots:
 
 A paragraph of body text.
 
-Inside the text, only `<b>` (bold: one step heavier than the surroundings), `<mark>` (highlighter: the theme's `highlight`, or the signal colour) and `<br>` (an intended line break) are used. Give them no attributes. Do not use `<br>` to tune wrapping.
+Inside the text, only `<b>` (bold: one step heavier than the surroundings), `<mark>` (highlighter: the theme's `highlight`, or the signal colour), `<br>` (an intended line break) and `<i>` (italic: for a quotation or the original text of a source) are used. Give them no attributes. Do not use `<br>` to tune wrapping.
 
 ```html
 <bang-text size="s" tone="muted">Body text</bang-text>
@@ -322,7 +339,7 @@ Slots:
 
 A heading.
 
-Inside the text, only `<b>` (bold: one step heavier than the surroundings), `<mark>` (highlighter: the theme's `highlight`, or the signal colour) and `<br>` (an intended line break) are used. Give them no attributes. Do not use `<br>` to tune wrapping. A `<b>` in a heading goes from 800 to 900, which looks the same unless `fontsHref` loads 900.
+Inside the text, only `<b>` (bold: one step heavier than the surroundings), `<mark>` (highlighter: the theme's `highlight`, or the signal colour), `<br>` (an intended line break) and `<i>` (italic: for a quotation or the original text of a source) are used. Give them no attributes. Do not use `<br>` to tune wrapping. A `<b>` in a heading goes from 800 to 900, which looks the same unless `fontsHref` loads 900.
 
 ```html
 <bang-title size="xl">Hello</bang-title>

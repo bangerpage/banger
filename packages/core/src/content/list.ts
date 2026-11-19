@@ -6,7 +6,7 @@ import { defineOnce, StepAware } from "../element.js";
 /**
  * A bulleted or numbered list. Write items as `li` children.
  *
- * Inside the text, only `<b>` (bold: one step heavier than the surroundings), `<mark>` (highlighter: the theme's `highlight`, or the signal colour) and `<br>` (an intended line break) are used. Give them no attributes. Do not use `<br>` to tune wrapping.
+ * Inside the text, only `<b>` (bold: one step heavier than the surroundings), `<mark>` (highlighter: the theme's `highlight`, or the signal colour), `<br>` (an intended line break) and `<i>` (italic: for a quotation or the original text of a source) are used. Give them no attributes. Do not use `<br>` to tune wrapping.
  *
  * ```html
  * <bang-list step="1">

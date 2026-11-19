@@ -6,7 +6,7 @@ import { BangElement, defineOnce } from "../element.js";
 /**
  * A heading.
  *
- * Inside the text, only `<b>` (bold: one step heavier than the surroundings), `<mark>` (highlighter: the theme's `highlight`, or the signal colour) and `<br>` (an intended line break) are used. Give them no attributes. Do not use `<br>` to tune wrapping. A `<b>` in a heading goes from 800 to 900, which looks the same unless `fontsHref` loads 900.
+ * Inside the text, only `<b>` (bold: one step heavier than the surroundings), `<mark>` (highlighter: the theme's `highlight`, or the signal colour), `<br>` (an intended line break) and `<i>` (italic: for a quotation or the original text of a source) are used. Give them no attributes. Do not use `<br>` to tune wrapping. A `<b>` in a heading goes from 800 to 900, which looks the same unless `fontsHref` loads 900.
  *
  * ```html
  * <bang-title size="xl">Hello</bang-title>

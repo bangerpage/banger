@@ -14,6 +14,7 @@ export { BangList } from "./content/list.js";
 export { BangStat } from "./content/stat.js";
 export { BangImage } from "./content/image.js";
 export { BangChart } from "./content/chart.js";
+export { BangShape } from "./content/shape.js";
 export { BangTheme } from "./theme-element.js";
 export { BangRoot } from "./root.js";
 export type { OverflowItem, RootMode, StopInfo, TextSample } from "./root.js";
