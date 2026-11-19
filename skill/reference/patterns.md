@@ -1,6 +1,6 @@
 # パターン集
 
-動く完全な断片だけを載せる。値は `components.md` の属性から選び、`style` 属性と色コードは書かない (色コードの例外はテーマ定義だけ。`reference/themes.md` を見る)。ランタイムの `<script type="module">` は `templates/starter.html` と同じ 1 行を使う。
+動く完全な断片だけを載せる。値は `components.md` の属性から選び、`style` 属性と色コードは書かない (`bang-free` の中の `<style>` の規則は、色をテーマの変数から取る限り書いてよい。色コードの例外はテーマ定義だけ。`reference/themes.md` を見る)。ランタイムの `<script type="module">` は `templates/starter.html` と同じ 1 行を使う。
 
 ## 比較を 2 列で見せる
 
@@ -302,6 +302,74 @@
   </bang-frame>
   <bang-path>
     <bang-stop frame="quote"></bang-stop>
+  </bang-path>
+</bang-root>
+```
+
+## 地図を逃げ道で組む
+
+部品に無い地図は `bang-free` の直下に `<style>` とルート要素を置いて組む。薄い箱の上に同じ位置の強調の箱を `grid-area: 1 / 1` で重ね、強調の箱に `data-step` を付けて順に出す (`data-step` は要素ごと出し入れするので、色を切り替えず重ねる)。流れの中の矢印は箱の中に `bang-shape` を置いてよい。
+
+```html
+<bang-root>
+  <bang-frame id="map" at="0,0">
+    <bang-title size="m">事業の構成</bang-title>
+    <bang-free>
+      <style>
+        .map { display: grid; grid-template-columns: 1fr 160px 1fr 160px 1fr; align-items: center; }
+        .cell { display: grid; }
+        .box { grid-area: 1 / 1; border: 2px solid var(--bang-color-ink-muted); padding: 64px 16px; text-align: center; font-size: 40px; color: var(--bang-color-ink-muted); }
+        .box.on { background: var(--bang-color-signal); border-color: var(--bang-color-signal); color: var(--bang-color-on-signal); }
+        .link { border-top: 3px dotted var(--bang-color-ink-muted); }
+      </style>
+      <div class="map">
+        <div class="cell"><div class="box">集める</div><div class="box on" data-step="1">集める</div></div>
+        <div class="link"></div>
+        <div class="cell"><div class="box">育てる</div><div class="box on" data-step="2">育てる</div></div>
+        <div class="link"></div>
+        <div class="cell"><div class="box">届ける</div><div class="box on" data-step="3">届ける</div></div>
+      </div>
+    </bang-free>
+  </bang-frame>
+  <bang-path>
+    <bang-stop frame="map" steps="3"></bang-stop>
+  </bang-path>
+</bang-root>
+```
+
+## 曲線の矢印と丸囲みを重ねる
+
+他の内容の上に重ねるものは、フレームの最後の子に `bang-free overlay` を 1 つ置く。座標はフレームの左上が原点の px で、`banger snap` の画像で語の位置を読んで合わせる。楕円は `<ellipse>`、曲線は二次ベジエ (`M x0 y0 Q cx cy x2 y2`) の点線で描き、矢じりは `marker-end` で付ける。`marker` の `id` はデッキ内で一意にする。
+
+二次ベジエの制御点は、始点 (x0, y0)、終点 (x2, y2)、曲げ量 h (px。進む向きの左側へ曲げるとき正) から求める。d = (x2 - x0, y2 - y0)、L = d の長さ、制御点 C = ((x0 + x2) / 2 + h * dy / L, (y0 + y2) / 2 - h * dx / L)。曲線の頂点は弦から h / 2 離れる。例えば (1500, 820) から (1180, 640)、h = 60 なら C = (1311, 782)。楕円は `rx` = 語の幅の半分 + 16、`ry` = 行の高さの半分 + 8 を目安にする。
+
+```html
+<bang-root>
+  <bang-frame id="curve" at="0,0">
+    <bang-title size="m">直すと結果が変わる</bang-title>
+    <bang-list><li>下書きを書く</li><li>見て直す</li><li>配る</li></bang-list>
+    <bang-free overlay>
+      <style>
+        .layer { position: relative; }
+        svg { position: absolute; inset: 0; width: 100%; height: 100%; color: var(--bang-color-signal-text); }
+        .ring { fill: none; stroke: var(--bang-color-signal-text); stroke-width: 4; }
+        .arc { fill: none; stroke: var(--bang-color-signal-text); stroke-width: 4; stroke-dasharray: 2 12; stroke-linecap: round; }
+        .note { position: absolute; left: 1180px; top: 800px; width: 560px; padding: 16px 24px; border: 1px solid var(--bang-color-line); background: var(--bang-color-surface); color: var(--bang-color-ink); font-size: 32px; }
+      </style>
+      <div class="layer">
+        <svg viewBox="0 0 1920 1080">
+          <defs>
+            <marker id="tip" orient="auto" markerWidth="8" markerHeight="8" refX="6" refY="4"><path d="M0 0L8 4L0 8Z" fill="currentColor"></path></marker>
+          </defs>
+          <ellipse class="ring" cx="283" cy="127" rx="58" ry="38"></ellipse>
+          <path class="arc" d="M 1170 840 Q 719 797 300 600" marker-end="url(#tip)"></path>
+        </svg>
+        <div class="note">見て直す時間を取ると、結果が変わる</div>
+      </div>
+    </bang-free>
+  </bang-frame>
+  <bang-path>
+    <bang-stop frame="curve"></bang-stop>
   </bang-path>
 </bang-root>
 ```
