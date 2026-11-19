@@ -24,6 +24,10 @@
 - `base`: `light` または `dark` (既定 `light`)。
 - 色の種: `paper` (地) `surface` (面) `ink` (本文) `inkMuted` (補足) `line` (罫線) `signal` (強調の塗り)。
 - `paperGradient`: フレームの地のグラデーション。`{ "angle": 135, "colors": ["#FFF6D6", "#FFC800"] }` のように、角度 (0〜360、既定 180 で上から下) と 2〜3 色を書く。
+- `coverGradient`: 表紙用のグラデーション。`paperGradient` と同じ形で、`ground="cover"` を書いたフレームだけの地になる。
+- `bandGradient`: 帯用のグラデーション。同じ形で、`<bang-card kind="band">` の地になる。
+- `typography`: 太さ・行間・字間。次の「組版」を見る。
+- `cardShadow`: `"none"` (既定) か `"soft"`。`soft` のとき `<bang-card>` に影が出る。
 - フォント: `fontSans` `fontDisplay` `fontMono`。
 - `fontsHref`: Google Fonts の css2 の URL。
 
@@ -41,8 +45,9 @@
 
 - `paper` を書かなければ、グラデーションの 1 色目が `paper` になる。補足や強調の文字色は、グラデーションのどの色の上でも読めるように計算される。
 - 本文と補足と強調色の濃さの差は、グラデーションのすべての色に対して確かめられ、足りなければ警告が出る。
-- `tone="accent"` と `tone="inverse"` のフレームは単色のまま。
+- `tone="accent"` と `tone="inverse"` のフレームは単色のまま。`ground="cover"` と同時に書いたときも `tone` の地が優先され、警告が出る。
 - 近い色どうし (地の色を少し明るくした色から地の色へ、など) にすると、文字の読みやすさを保ちやすい。
+- `coverGradient` と `bandGradient` の色にも、同じ濃さの差の検査と文字色の計算が及ぶ。
 
 各色が画面のどこに出るか:
 
@@ -53,7 +58,59 @@
 | `inkMuted` | `tone="muted"` の文字、グラフの 3 本目の系列 |
 | `signal` | `tone="accent"` の文字とグラフの 2 本目の系列 (どちらも `signal` から作った `signal-text` で塗る) |
 | `line` | 俯瞰と 16:9 の外側に見えるキャンバスの地、グラフの罫線 |
-| `surface` | 今の部品では使われていない |
+| `surface` | `bang-card` の地と枠の内側 |
+
+## 組版
+
+`typography` で、本文と見出しの太さ・行間・字間を変える。title と stat が見出し (heading)、text と list が本文 (text)。キーはすべて任意で、書かなければ従来の値のまま。
+
+- `weightText` `weightHeading`: 100 から 900 の 100 刻みの整数。
+- `leadingText` `leadingHeading`: 行間の倍率 (0.8〜1.6)。各サイズの行間に掛けるので、サイズごとの階層は保たれる。
+- `trackingText` `trackingHeading`: 字間 (em 単位、-0.1〜0.3)。見出しの既定は -0.03、本文の既定は 0。日本語の見出しは負の字間が仮名に合わないので、0 か少し正の値にする。
+- 範囲外の値と未知のキーは、そのキーだけ警告されて無視される。
+- 太さは `fontsHref` で読み込んだ太さに揃える。`fontSans` と `fontDisplay` の先頭のファミリが `fontsHref` でその太さを要求していないと警告が出る。`fontSans` と `fontDisplay` を書かないと、組み込みの書体の太さ (Noto Sans JP の 400 と 700、Bricolage Grotesque の 800) に限られる。太さを変えるときは `fontSans` / `fontDisplay` と `fontsHref` を書く。
+
+```json
+{
+  "fontsHref": "https://fonts.googleapis.com/css2?family=M+PLUS+1:wght@100..900&display=swap",
+  "fontSans": "\"M PLUS 1\", sans-serif",
+  "fontDisplay": "\"M PLUS 1\", sans-serif",
+  "typography": {
+    "weightText": 400,
+    "weightHeading": 800,
+    "leadingText": 1,
+    "leadingHeading": 1,
+    "trackingText": 0,
+    "trackingHeading": 0.04
+  }
+}
+```
+
+## 表紙と帯のグラデーション
+
+`coverGradient` と `bandGradient` を書くと、表紙のフレームと帯の箱だけをグラデーションにできる。形は `paperGradient` と同じ。本文では属性で選ぶ。
+
+- 表紙: フレームに `ground="cover"` を書くと、そのフレームの地が `coverGradient` になる。`coverGradient` が無いと通常の地のまま警告が出る。
+- 帯: `<bang-card kind="band">` の地が `bandGradient` になる。`bandGradient` が無いと `surface` の地になり警告が出る。
+- `tone="accent"` と `tone="inverse"` のフレームの中では、帯は `surface` の地になり警告が出る。tone が文字色を入れ替えるため、使わない。
+
+```json
+{
+  "paper": "#FFC800",
+  "ink": "#141414",
+  "signal": "#141414",
+  "coverGradient": { "angle": 135, "colors": ["#FFFFFF", "#FFC800"] },
+  "bandGradient": { "angle": 90, "colors": ["#FFFFFF", "#FFC800"] }
+}
+```
+
+## カードの影
+
+`cardShadow` を `"soft"` にすると、`<bang-card>` (`kind="panel"`) の周囲にやわらかい影が出る。影の色は `ink` と `paper` の暗い方から計算され、色は書けない。`"none"` (既定) と未指定は影なし。帯 (`kind="band"`) には影が出ない。
+
+```json
+{ "paper": "#FFC800", "ink": "#141414", "signal": "#141414", "cardShadow": "soft" }
+```
 
 ## コントラスト
 

@@ -3,7 +3,27 @@ import { themeColorTokens } from "./theme.generated.js";
 
 export const THEME_COLOR_KEYS = ["paper", "surface", "ink", "inkMuted", "line", "signal"] as const;
 export const THEME_FONT_KEYS = ["fontSans", "fontDisplay", "fontMono"] as const;
-export const THEME_KEYS = ["base", ...THEME_COLOR_KEYS, "paperGradient", ...THEME_FONT_KEYS, "fontsHref"] as const;
+export const THEME_TYPOGRAPHY_KEYS = [
+  "weightText",
+  "weightHeading",
+  "leadingText",
+  "leadingHeading",
+  "trackingText",
+  "trackingHeading",
+] as const;
+export const THEME_KEYS = [
+  "base",
+  ...THEME_COLOR_KEYS,
+  "paperGradient",
+  "coverGradient",
+  "bandGradient",
+  "typography",
+  "cardShadow",
+  ...THEME_FONT_KEYS,
+  "fontsHref",
+] as const;
+
+export type ThemeTypography = { [K in (typeof THEME_TYPOGRAPHY_KEYS)[number]]?: number };
 
 export interface ThemeDefinition {
   base?: "light" | "dark";
@@ -15,6 +35,14 @@ export interface ThemeDefinition {
   signal?: string;
   /** A linear gradient for the frame ground. `paper` defaults to its first colour; text contrast is checked against every colour. */
   paperGradient?: PaperGradient;
+  /** A gradient for frames that set `ground="cover"`. Text contrast is checked against every colour. */
+  coverGradient?: PaperGradient;
+  /** A gradient for `<bang-card kind="band">`. Text contrast is checked against every colour. */
+  bandGradient?: PaperGradient;
+  /** Weight, leading scale and tracking for text (text, list) and headings (title, stat). */
+  typography?: ThemeTypography;
+  /** `soft` gives `<bang-card>` panels a soft shadow; `none` (default) keeps them flat. */
+  cardShadow?: "none" | "soft";
   fontSans?: string;
   fontDisplay?: string;
   fontMono?: string;
@@ -45,6 +73,8 @@ export interface ResolvedTheme {
   ground: string | null;
   fonts: { sans?: string; display?: string; mono?: string };
   fontsRequest: FontsRequest | null;
+  /** Custom properties for the `bang-root` inline style. Never includes `--bang-color-` or `--bang-font-` names. */
+  vars: Record<string, string>;
   warnings: string[];
 }
 
@@ -64,25 +94,68 @@ export function isFontStack(value: string): boolean {
   return count(text, "'") % 2 === 0 && count(text, '"') % 2 === 0;
 }
 
-function weightsOf(axes: string | undefined): number[] {
-  if (axes === undefined) return [400];
+function weightSpans(axes: string | undefined): [number, number][] {
+  if (axes === undefined) return [[400, 400]];
   const at = axes.indexOf("@");
-  if (at < 0) return [400];
+  if (at < 0) return [[400, 400]];
   const index = axes.slice(0, at).split(",").indexOf("wght");
-  if (index < 0) return [400];
-  const weights = new Set<number>();
+  if (index < 0) return [[400, 400]];
+  const spans: [number, number][] = [];
   for (const tuple of axes.slice(at + 1).split(";")) {
     const value = tuple.split(",")[index] ?? "";
     const range = /^(\d{3})\.\.(\d{3})$/.exec(value);
-    if (/^\d{3}$/.test(value)) weights.add(Number(value));
-    else if (range) {
-      weights.add(Number(range[1]));
-      weights.add(Number(range[2]));
-    }
+    if (/^\d{3}$/.test(value)) spans.push([Number(value), Number(value)]);
+    else if (range) spans.push([Number(range[1]), Number(range[2])]);
   }
-  const sorted = [...weights].filter((w) => w >= 100 && w <= 900).sort((a, b) => a - b);
+  const inRange = (w: number) => w >= 100 && w <= 900;
+  const kept = spans.filter(([lo, hi]) => inRange(lo) && inRange(hi));
+  return kept.length > 0 ? kept : [[400, 400]];
+}
+
+function weightsOf(axes: string | undefined): number[] {
+  const weights = new Set<number>();
+  for (const [lo, hi] of weightSpans(axes)) {
+    weights.add(lo);
+    weights.add(hi);
+  }
+  const sorted = [...weights].sort((a, b) => a - b);
   return sorted.length > 0 ? sorted.slice(0, MAX_WEIGHTS) : [400];
 }
+
+function firstFamily(stack: string): string | null {
+  const text = stack.trim();
+  const quote = text[0];
+  if (quote === "'" || quote === '"') {
+    const end = text.indexOf(quote, 1);
+    const name = end < 0 ? "" : text.slice(1, end).trim();
+    return name === "" ? null : name;
+  }
+  const name = text.split(",")[0]?.trim() ?? "";
+  return name === "" ? null : name;
+}
+
+function requestsWeight(href: string, family: string, weight: number): boolean | null {
+  let entries: string[];
+  try {
+    entries = new URL(href).searchParams.getAll("family");
+  } catch {
+    return null;
+  }
+  const wanted = family.toLowerCase();
+  let found = false;
+  for (const entry of entries) {
+    const colon = entry.indexOf(":");
+    const name = colon < 0 ? entry : entry.slice(0, colon);
+    if (name.toLowerCase() !== wanted) continue;
+    found = true;
+    if (weightSpans(colon < 0 ? undefined : entry.slice(colon + 1)).some(([lo, hi]) => lo <= weight && weight <= hi)) {
+      return true;
+    }
+  }
+  return found ? false : null;
+}
+
+const round3 = (n: number) => Math.round(n * 1000) / 1000;
 
 export function parseFontsHref(href: string): FontsRequest | null {
   let url: URL;
@@ -143,14 +216,20 @@ export function parseThemeJson(text: string): ParsedTheme {
       const rgb = typeof value === "string" ? parseHex(value) : null;
       if (rgb) definition[key as (typeof THEME_COLOR_KEYS)[number]] = toHex(rgb);
       else warnings.push(`theme: "${key}" must be a #RGB or #RRGGBB color; ignored`);
-    } else if (key === "paperGradient") {
+    } else if (key === "paperGradient" || key === "coverGradient" || key === "bandGradient") {
       const gradient = parsePaperGradient(value);
-      if (gradient) definition.paperGradient = gradient;
+      if (gradient) definition[key] = gradient;
       else {
         warnings.push(
-          'theme: "paperGradient" must be { "angle": 0-360, "colors": [2 or 3 #RGB or #RRGGBB colors] }; ignored',
+          `theme: "${key}" must be { "angle": 0-360, "colors": [2 or 3 #RGB or #RRGGBB colors] }; ignored`,
         );
       }
+    } else if (key === "typography") {
+      const typography = parseTypography(value, warnings);
+      if (typography) definition.typography = typography;
+    } else if (key === "cardShadow") {
+      if (value === "none" || value === "soft") definition.cardShadow = value;
+      else warnings.push('theme: "cardShadow" must be "none" or "soft"; ignored');
     } else if (key === "fontsHref") {
       const request = typeof value === "string" ? parseFontsHref(value) : null;
       if (request) definition.fontsHref = request.href;
@@ -170,6 +249,35 @@ export function parseThemeJson(text: string): ParsedTheme {
   return { definition, warnings };
 }
 
+function parseTypography(value: unknown, warnings: string[]): ThemeTypography | null {
+  if (typeof value !== "object" || value === null || Array.isArray(value)) {
+    warnings.push('theme: "typography" must be an object; ignored');
+    return null;
+  }
+  const input = value as Record<string, unknown>;
+  for (const key of Object.keys(input)) {
+    if (!(THEME_TYPOGRAPHY_KEYS as readonly string[]).includes(key)) {
+      warnings.push(`theme: unknown key "typography.${shortKey(key)}"; ignored`);
+    }
+  }
+  const out: ThemeTypography = {};
+  for (const key of THEME_TYPOGRAPHY_KEYS) {
+    if (!Object.prototype.hasOwnProperty.call(input, key)) continue;
+    const v = input[key];
+    if (key === "weightText" || key === "weightHeading") {
+      if (typeof v === "number" && Number.isInteger(v) && v >= 100 && v <= 900 && v % 100 === 0) out[key] = v;
+      else warnings.push(`theme: "typography.${key}" must be an integer multiple of 100 from 100 to 900; ignored`);
+    } else if (key === "leadingText" || key === "leadingHeading") {
+      if (typeof v === "number" && Number.isFinite(v) && v >= 0.8 && v <= 1.6) out[key] = round3(v);
+      else warnings.push(`theme: "typography.${key}" must be a number from 0.8 to 1.6; ignored`);
+    } else if (typeof v === "number" && Number.isFinite(v) && v >= -0.1 && v <= 0.3) out[key] = round3(v);
+    else warnings.push(`theme: "typography.${key}" must be a number from -0.1 to 0.3; ignored`);
+  }
+  return Object.keys(out).length > 0 ? out : null;
+}
+
+const gradientCss = (g: PaperGradient) => `linear-gradient(${g.angle}deg, ${g.colors.join(", ")})`;
+
 function parsePaperGradient(value: unknown): PaperGradient | null {
   if (typeof value !== "object" || value === null || Array.isArray(value)) return null;
   const { angle = 180, colors, ...rest } = value as Record<string, unknown>;
@@ -185,7 +293,15 @@ export function serializeTheme(definition: ThemeDefinition): string {
   const ordered: Record<string, unknown> = {};
   for (const key of THEME_KEYS) {
     const value = definition[key];
-    if (value !== undefined) ordered[key] = value;
+    if (value === undefined) continue;
+    if (key === "typography") {
+      const typography: Record<string, number> = {};
+      for (const k of THEME_TYPOGRAPHY_KEYS) {
+        const v = (value as ThemeTypography)[k];
+        if (v !== undefined) typography[k] = v;
+      }
+      ordered[key] = typography;
+    } else ordered[key] = value;
   }
   return JSON.stringify(ordered, null, 2).replace(/</g, "\\u003c");
 }
@@ -202,7 +318,9 @@ export function resolveTheme(definition: ThemeDefinition): ResolvedTheme {
 
   const gradient = definition.paperGradient ?? null;
   const paper = given(definition.paper) ?? gradient?.colors[0] ?? B.paper;
-  const gradientGrounds = (gradient?.colors ?? []).map(rgbOf);
+  const cover = definition.coverGradient ?? null;
+  const band = definition.bandGradient ?? null;
+  const gradientGrounds = [gradient, cover, band].flatMap((g) => g?.colors ?? []).map(rgbOf);
   const ink = given(definition.ink) ?? B.ink;
   const signal = given(definition.signal) ?? B.signal;
   const surface =
@@ -242,8 +360,17 @@ export function resolveTheme(definition: ThemeDefinition): ResolvedTheme {
   };
 
   const warnings: string[] = [];
-  for (const ground of [paper, ...(gradient?.colors.filter((c) => c !== paper) ?? [])]) {
-    const on = ground === paper ? `paper ${paper}` : `paperGradient color ${ground}`;
+  const grounds: { hex: string; name: string }[] = [{ hex: paper, name: `paper ${paper}` }];
+  for (const [label, g] of [
+    ["paperGradient", gradient],
+    ["coverGradient", cover],
+    ["bandGradient", band],
+  ] as const) {
+    for (const color of g?.colors ?? []) {
+      if (!grounds.some((x) => x.hex === color)) grounds.push({ hex: color, name: `${label} color ${color}` });
+    }
+  }
+  for (const { hex: ground, name: on } of grounds) {
     const inkRatio = contrastRatio(rgbOf(ink), rgbOf(ground));
     if (inkRatio < 4.5) {
       warnings.push(`theme: ink ${ink} on ${on} is ${ratioText(inkRatio)}:1; 4.5:1 or more is needed to read text`);
@@ -259,7 +386,7 @@ export function resolveTheme(definition: ThemeDefinition): ResolvedTheme {
       );
     }
   }
-  const ground = gradient ? `linear-gradient(${gradient.angle}deg, ${gradient.colors.join(", ")})` : null;
+  const ground = gradient ? gradientCss(gradient) : null;
 
   const fonts: ResolvedTheme["fonts"] = {};
   if (definition.fontSans !== undefined) fonts.sans = definition.fontSans;
@@ -267,7 +394,39 @@ export function resolveTheme(definition: ThemeDefinition): ResolvedTheme {
   if (definition.fontMono !== undefined) fonts.mono = definition.fontMono;
 
   const fontsRequest = definition.fontsHref === undefined ? null : parseFontsHref(definition.fontsHref);
-  return { colors, ground, fonts, fontsRequest, warnings };
+  const vars: Record<string, string> = {};
+  const t = definition.typography;
+  if (t) {
+    if (t.weightText !== undefined) vars["--bang-text-weight"] = String(t.weightText);
+    if (t.weightHeading !== undefined) vars["--bang-heading-weight"] = String(t.weightHeading);
+    if (t.leadingText !== undefined) vars["--bang-text-leading-scale"] = String(t.leadingText);
+    if (t.leadingHeading !== undefined) vars["--bang-heading-leading-scale"] = String(t.leadingHeading);
+    if (t.trackingText !== undefined) vars["--bang-text-tracking"] = `${t.trackingText}em`;
+    if (t.trackingHeading !== undefined) vars["--bang-heading-tracking"] = `${t.trackingHeading}em`;
+  }
+  if (cover) vars["--bang-cover-ground"] = gradientCss(cover);
+  if (band) vars["--bang-band-ground"] = gradientCss(band);
+  if (definition.cardShadow === "soft") {
+    const darker = relativeLuminance(rgbOf(ink)) <= relativeLuminance(rgbOf(paper)) ? rgbOf(ink) : rgbOf(paper);
+    vars["--bang-card-shadow"] = `0 8px 32px rgba(${darker.r}, ${darker.g}, ${darker.b}, 0.18)`;
+  }
+
+  if (fontsRequest && t) {
+    for (const [weight, stack, key] of [
+      [t.weightText, definition.fontSans, "weightText"],
+      [t.weightHeading, definition.fontDisplay, "weightHeading"],
+    ] as const) {
+      if (weight === undefined || stack === undefined) continue;
+      const family = firstFamily(stack);
+      if (family === null) continue;
+      if (requestsWeight(fontsRequest.href, family, weight) === false) {
+        warnings.push(
+          `theme: typography.${key} ${weight} is not requested for "${family}" in fontsHref; the nearest loaded weight is used`,
+        );
+      }
+    }
+  }
+  return { colors, ground, fonts, fontsRequest, vars, warnings };
 }
 
 export const FRAME_TONES = ["accent", "inverse"] as const;

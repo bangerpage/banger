@@ -8,6 +8,7 @@ import {
   resolveTheme,
   serializeTheme,
   THEME_KEYS,
+  THEME_TYPOGRAPHY_KEYS,
   type ThemeColorToken,
   type ThemeDefinition,
 } from "./custom.js";
@@ -303,7 +304,7 @@ describe("custom theme", () => {
         expect(resolveTheme(def).warnings, name).toEqual([]);
         const parsed = parseThemeJson(serializeTheme(def));
         expect(parsed.warnings, name).toEqual([]);
-        expect(Object.keys(def).sort(), name).toEqual([...THEME_KEYS].filter((k) => k !== "fontsHref" && k !== "paperGradient").sort());
+        expect(Object.keys(def).sort(), name).toEqual([...THEME_KEYS].filter((k) => !["fontsHref", "paperGradient", "coverGradient", "bandGradient", "typography", "cardShadow"].includes(k)).sort());
         expect(def.fontSans).toBe(themeFontStacks.sans);
       }
     });
@@ -390,5 +391,144 @@ describe("paperGradient", () => {
   it("round-trips through serializeTheme", () => {
     const definition: ThemeDefinition = { base: "light", paperGradient: { angle: 90, colors: ["#FFFFFF", "#EEEEEE"] } };
     expect(parseThemeJson(serializeTheme(definition)).definition).toEqual(definition);
+  });
+});
+
+describe("typography", () => {
+  it("normalises valid keys and orders them by THEME_TYPOGRAPHY_KEYS", () => {
+    const { definition, warnings } = parseThemeJson(
+      '{ "typography": { "trackingHeading": 0.04567, "leadingText": 1.23456, "weightHeading": 800, "weightText": 400 } }',
+    );
+    expect(warnings).toEqual([]);
+    expect(definition?.typography).toEqual({ weightText: 400, weightHeading: 800, leadingText: 1.235, trackingHeading: 0.046 });
+    const text = serializeTheme(definition ?? {});
+    const keys = Object.keys(JSON.parse(text).typography);
+    expect(keys).toEqual(THEME_TYPOGRAPHY_KEYS.filter((k) => keys.includes(k)));
+    expect(parseThemeJson(text).definition).toEqual(definition);
+  });
+
+  it("places the new keys between paperGradient and fontSans and keeps fontsHref last", () => {
+    expect(THEME_KEYS.slice(THEME_KEYS.indexOf("paperGradient"), THEME_KEYS.indexOf("fontSans"))).toEqual([
+      "paperGradient",
+      "coverGradient",
+      "bandGradient",
+      "typography",
+      "cardShadow",
+    ]);
+    expect(THEME_KEYS.at(-1)).toBe("fontsHref");
+  });
+
+  it("warns once per bad key and keeps the others", () => {
+    const { definition, warnings } = parseThemeJson(
+      '{ "typography": { "weightText": 450, "weightHeading": 1000, "leadingText": 2, "leadingHeading": "1", "trackingText": 0.5, "trackingHeading": 0.1, "bogus": 1 } }',
+    );
+    expect(definition?.typography).toEqual({ trackingHeading: 0.1 });
+    expect(warnings).toHaveLength(6);
+    expect(warnings).toContain('theme: unknown key "typography.bogus"; ignored');
+    expect(warnings).toContain('theme: "typography.weightText" must be an integer multiple of 100 from 100 to 900; ignored');
+  });
+
+  it("drops typography when no key is valid or the value is not an object", () => {
+    expect(parseThemeJson('{ "typography": { "weightText": 5 } }').definition?.typography).toBeUndefined();
+    const { definition, warnings } = parseThemeJson('{ "typography": [] }');
+    expect(definition?.typography).toBeUndefined();
+    expect(warnings).toEqual(['theme: "typography" must be an object; ignored']);
+  });
+
+  it("returns vars only for the keys that were written", () => {
+    expect(resolveTheme({}).vars).toEqual({});
+    expect(resolveTheme({ typography: { weightText: 300, leadingHeading: 0.9, trackingHeading: 0.05 } }).vars).toEqual({
+      "--bang-text-weight": "300",
+      "--bang-heading-leading-scale": "0.9",
+      "--bang-heading-tracking": "0.05em",
+    });
+  });
+
+  describe("fontsHref weight warnings", () => {
+    const href = "https://fonts.googleapis.com/css2?family=M+PLUS+1:wght@300;700&family=Zen+Maru+Gothic:wght@100..900";
+    const warn = (def: ThemeDefinition) => resolveTheme(def).warnings.filter((w) => w.includes("typography."));
+    it("warns when the family is requested without that weight", () => {
+      const w = warn({ fontsHref: href, fontSans: '"M PLUS 1", sans-serif', typography: { weightText: 400 } });
+      expect(w).toEqual([
+        'theme: typography.weightText 400 is not requested for "M PLUS 1" in fontsHref; the nearest loaded weight is used',
+      ]);
+      expect(warn({ fontsHref: href, fontDisplay: "'M PLUS 1'", typography: { weightHeading: 900 } })).toHaveLength(1);
+    });
+    it("does not warn for listed weights, ranges, unknown families, or missing href and fonts", () => {
+      expect(warn({ fontsHref: href, fontSans: "M PLUS 1", typography: { weightText: 300 } })).toEqual([]);
+      expect(warn({ fontsHref: href, fontSans: "Zen Maru Gothic", typography: { weightText: 500 } })).toEqual([]);
+      expect(warn({ fontsHref: href, fontSans: "Other", typography: { weightText: 500 } })).toEqual([]);
+      expect(warn({ fontSans: "M PLUS 1", typography: { weightText: 500 } })).toEqual([]);
+      expect(warn({ fontsHref: href, typography: { weightText: 500 } })).toEqual([]);
+    });
+  });
+});
+
+describe("coverGradient and bandGradient", () => {
+  it("parses like paperGradient and round-trips", () => {
+    const { definition, warnings } = parseThemeJson(
+      '{ "coverGradient": { "angle": 135, "colors": ["#fff", "#FFC800"] }, "bandGradient": { "colors": ["#FFF", "#FC0"] } }',
+    );
+    expect(warnings).toEqual([]);
+    expect(definition?.coverGradient).toEqual({ angle: 135, colors: ["#FFFFFF", "#FFC800"] });
+    expect(definition?.bandGradient).toEqual({ angle: 180, colors: ["#FFFFFF", "#FFCC00"] });
+    expect(parseThemeJson(serializeTheme(definition ?? {})).definition).toEqual(definition);
+  });
+
+  it("warns with the key name for invalid values", () => {
+    const { definition, warnings } = parseThemeJson('{ "coverGradient": { "colors": ["#fff"] }, "bandGradient": 3 }');
+    expect(definition?.coverGradient).toBeUndefined();
+    expect(definition?.bandGradient).toBeUndefined();
+    expect(warnings).toHaveLength(2);
+    expect(warnings[0]).toMatch(/^theme: "coverGradient" must be \{/);
+    expect(warnings[1]).toMatch(/^theme: "bandGradient" must be \{/);
+  });
+
+  it("derives muted and link text against cover and band gradient colours", () => {
+    const base = resolveTheme({});
+    const r = resolveTheme({
+      coverGradient: { angle: 135, colors: ["#FFFFFF", "#9A9A9A"] },
+      bandGradient: { angle: 90, colors: ["#FFFFFF", "#8A8A8A"] },
+    });
+    expect(r.colors["ink-muted"]).not.toBe(base.colors["ink-muted"]);
+    expect(r.colors["signal-text"]).not.toBe(base.colors["signal-text"]);
+    for (const ground of ["#9A9A9A", "#8A8A8A"]) {
+      expect(ratio(r.colors["ink-muted"], ground)).toBeGreaterThanOrEqual(4.5);
+      expect(ratio(r.colors["signal-text"], ground)).toBeGreaterThanOrEqual(4.5);
+    }
+  });
+
+  it("exposes the gradients as vars, checks contrast against their colours and leaves paper alone", () => {
+    const r = resolveTheme({
+      coverGradient: { angle: 135, colors: ["#FFFFFF", "#333333"] },
+      bandGradient: { angle: 90, colors: ["#FFFFFF", "#444444"] },
+    });
+    expect(r.vars["--bang-cover-ground"]).toBe("linear-gradient(135deg, #FFFFFF, #333333)");
+    expect(r.vars["--bang-band-ground"]).toBe("linear-gradient(90deg, #FFFFFF, #444444)");
+    expect(r.colors.paper).toBe(themeColorTokens.light.paper);
+    expect(r.ground).toBeNull();
+    expect(r.warnings.some((w) => w.includes("coverGradient color #333333"))).toBe(true);
+    expect(r.warnings.some((w) => w.includes("bandGradient color #444444"))).toBe(true);
+    expect(r.warnings.some((w) => w.includes("paperGradient"))).toBe(false);
+  });
+});
+
+describe("cardShadow", () => {
+  it("parses none and soft and rejects others", () => {
+    expect(parseThemeJson('{ "cardShadow": "soft" }').definition?.cardShadow).toBe("soft");
+    const { definition, warnings } = parseThemeJson('{ "cardShadow": "hard" }');
+    expect(definition?.cardShadow).toBeUndefined();
+    expect(warnings).toEqual(['theme: "cardShadow" must be "none" or "soft"; ignored']);
+  });
+
+  it("uses the darker of ink and paper, and no var for none or unset", () => {
+    expect(resolveTheme({ paper: "#FFC800", ink: "#141414", cardShadow: "soft" }).vars["--bang-card-shadow"]).toBe(
+      "0 8px 32px rgba(20, 20, 20, 0.18)",
+    );
+    expect(resolveTheme({ paper: "#0A0A0A", ink: "#F0F0F0", cardShadow: "soft" }).vars["--bang-card-shadow"]).toBe(
+      "0 8px 32px rgba(10, 10, 10, 0.18)",
+    );
+    expect(resolveTheme({ cardShadow: "none" }).vars).toEqual({});
+    expect(resolveTheme({}).vars).toEqual({});
   });
 });
