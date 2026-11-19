@@ -185,6 +185,8 @@ const geometry = (page: Page, sel: string) =>
       bottom: c ? c.bottom - f.top : null,
       height: c ? c.height : null,
       overflowing: crumb ? crumb.scrollWidth > crumb.clientWidth : null,
+      fontSize: crumb ? getComputedStyle(crumb).fontSize : null,
+      fontWeight: crumb ? getComputedStyle(crumb).fontWeight : null,
       padding: getComputedStyle(inner).paddingTop,
       titleTop: title.top - f.top,
       heading: crumb ? crumb.closest("h1,h2,h3,h4,h5,h6,[role=heading]") !== null || crumb.getAttribute("role") === "heading" : null,
@@ -201,7 +203,9 @@ describe("crumb", () => {
     const b = await geometry(without.page, "#a");
     expect(a.top).toBeCloseTo(32, 1);
     expect(a.left).toBeCloseTo(96, 1);
-    expect(a.bottom).toBeLessThanOrEqual(96);
+    expect(a.bottom).toBeLessThanOrEqual(86);
+    expect(a.fontSize).toBe("36px");
+    expect(a.fontWeight).toBe("800");
     expect(a.padding).toBe(b.padding);
     expect(a.padding).toBe("96px");
     expect(a.titleTop).toBeCloseTo(b.titleTop, 1);
@@ -212,7 +216,7 @@ describe("crumb", () => {
   it("AC-CRUMB-1 keeps long text on one line and skips blank crumbs", async () => {
     const long = await deck("{}", frame(` crumb="${"long ".repeat(40)}"`));
     const g = await geometry(long.page, "#a");
-    expect(g.height).toBeCloseTo(44.8, 1);
+    expect(g.height).toBeCloseTo(54, 1);
     expect(g.overflowing).toBe(true);
     const blank = await deck("{}", frame(' crumb="   "'));
     expect((await geometry(blank.page, "#a")).top).toBeNull();
@@ -497,5 +501,89 @@ describe("nested list", () => {
     expect(broken.nChildren).toBe(0);
     expect(broken.cParent).toBe("p");
     expect(broken.yParent).not.toBe("p");
+  });
+});
+
+describe("valign", () => {
+  const rects = (page: Page, sel: string[]) =>
+    page.evaluate(
+      (sels) =>
+        sels.map((q) => {
+          const r = document.querySelector(q)!.getBoundingClientRect();
+          return { top: r.top, bottom: r.bottom };
+        }),
+      sel,
+    );
+  const card = (attr: string, inner = "<bang-text id=\"t\">x</bang-text>") =>
+    `<bang-frame id="a"><bang-card id="c" grow${attr}>${inner}</bang-card></bang-frame>`;
+
+  it("AC-VALIGN-1 centres card content, never cuts off the top, and falls back on a bad value", async () => {
+    const centred = await deck("{}", card(' valign="center"'));
+    await ready(centred.page);
+    const [c, t] = await rects(centred.page, ["#c", "#t"]);
+    expect(Math.abs(t.top - c.top - (c.bottom - t.bottom))).toBeLessThanOrEqual(1);
+    const tall = await deck("{}", card(' valign="center"', `<bang-text id="t">${"x<br>".repeat(40)}</bang-text>`));
+    await ready(tall.page);
+    const [tc, tt] = await rects(tall.page, ["#c", "#t"]);
+    expect(tt.top).toBeGreaterThanOrEqual(tc.top);
+    const plain = await deck("{}", card(""));
+    await ready(plain.page);
+    const [pc, pt] = await rects(plain.page, ["#c", "#t"]);
+    expect(pt.top - pc.top).toBeCloseTo(49, 0);
+    expect(pc.bottom - pt.bottom).toBeGreaterThan(100);
+    const bad = await deck("{}", card(' valign="nope"'));
+    await ready(bad.page);
+    const [bc, bt] = await rects(bad.page, ["#c", "#t"]);
+    expect(bt.top - bc.top).toBeCloseTo(49, 0);
+    expect(bad.warnings.filter((w) => w.includes("valign")).length).toBe(1);
+  });
+
+  it("AC-VALIGN-2 spreads a frame's first and last child to its edges", async () => {
+    const frame = (attr: string) =>
+      `<bang-frame id="a"${attr}><bang-title id="f" size="m">T</bang-title><bang-text id="l">name</bang-text></bang-frame>`;
+    const spread = await deck("{}", frame(' valign="spread"'));
+    await ready(spread.page);
+    const [f, l] = await rects(spread.page, ["#f", "#l"]);
+    expect(f.top).toBeCloseTo(96, 0);
+    expect(l.bottom).toBeCloseTo(1080 - 96, 0);
+    const none = await deck("{}", frame(""));
+    const centred = await deck("{}", frame(' valign="center"'));
+    await ready(none.page);
+    await ready(centred.page);
+    const [, nl] = await rects(none.page, ["#f", "#l"]);
+    const [, cl] = await rects(centred.page, ["#f", "#l"]);
+    expect(nl.bottom).toBeLessThan(984);
+    expect(cl.bottom).toBeCloseTo(nl.bottom, 1);
+  });
+});
+
+describe("band", () => {
+  const band = (attr = "") => `<bang-frame id="a"${attr}><bang-card id="b" kind="band"><bang-text>x</bang-text></bang-card></bang-frame>`;
+  const props = ["borderTopColor", "borderTopWidth", "borderTopLeftRadius", "backgroundOrigin"] as const;
+  const read = (page: Page) =>
+    page.evaluate((ps) => {
+      const el = document.querySelector("#b") as HTMLElement;
+      const cs = getComputedStyle(el) as unknown as Record<string, string>;
+      return { ...Object.fromEntries(ps.map((p) => [p, cs[p]])), height: el.getBoundingClientRect().height } as Record<(typeof props)[number], string> & { height: number };
+    }, props);
+
+  it("AC-BAND-1 hides the border with a transparent colour, keeps the box and rounds to 48px", async () => {
+    const full = await deck(FULL, band());
+    await ready(full.page);
+    const a = await read(full.page);
+    const surface = await deck("{}", band());
+    await ready(surface.page);
+    const b = await read(surface.page);
+    expect(a.borderTopColor).toBe("rgba(0, 0, 0, 0)");
+    expect(a.borderTopWidth).not.toBe("0px");
+    expect(a.borderTopWidth).toBe(b.borderTopWidth);
+    expect(a.height).toBeCloseTo(b.height, 1);
+    expect(a.borderTopLeftRadius).toBe("48px");
+    expect(a.backgroundOrigin).toBe("border-box");
+    expect(b.borderTopColor).not.toBe("rgba(0, 0, 0, 0)");
+    expect(b.borderTopLeftRadius).toBe("48px");
+    const tone = await deck(FULL, band(' tone="accent"'));
+    await ready(tone.page);
+    expect((await read(tone.page)).borderTopColor).not.toBe("rgba(0, 0, 0, 0)");
   });
 });

@@ -6,8 +6,9 @@ Every element accepts these global attributes: `id` `class` `slot` `data-*` `ari
 
 ## bang-card
 
-A box that stacks its children. `panel` is a framed surface (with a soft shadow when the custom theme sets
-`cardShadow: "soft"`); `band` is filled with the custom theme's `bandGradient`.
+A box that stacks its children. `panel` is a framed surface (with a soft shadow along its inner edge when the custom
+theme sets `cardShadow: "soft"`); `band` has no visible border and is filled with the custom theme's `bandGradient`
+(without a `bandGradient` it is a surface with a border).
 
 ```html
 <bang-card grow>
@@ -19,6 +20,7 @@ A box that stacks its children. `panel` is a framed surface (with a soft shadow 
 | --- | --- | --- | --- |
 | `kind` | `panel`, `band` | `panel` | `panel` is a framed surface; `band` is filled with the theme's band gradient. |
 | `grow` | boolean | `false` | Fill the rest of the parent frame's height. Without it the card is as tall as its content. |
+| `valign` | `start`, `center` | `start` | Vertical position of the content. `start` packs it to the top; `center` centres it and never cuts off the top when it overflows. |
 
 Slots:
 
@@ -93,7 +95,8 @@ A 1920x1080 area of the canvas. Content that does not fit is clipped.
 | `span` | string | `1,1` | Number of grid cells covered as "w,h" (integers from 1). |
 | `tone` | `default`, `accent`, `inverse` | `default` | The frame's ground: `default` uses the theme's paper, `accent` the theme's signal, `inverse` the theme's ink. Text colours follow so they stay readable. Use it for covers and section dividers. |
 | `ground` | `default`, `cover` | `default` | Which ground the frame uses. `cover` applies the custom theme's `coverGradient`; `tone` wins over it, and without a `coverGradient` the normal ground stays. |
-| `crumb` | string | - | A small bold line at the top left, inside the top margin. It does not move the content and is cut to one line. |
+| `crumb` | string | - | A bold heading-size line (36px) at the top left, inside the top margin. It does not move the content and is cut to one line. |
+| `valign` | `center`, `spread` | `center` | Vertical position of the children. `center` centres them; `spread` puts the first child at the top and the last at the bottom, with the rest between. Use it to split a cover's title from the name. With one child it sits at the top. |
 
 Slots:
 

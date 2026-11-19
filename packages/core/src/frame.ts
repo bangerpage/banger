@@ -35,6 +35,7 @@ export class BangFrame extends BangElement {
       --bang-tone-muted: var(--bang-color-ink-muted);
       --bang-tone-accent: var(--bang-color-signal-text);
       --bang-band-ground: initial;
+      --bang-band-border: initial;
     }
 ${unsafeCSS(
   FRAME_TONES.map(
@@ -58,8 +59,8 @@ ${unsafeCSS(
       font-family: var(--bang-font-display);
       font-weight: var(--bang-heading-weight, 800);
       letter-spacing: var(--bang-heading-tracking, -0.03em);
-      font-size: var(--bang-size-xs);
-      line-height: var(--bang-leading-xs);
+      font-size: var(--bang-size-s);
+      line-height: var(--bang-leading-s);
       color: var(--bang-tone-default);
     }
     .frame {
@@ -78,6 +79,9 @@ ${unsafeCSS(
       /* Without this a heading that opens with 「 starts half an em to the right of the text below it. */
       text-spacing-trim: trim-start;
       justify-content: center;
+    }
+    :host([valign="spread"]) .frame {
+      justify-content: space-between;
     }
   `;
 
@@ -99,8 +103,14 @@ ${unsafeCSS(
    */
   @property() ground: "default" | "cover" = "default";
 
-  /** A small bold line at the top left, inside the top margin. It does not move the content and is cut to one line. */
+  /** A bold heading-size line (36px) at the top left, inside the top margin. It does not move the content and is cut to one line. */
   @property() crumb?: string;
+
+  /**
+   * Vertical position of the children. `center` centres them; `spread` puts the first child at the top and the last at
+   * the bottom, with the rest between. Use it to split a cover's title from the name. With one child it sits at the top.
+   */
+  @property() valign: "center" | "spread" = "center";
 
   /** The step shown in this frame. Set by `bang-root`. */
   @property({ attribute: false }) currentStep = 0;
@@ -108,6 +118,7 @@ ${unsafeCSS(
   render() {
     pick(this, "tone", ["default", "accent", "inverse"] as const, "default");
     pick(this, "ground", ["default", "cover"] as const, "default");
+    pick(this, "valign", ["center", "spread"] as const, "center");
     const crumb = this.crumb?.trim();
     return html`<div class="frame">${crumb ? html`<div class="crumb">${crumb}</div>` : ""}<slot></slot></div>`;
   }

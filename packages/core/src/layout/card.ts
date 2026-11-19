@@ -4,8 +4,9 @@ import { pick } from "../attrs.js";
 import { BangElement, defineOnce } from "../element.js";
 
 /**
- * A box that stacks its children. `panel` is a framed surface (with a soft shadow when the custom theme sets
- * `cardShadow: "soft"`); `band` is filled with the custom theme's `bandGradient`.
+ * A box that stacks its children. `panel` is a framed surface (with a soft shadow along its inner edge when the custom
+ * theme sets `cardShadow: "soft"`); `band` has no visible border and is filled with the custom theme's `bandGradient`
+ * (without a `bandGradient` it is a surface with a border).
  *
  * ```html
  * <bang-card grow>
@@ -32,9 +33,14 @@ export class BangCard extends BangElement {
     }
     :host([kind="band"]) {
       padding: var(--bang-space-6) var(--bang-space-12);
-      border-radius: calc(var(--bang-radius-l) * 2);
+      border-color: var(--bang-band-border, var(--bang-color-line));
+      border-radius: var(--bang-space-12);
       background: var(--bang-band-ground, var(--bang-color-surface));
+      background-origin: border-box;
       box-shadow: none;
+    }
+    :host([valign="center"]) {
+      justify-content: safe center;
     }
     :host([grow]) {
       flex: 1 1 0;
@@ -47,8 +53,12 @@ export class BangCard extends BangElement {
   /** Fill the rest of the parent frame's height. Without it the card is as tall as its content. */
   @property({ type: Boolean }) grow = false;
 
+  /** Vertical position of the content. `start` packs it to the top; `center` centres it and never cuts off the top when it overflows. */
+  @property() valign: "start" | "center" = "start";
+
   render() {
     pick(this, "kind", ["panel", "band"] as const, "panel");
+    pick(this, "valign", ["start", "center"] as const, "start");
     return html`<slot></slot>`;
   }
 }
