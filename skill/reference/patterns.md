@@ -151,7 +151,7 @@
 
 ## パンくずと影つきカードと帯で 1 章を組む
 
-章の名前を左上の小さな行 (`crumb`) に置き、本文は `bang-card grow` で面にまとめ、まとめは `bang-card kind="band"` の帯に置く。`crumb` は上の余白に収まるので、本文の位置は動かない。カードの中身を縦中央に置くときは `valign="center"`、最初の子を上端・最後の子を下端に散らすときは `valign="spread"` を書く。帯は `bang-stack` が中身を中央や右に寄せていても、幅いっぱいに広がる。影は `cardShadow` を `"soft"` にしたカスタムテーマだけで出る。
+章の名前を左上の小さな行 (`crumb`) に置き、本文は `bang-card grow` で面にまとめ、まとめは `bang-card kind="band"` の帯に置く。`crumb` は上の余白に収まるので、本文の位置は動かない。カードの中身を縦中央に置くときは `valign="center"`、最初の子を上端・最後の子を下端に散らすときは `valign="spread"` を書く。`spread` が散らすのはカードの直下の子なので、中身を 1 つの `bang-stack` にまとめると効かない。帯は `bang-stack` が中身を中央や右に寄せていても、幅いっぱいに広がる。影は `cardShadow` を `"soft"` にしたカスタムテーマだけで出る。
 
 ```html
 <bang-root theme="custom">

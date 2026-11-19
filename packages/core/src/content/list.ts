@@ -32,6 +32,8 @@ export class BangList extends StepAware {
   static styles = css`
     :host {
       display: block;
+      /* Markers sit at the start edge, so text centred by an ancestor (a centring stack's align attribute is also read as a legacy text-align hint) would float away from them. */
+      text-align: start;
       font-family: var(--bang-font-sans);
       font-weight: var(--bang-text-weight, 400);
       letter-spacing: var(--bang-text-tracking, normal);

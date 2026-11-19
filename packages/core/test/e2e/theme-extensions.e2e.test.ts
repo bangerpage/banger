@@ -596,6 +596,19 @@ describe("band", () => {
     expect(b).toBeCloseTo(s, 0);
   });
 
+  it("keeps list text next to its markers inside a centring stack", async () => {
+    const d = await deck(FULL, `<bang-frame id="a"><bang-stack align="center"><bang-card kind="band"><bang-list id="l"><li id="i">short item</li></bang-list></bang-card><bang-text>x</bang-text></bang-stack></bang-frame>`);
+    await ready(d.page);
+    const [align, li, list] = await d.page.evaluate(() => {
+      const l = document.querySelector("#l")!;
+      const r = document.createRange();
+      r.selectNodeContents(document.querySelector("#i")!);
+      return [getComputedStyle(l).textAlign, r.getBoundingClientRect().left, l.getBoundingClientRect().left];
+    });
+    expect(align).toBe("start");
+    expect(li - list).toBeLessThan(80);
+  });
+
   it("AC-BAND-1 hides the border with a transparent colour, keeps the box and rounds to 48px", async () => {
     const full = await deck(FULL, band());
     await ready(full.page);
