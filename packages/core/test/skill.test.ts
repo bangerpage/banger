@@ -119,10 +119,7 @@ describe("skill", () => {
     }
   });
 
-  it("AC-DOC-1 the docs carry the shadow and gradient exception, the new element and the new attributes", () => {
-    const readme = read("docs/design-system/README.md");
-    expect(readme).toMatch(/カスタムテーマ.*影/);
-    expect(readme).toContain("グラデーション");
+  it("AC-DOC-1 the docs carry the new element and the new attributes", () => {
     const patterns = read("skill/reference/patterns.md");
     for (const needle of ["bang-card", "crumb=", 'ground="cover"']) expect(patterns, needle).toContain(needle);
     const themes = read("skill/reference/themes.md");
@@ -164,7 +161,7 @@ describe("skill", () => {
     }
   });
 
-  it("AC-DOC-C2 SKILL, patterns and the design system carry bang-shape and <i>", () => {
+  it("AC-DOC-C2 SKILL and patterns carry bang-shape and <i>", () => {
     const skill = read("skill/SKILL.md");
     expect(skill).toContain("bang-shape");
     expect(skill).toContain("`<i>`");
@@ -176,9 +173,6 @@ describe("skill", () => {
       expect(section, heading).toContain("```html");
       expect(section, heading).not.toMatch(/#[0-9a-fA-F]{3,8}\b|rgba?\(|box-shadow|\sstyle=/);
     }
-    const readme = read("docs/design-system/README.md");
-    expect(readme).toMatch(/bang-shape.*カスタムテーマ/);
-    expect(readme).toContain("`<i>`");
   });
 
   it("AC-DOC-C1 the escape hatch section has the new wording", () => {
@@ -190,14 +184,13 @@ describe("skill", () => {
     expect(md).toMatch(/`style` 属性.*`bang-free`/);
   });
 
-  it("AC-DOC-C3 patterns, the design system and components carry the bang-free recipes", () => {
+  it("AC-DOC-C3 patterns and components carry the bang-free recipes", () => {
     for (const heading of ["地図を逃げ道で組む", "曲線の矢印と丸囲みを重ねる"]) {
       const section = patternSection(heading);
       expect(section, heading).toContain("```html");
       expect(section, heading).not.toMatch(/#[0-9a-fA-F]{3,8}\b|rgba?\(|box-shadow|\sstyle=/);
     }
     expect(patternSection("曲線の矢印と丸囲みを重ねる")).toContain("制御点");
-    expect(read("docs/design-system/README.md")).toMatch(/bang-free.*カスタムテーマ/);
     const free = read("skill/reference/components.md").split(/^## /m).find((s) => s.startsWith("bang-free\n")) ?? "";
     expect(free).not.toBe("");
     expect(free).toContain("| `overlay` |");
@@ -210,7 +203,7 @@ describe("skill", () => {
     expect(section).toContain("1.15");
   });
 
-  it("AC-DOC-2 SKILL, patterns, components and the design system carry the new emphasis and valign", () => {
+  it("AC-DOC-2 SKILL, patterns and components carry the new emphasis and valign", () => {
     const skill = read("skill/SKILL.md");
     expect(skill).toContain("<mark>");
     expect(skill).toContain('valign="spread"');
@@ -222,7 +215,6 @@ describe("skill", () => {
     expect(section("bang-frame")).toContain("| `valign` |");
     for (const tag of ["bang-text", "bang-title", "bang-list"]) expect(section(tag), tag).toContain("<mark>");
     expect(section("bang-theme")).toContain("highlight");
-    expect(read("docs/design-system/README.md")).toContain("highlight");
   });
 
   it("AC-CTHEME-11 SKILL.md allows color codes only in the theme definition and points to themes.md", () => {

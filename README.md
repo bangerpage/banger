@@ -3,7 +3,7 @@ Banger
 
 Banger is an open-source library for presentations written as a single HTML file: frames on a canvas, and a camera that moves between stops.
 
-License: MIT
+License: MIT. The name "Banger" and the Banger logos (such as `examples/minimal/assets/banger-mark.svg`) are not covered by the license: you may not use them to suggest that your project is Banger or is endorsed by it.
 
 ## Packages
 
