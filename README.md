@@ -1,32 +1,104 @@
 Banger
 ======
 
-Banger is an open-source library for presentations written as a single HTML file: frames on a canvas, and a camera that moves between stops.
+**Presentations that move, written as one HTML file.**
 
-License: MIT. The name "Banger" and the Banger logos (such as `examples/minimal/assets/banger-mark.svg`) are not covered by the license: you may not use them to suggest that your project is Banger or is endorsed by it.
+![A Banger deck seen from above: six frames laid out on a canvas](docs/images/showcase-overview.png)
+
+Banger puts your frames on a canvas and moves a camera between them. Zoom into a number, glide to the next idea, then pull back and show the whole picture. There are no slides to flip and no build step: a deck is one HTML file that opens in any browser, lives happily in git, and is small enough for an AI to write from start to finish.
+
+## Why Banger
+
+- **One file, one line.** Load the runtime with a single `<script>` tag and write the deck with `bang-*` elements. No bundler, no framework, no editor to install.
+- **A canvas, not a stack.** Frames sit on a grid. Stops decide where the camera rests: a whole frame, a region of it, or the overview of everything.
+- **Good-looking by default.** Sizes, tones and gaps are tokens, not free-form CSS, so a deck stays on the design system whoever writes it. Pick a bundled theme or bring your own colours and fonts; unreadable colour pairs are flagged.
+- **Made for writing with AI.** The vocabulary is small and documented in `skill/`, so an agent can write a deck, render every stop with `banger snap`, look at the images and fix what overflows.
+- **Ready for the stage.** Step-by-step reveals for lists and chart series, speaker notes in a presenter window, full screen, and a PDF export with real, selectable text.
+
+![A single frame with three cards: pick, don't style; look, then fix; hand it over](docs/images/showcase-frame.png)
+
+## Try it
+
+Save this as `index.html` and open it in a browser. Press the right arrow to move, `o` to see the whole canvas.
+
+```html
+<!doctype html>
+<meta charset="utf-8">
+<title>My talk</title>
+<script type="module" src="https://cdn.jsdelivr.net/npm/@bangerpage/core@0.1.0/dist/index.js"></script>
+<bang-root theme="light">
+  <bang-frame id="hello" at="0,0">
+    <bang-title>Hello</bang-title>
+    <bang-list step="1">
+      <li>Frames sit on a canvas</li>
+      <li>The camera stops where you tell it to</li>
+    </bang-list>
+  </bang-frame>
+  <bang-frame id="more" at="1,0" tone="accent">
+    <bang-title size="2xl">Next idea</bang-title>
+  </bang-frame>
+  <bang-path>
+    <bang-stop frame="hello" steps="2"><bang-notes>Say hello</bang-notes></bang-stop>
+    <bang-stop frame="more"></bang-stop>
+    <bang-stop overview></bang-stop>
+  </bang-path>
+</bang-root>
+```
+
+Then, from the same directory, use the CLI (it needs Node 22 or later and Chrome):
+
+```
+npx @bangerpage/cli preview       # live reload while you edit
+npx @bangerpage/cli snap          # every stop as a 1920x1080 PNG
+npx @bangerpage/cli export --pdf  # one PDF page per stop
+```
+
+For a fuller deck, open `examples/showcase/index.html` (the one in the pictures above).
+
+## Presenting
+
+| Key | Action |
+| --- | --- |
+| Right arrow, Space, Page Down, Enter | Next step or stop |
+| Left arrow, Backspace, Page Up | Previous step or stop |
+| Home / End | First / last stop |
+| `o` or Esc | Overview of the whole canvas |
+| `p` | Presenter window with speaker notes, kept in sync with the audience window |
+| `f` | Full screen |
+
+The current position is kept in the URL (`#stop=N&step=M`), so a reload or a shared link lands on the same place.
+
+## Writing decks with AI
+
+`skill/` is an agent skill: `SKILL.md` describes the workflow and the rules, `reference/` lists every element, attribute and pattern, and `templates/starter.html` is the starting point. The skill text is in Japanese; the element reference is in English.
+
+To use it with Claude Code, copy the directory to `~/.claude/skills/banger/` (or `.claude/skills/banger/` in a project), then ask for a talk. The agent agrees on the outline as a list of stops, writes `index.html`, runs `banger snap` to look at every stop, and fixes what the CLI warns about (overflow, unreadable colours, failed components).
+
+## Elements
+
+| Element | Purpose |
+| --- | --- |
+| `bang-root` | The deck. Picks the theme. |
+| `bang-frame` | A 1920x1080 area on the canvas, placed with `at="col,row"`. |
+| `bang-path`, `bang-stop` | The order of camera stops: a frame, a `region` of it, or the `overview`. |
+| `bang-title`, `bang-text`, `bang-list` | Headings, paragraphs and lists, revealed step by step if you like. |
+| `bang-columns`, `bang-stack`, `bang-card` | Layout. |
+| `bang-stat`, `bang-chart`, `bang-image`, `bang-shape` | Big numbers, charts, images, arrows and marks. |
+| `bang-free` | Free HTML, CSS and SVG for the figure no element can draw. |
+| `bang-notes` | Speaker notes for a stop. |
+| `bang-theme` | A custom theme as JSON. |
+
+Every attribute and its values are in `skill/reference/components.md`.
 
 ## Packages
 
 - `packages/core` (`@bangerpage/core`): the runtime (custom elements, camera, state) and its theme.
 - `packages/cli` (`@bangerpage/cli`): the `banger` command (preview, PNG snapshots, PDF export, themes) and a library entry for PDF export.
 - `skill/`: the AI skill (`SKILL.md`, component reference, patterns, starter template).
+- `examples/showcase`: the deck in the pictures above.
 - `examples/minimal`: a small deck that shows the main components.
 
-## Usage
-
-Write one HTML file and load the runtime with a single line (see `skill/templates/starter.html`):
-
-```html
-<script type="module" src="https://cdn.jsdelivr.net/npm/@bangerpage/core@0.1.0/dist/index.js"></script>
-<bang-root theme="light">
-  <bang-frame id="intro" at="0,0"><bang-title>Hello</bang-title></bang-frame>
-  <bang-path>
-    <bang-stop frame="intro"><bang-notes>Say hello</bang-notes></bang-stop>
-  </bang-path>
-</bang-root>
-```
-
-The available elements and their attributes are listed in `skill/reference/components.md`.
+## Reference
 
 ### Versions and network access
 
@@ -34,7 +106,7 @@ The available elements and their attributes are listed in `skill/reference/compo
 - The CLI renders every deck with the core it bundles and prints a warning when the deck pins another version. Check a deck with the CLI version that matches its pin.
 - Opening a deck loads the runtime from the CDN and the fonts from Google Fonts (`fonts.googleapis.com` and `fonts.gstatic.com`), so it needs network access, and each viewer's browser contacts those hosts. A custom theme can change the font families (`fontsHref`), but the default families are still requested.
 
-## Custom theme
+### Custom theme
 
 Set `theme="custom"` on `bang-root` and put a `bang-theme` child with a JSON script. Keys you leave out take the values of `base` (`light` or `dark`).
 
@@ -51,7 +123,7 @@ Set `theme="custom"` on `bang-root` and put a `bang-theme` child with a JSON scr
 
 To reuse one look across decks, keep a `theme.json` and run `banger theme init` once, then `banger theme apply theme.json deck.html` for each deck. Colors are checked for contrast when the deck is rendered, and `banger snap` prints a `warning:` line for unreadable combinations.
 
-## CLI
+### CLI
 
 - `banger preview [file]`: preview with live reload. Without `[file]`, `preview`, `snap` and `export` use `index.html` in the working directory. The runtime URL in the HTML is served from the bundled core, so it works offline and before publishing.
 - `banger snap [file] [--stop N] [--step M|last] [--out path] [--out-dir dir] [--scale 1|2]`: render states as 1920x1080 PNG files. Without `--stop` every stop is written. The PNG files are not guaranteed to be byte-identical between runs: anti-aliasing of text can differ by a pixel, so compare them with a tolerance.
@@ -63,7 +135,7 @@ In a terminal, the CLI checks npm for a newer `@bangerpage/cli` at most once a d
 
 The CLI drives Chrome through `playwright-core`. If no browser is found it prints the command to install one and exits with code 2.
 
-### As a library
+#### As a library
 
 ```ts
 import { exportPdf } from "@bangerpage/cli";
@@ -73,7 +145,7 @@ const path = await exportPdf("deck.html", { steps: "last" });
 
 `exportPdf` resolves with the absolute path of the written PDF. Failures throw a `CliError` whose `exitCode` is the code the command would exit with (1 for a deck that fails to render, 2 for bad input). Pass `onWarning` to receive warnings such as a runtime version mismatch instead of having them written to stderr.
 
-## Development
+### Development
 
 ```
 pnpm install
@@ -89,7 +161,7 @@ The CLI and the examples load `packages/*/dist`, so run `pnpm build` after pulli
 
 Generated files (`skill/reference/components.md`, the runtime URL in the starter, the example and the CLI fixtures) are committed. After changing a component's attributes or JSDoc, run `pnpm gen` and commit the result; CI runs `pnpm gen:check`.
 
-## Release
+### Release
 
 Publishing is done by a person.
 
@@ -97,3 +169,7 @@ Publishing is done by a person.
 2. `pnpm gen:check`, `pnpm build`, `pnpm test` and `pnpm test:e2e` must all pass.
 3. `pnpm -r publish` publishes core before cli; each package builds itself first (`prepublishOnly`).
 4. Tag the commit `v<version>` and push it.
+
+## License
+
+MIT. The name "Banger" and the Banger logos (such as `examples/minimal/assets/banger-mark.svg`) are not covered by the license: you may not use them to suggest that your project is Banger or is endorsed by it.

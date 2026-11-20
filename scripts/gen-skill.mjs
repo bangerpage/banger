@@ -100,6 +100,7 @@ function filesToStamp() {
   const list = [
     join(repoRoot, "skill/templates/starter.html"),
     join(repoRoot, "examples/minimal/index.html"),
+    join(repoRoot, "examples/showcase/index.html"),
     join(repoRoot, "README.md"),
     join(repoRoot, "packages/core/README.md"),
   ];

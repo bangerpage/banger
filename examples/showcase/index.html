@@ -1,0 +1,85 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Banger showcase</title>
+</head>
+<body>
+<script type="module" src="https://cdn.jsdelivr.net/npm/@bangerpage/core@0.1.0/dist/index.js"></script>
+<bang-root theme="light">
+  <bang-frame id="cover" at="0,0" tone="accent">
+    <bang-stack gap="l">
+      <bang-title size="2xl">Presentations that move</bang-title>
+      <bang-text size="l">One HTML file. Frames on a canvas. A camera that glides between them.</bang-text>
+    </bang-stack>
+  </bang-frame>
+  <bang-frame id="canvas" at="1,0">
+    <bang-title>No slides to flip</bang-title>
+    <bang-list size="m" step="1">
+      <li>Lay frames out on a canvas</li>
+      <li>Mark the stops where the camera rests</li>
+      <li>Zoom into a detail, then pull back to the whole picture</li>
+    </bang-list>
+  </bang-frame>
+  <bang-frame id="numbers" at="2,0">
+    <bang-title>Small by design</bang-title>
+    <bang-columns ratio="1:1:1" gap="xl">
+      <bang-stat value="1" label="HTML file per deck" label-size="m" size="2xl" tone="accent"></bang-stat>
+      <bang-stat value="0" label="build steps" label-size="m" size="2xl"></bang-stat>
+      <bang-stat value="1 line" label="to load the runtime" label-size="m" size="2xl"></bang-stat>
+    </bang-columns>
+  </bang-frame>
+  <bang-frame id="chart" at="0,1">
+    <bang-title size="m">Charts that build up, series by series</bang-title>
+    <bang-chart step="1">
+      <script type="application/json">
+        {
+          "legend": {},
+          "xAxis": { "type": "category", "data": ["Q1", "Q2", "Q3", "Q4"] },
+          "yAxis": { "type": "value" },
+          "series": [
+            { "type": "bar", "name": "Plan", "data": [40, 55, 60, 72] },
+            { "type": "bar", "name": "Actual", "data": [42, 51, 68, 80] }
+          ]
+        }
+      </script>
+    </bang-chart>
+    <bang-text size="xs" tone="muted">Sample data</bang-text>
+  </bang-frame>
+  <bang-frame id="ai" at="1,1">
+    <bang-title>Made for writing with AI</bang-title>
+    <bang-columns gap="l">
+      <bang-card grow>
+        <bang-title size="s">Pick, don't style</bang-title>
+        <bang-text>Sizes, tones and gaps are tokens, so every deck stays on the design system.</bang-text>
+      </bang-card>
+      <bang-card grow>
+        <bang-title size="s">Look, then fix</bang-title>
+        <bang-text><b>banger snap</b> turns every stop into a PNG and warns about overflow and unreadable colours.</bang-text>
+      </bang-card>
+      <bang-card grow>
+        <bang-title size="s">Hand it over</bang-title>
+        <bang-text><b>banger export --pdf</b> writes one page per stop, with real text.</bang-text>
+      </bang-card>
+    </bang-columns>
+  </bang-frame>
+  <bang-frame id="end" at="2,1" tone="inverse">
+    <bang-stack gap="l">
+      <bang-title size="2xl">Write HTML.<br>Present anywhere.</bang-title>
+      <bang-text size="l" tone="muted">Open the file in a browser and press the right arrow.</bang-text>
+    </bang-stack>
+  </bang-frame>
+  <bang-path>
+    <bang-stop frame="cover"><bang-notes>One sentence: what Banger is.</bang-notes></bang-stop>
+    <bang-stop frame="canvas" steps="3"><bang-notes>The canvas and the camera.</bang-notes></bang-stop>
+    <bang-stop frame="numbers"></bang-stop>
+    <bang-stop frame="numbers" region="0,0.28,0.34,0.34"><bang-notes>Zoom into one number.</bang-notes></bang-stop>
+    <bang-stop frame="chart" steps="2"></bang-stop>
+    <bang-stop frame="ai"></bang-stop>
+    <bang-stop frame="end"></bang-stop>
+    <bang-stop overview><bang-notes>Pull back to the whole canvas.</bang-notes></bang-stop>
+  </bang-path>
+</bang-root>
+</body>
+</html>
