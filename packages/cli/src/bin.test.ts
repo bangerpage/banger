@@ -35,6 +35,8 @@ describe("bin", () => {
     ["export with two formats", ["export", "deck.html", "--pdf", "--png"]],
     ["export with a bad --steps", ["export", "deck.html", "--pdf", "--steps", "some"]],
     ["snap with a bad --scale", ["snap", "deck.html", "--scale", "3"]],
+    ["snap with a bad --steps", ["snap", "deck.html", "--steps", "some"]],
+    ["snap with --steps and --stop", ["snap", "deck.html", "--steps", "all", "--stop", "0"]],
     ["snap with a bad --stop", ["snap", "deck.html", "--stop", "x"]],
     ["theme without a subcommand", ["theme"]],
     ["theme with an unknown subcommand", ["theme", "frob"]],

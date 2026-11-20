@@ -15,7 +15,7 @@ export const USAGE = `usage: banger <command> [options]
 commands:
   init [dir] [--force]             start a deck: write index.html from the starter
   preview [file] [--port N]        preview with live reload
-  snap [file] [--stop N] [--step M|last] [--out path] [--out-dir dir] [--scale 1|2]
+  snap [file] [--stop N] [--step M|last] [--steps last|all] [--out path] [--out-dir dir] [--scale 1|2]
                                    render states as 1920x1080 PNGs
   export [file] --pdf [--out path] [--steps last|all]
                                    write a PDF, one page per stop

@@ -4,7 +4,7 @@ import { deckFile, parseArgsStrict } from "../args.js";
 import { captureState, clearStopFiles, expandStates, formatReadyFailure, stopFileName, withCapture } from "../capture.js";
 import { CliError } from "../errors.js";
 
-const USAGE = "usage: banger snap [file] [--stop N] [--step M|last] [--out path] [--out-dir dir] [--scale 1|2]";
+const USAGE = "usage: banger snap [file] [--stop N] [--step M|last] [--steps last|all] [--out path] [--out-dir dir] [--scale 1|2]";
 
 function parseCount(name: string, value: string): number {
   if (!/^\d+$/.test(value)) throw new CliError(2, `invalid --${name}: ${value}`);
@@ -19,6 +19,7 @@ export async function runSnap(argv: string[]): Promise<number> {
   const { values, positionals } = parseArgsStrict(argv, {
     stop: { type: "string" },
     step: { type: "string" },
+    steps: { type: "string" },
     out: { type: "string" },
     "out-dir": { type: "string" },
     scale: { type: "string" },
@@ -29,6 +30,11 @@ export async function runSnap(argv: string[]): Promise<number> {
   }
   const scale = values.scale === "2" ? 2 : 1;
   if (values.stop === undefined && values.step !== undefined) throw new CliError(2, "--step requires --stop");
+  if (values.steps !== undefined && values.steps !== "last" && values.steps !== "all") {
+    throw new CliError(2, `invalid --steps: ${values.steps} (expected last or all)`);
+  }
+  if (values.steps !== undefined && values.stop !== undefined) throw new CliError(2, "--steps cannot be used with --stop");
+  const selection = values.steps === "all" ? "all" : "last";
   if (values.stop === undefined && values.out !== undefined) throw new CliError(2, "--out requires --stop; use --out-dir");
   const stop = values.stop === undefined ? undefined : parseCount("stop", values.stop);
   const stepArg = values.step === undefined || values.step === "last" ? "last" : parseCount("step", values.step);
@@ -44,7 +50,7 @@ export async function runSnap(argv: string[]): Promise<number> {
       if (step > info.steps) throw new CliError(2, `--step ${step} is out of range (stop ${stop} has ${info.steps} steps)`);
       only = { stop, step };
     }
-    const states = expandStates(session.path, "last", only);
+    const states = expandStates(session.path, selection, only);
     const single = only !== undefined;
     if (!single) await clearStopFiles(outDir);
     for (const ref of states) {

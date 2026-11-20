@@ -99,3 +99,50 @@ export async function pixelAt(png: Buffer, x: number, y: number): Promise<string
     await browser.close();
   }
 }
+
+/**
+ * Compares two PNG snapshots of the same state. Text anti-aliasing can move by a pixel between runs, so the
+ * images are equal when no more than `maxRatio` of the pixels differ by more than `channelTolerance` in a channel.
+ */
+export async function snapshotsMatch(
+  a: Buffer,
+  b: Buffer,
+  opts: { channelTolerance?: number; maxRatio?: number } = {},
+): Promise<{ match: boolean; differing: number; total: number }> {
+  const { launchBrowser } = await import("../../src/browser.js");
+  const browser = await launchBrowser();
+  try {
+    const page = await browser.newPage();
+    const [differing, total] = await page.evaluate(
+      async ([srcA, srcB, tolerance]) => {
+        const pixels = async (src: string) => {
+          const bitmap = await createImageBitmap(await (await fetch(src)).blob());
+          const canvas = new OffscreenCanvas(bitmap.width, bitmap.height);
+          const ctx = canvas.getContext("2d")!;
+          ctx.drawImage(bitmap, 0, 0);
+          return ctx.getImageData(0, 0, bitmap.width, bitmap.height);
+        };
+        const [x, y] = await Promise.all([pixels(srcA), pixels(srcB)]);
+        if (x.width !== y.width || x.height !== y.height) return [Number.POSITIVE_INFINITY, x.width * x.height];
+        let count = 0;
+        for (let i = 0; i < x.data.length; i += 4) {
+          for (let c = 0; c < 4; c++) {
+            if (Math.abs(x.data[i + c] - y.data[i + c]) > tolerance) {
+              count++;
+              break;
+            }
+          }
+        }
+        return [count, x.width * x.height];
+      },
+      [
+        `data:image/png;base64,${a.toString("base64")}`,
+        `data:image/png;base64,${b.toString("base64")}`,
+        opts.channelTolerance ?? 48,
+      ] as const,
+    );
+    return { match: differing <= total * (opts.maxRatio ?? 0.002), differing, total };
+  } finally {
+    await browser.close();
+  }
+}

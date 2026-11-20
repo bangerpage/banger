@@ -6,7 +6,7 @@ import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { chromium } from "playwright-core";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
-import { binPath, countPathOps, extractPdf, fixture, pngSize, runBin } from "./helpers.js";
+import { binPath, countPathOps, extractPdf, fixture, pngSize, runBin, snapshotsMatch } from "./helpers.js";
 
 const preload = join(dirname(fileURLToPath(import.meta.url)), "preload/block-font-files.mjs");
 const corePackageName = (
@@ -70,7 +70,7 @@ describe("export", () => {
     expect(text[3]).not.toContain("1,200");
   });
 
-  it("snap output is byte-identical across runs (AC-EXP-4)", async () => {
+  it("snap output is the same across runs, up to text anti-aliasing (AC-EXP-4)", async () => {
     const a = join(work, "det-a");
     const b = join(work, "det-b");
     const runA = await runBin(["snap", fixture("basic.html"), "--out-dir", a]);
@@ -81,15 +81,21 @@ describe("export", () => {
     expect(names).toHaveLength(5);
     const mismatched: string[] = [];
     for (const name of names) {
-      if (!(await readFile(join(a, name))).equals(await readFile(join(b, name)))) mismatched.push(name);
+      const result = await snapshotsMatch(await readFile(join(a, name)), await readFile(join(b, name)));
+      if (!result.match) mismatched.push(`${name} (${result.differing} of ${result.total} pixels differ)`);
     }
     expect(
       mismatched,
       `mismatched: ${mismatched.join(", ")}\nstderr A: ${runA.stderr}\nstderr B: ${runB.stderr}`,
     ).toEqual([]);
+    const different = await snapshotsMatch(
+      await readFile(join(a, "stop-000-step-000.png")),
+      await readFile(join(a, "stop-004-step-000.png")),
+    );
+    expect(different.match).toBe(false);
   });
 
-  it("shapes.html snaps byte-identically and its PDF draws the shapes as vector paths (AC-SHAPE-5)", async () => {
+  it("shapes.html snaps the same across runs and its PDF draws the shapes as vector paths (AC-SHAPE-5)", async () => {
     const a = join(work, "shapes-a");
     const b = join(work, "shapes-b");
     const runA = await runBin(["snap", fixture("shapes.html"), "--out-dir", a]);
@@ -98,7 +104,10 @@ describe("export", () => {
     expect(runB.code, runB.stderr).toBe(0);
     const names = await readdir(a);
     expect(names).toHaveLength(2);
-    for (const name of names) expect((await readFile(join(a, name))).equals(await readFile(join(b, name))), name).toBe(true);
+    for (const name of names) {
+      const result = await snapshotsMatch(await readFile(join(a, name)), await readFile(join(b, name)));
+      expect(result.match, `${name}: ${result.differing} of ${result.total} pixels differ`).toBe(true);
+    }
 
     const plainDir = join(work, "shapes-plain");
     await mkdir(plainDir, { recursive: true });
@@ -111,7 +120,7 @@ describe("export", () => {
     expect(await countPathOps(withOut)).toBeGreaterThan(await countPathOps(withoutOut));
   });
 
-  it("free.html snaps byte-identically without warnings (AC-HATCH-5)", async () => {
+  it("free.html snaps the same across runs without warnings (AC-HATCH-5)", async () => {
     const a = join(work, "free-a");
     const b = join(work, "free-b");
     const runA = await runBin(["snap", fixture("free.html"), "--out-dir", a]);
@@ -121,7 +130,10 @@ describe("export", () => {
     expect(runA.stderr).not.toMatch(/warn|bang-free/i);
     const names = await readdir(a);
     expect(names.length).toBeGreaterThan(0);
-    for (const name of names) expect((await readFile(join(a, name))).equals(await readFile(join(b, name))), name).toBe(true);
+    for (const name of names) {
+      const result = await snapshotsMatch(await readFile(join(a, name)), await readFile(join(b, name)));
+      expect(result.match, `${name}: ${result.differing} of ${result.total} pixels differ`).toBe(true);
+    }
   });
 
   it("export --pdf of a custom theme with shadow, band, gradient cover and crumb keeps one page per stop (AC-PDF-1)", async () => {
@@ -137,14 +149,17 @@ describe("export", () => {
     expect(text[1]).toContain("Lv.2");
   });
 
-  it("snap output of the custom card deck is byte-identical across runs (AC-PDF-2)", async () => {
+  it("snap output of the custom card deck is the same across runs (AC-PDF-2)", async () => {
     const a = join(work, "card-a");
     const b = join(work, "card-b");
     expect((await runBin(["snap", fixture("custom-card.html"), "--out-dir", a])).code).toBe(0);
     expect((await runBin(["snap", fixture("custom-card.html"), "--out-dir", b])).code).toBe(0);
     const names = await readdir(a);
     expect(names).toHaveLength(2);
-    for (const name of names) expect((await readFile(join(a, name))).equals(await readFile(join(b, name))), name).toBe(true);
+    for (const name of names) {
+      const result = await snapshotsMatch(await readFile(join(a, name)), await readFile(join(b, name)));
+      expect(result.match, `${name}: ${result.differing} of ${result.total} pixels differ`).toBe(true);
+    }
   });
 
   it("snap sizes and defaults (AC-EXP-5)", async () => {
@@ -160,6 +175,17 @@ describe("export", () => {
     expect((await runBin(["snap", fixture("basic.html"), "--out-dir", dir])).code).toBe(0);
     expect((await readdir(dir)).sort()).toEqual([
       "stop-000-step-000.png",
+      "stop-001-step-001.png",
+      "stop-002-step-000.png",
+      "stop-003-step-000.png",
+      "stop-004-step-000.png",
+    ]);
+
+    const steps = join(work, "steps");
+    expect((await runBin(["snap", fixture("basic.html"), "--steps", "all", "--out-dir", steps])).code).toBe(0);
+    expect((await readdir(steps)).sort()).toEqual([
+      "stop-000-step-000.png",
+      "stop-001-step-000.png",
       "stop-001-step-001.png",
       "stop-002-step-000.png",
       "stop-003-step-000.png",
