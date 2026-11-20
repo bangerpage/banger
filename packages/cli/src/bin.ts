@@ -2,6 +2,7 @@ import { readFileSync, realpathSync } from "node:fs";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import { BrowserNotFoundError, installHint } from "./browser.js";
 import { runExport } from "./commands/export.js";
+import { runInit } from "./commands/init.js";
 import { runPreview } from "./commands/preview.js";
 import { runSkill } from "./commands/skill.js";
 import { runSnap } from "./commands/snap.js";
@@ -12,6 +13,7 @@ import { checkForUpdate } from "./update-check.js";
 export const USAGE = `usage: banger <command> [options]
 
 commands:
+  init [dir] [--force]             start a deck: write index.html from the starter
   preview [file] [--port N]        preview with live reload
   snap [file] [--stop N] [--step M|last] [--out path] [--out-dir dir] [--scale 1|2]
                                    render states as 1920x1080 PNGs
@@ -35,7 +37,7 @@ options:
   --version    show the version
 `;
 
-const COMMANDS = new Set(["preview", "snap", "export", "theme", "skill"]);
+const COMMANDS = new Set(["init", "preview", "snap", "export", "theme", "skill"]);
 
 function version(): string {
   const manifest = fileURLToPath(new URL("../package.json", import.meta.url));
@@ -55,6 +57,8 @@ async function dispatch(argv: string[]): Promise<number> {
   }
   if (COMMANDS.has(command)) void checkForUpdate({ current: version() });
   switch (command) {
+    case "init":
+      return runInit(rest);
     case "preview":
       return runPreview(rest);
     case "snap":

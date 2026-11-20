@@ -45,7 +45,9 @@ Save this as `index.html` and open it in a browser. Press the right arrow to mov
 </bang-root>
 ```
 
-Then, from the same directory, use the CLI (it needs Node 22 or later and Chrome):
+Or let the CLI write a starter for you with `npx @bangerpage/cli init my-talk`.
+
+Then, from the deck's directory, use the CLI (it needs Node 22 or later and Chrome):
 
 ```
 npx @bangerpage/cli preview       # live reload while you edit
@@ -136,6 +138,7 @@ To reuse one look across decks, keep a `theme.json` and run `banger theme init` 
 
 ### CLI
 
+- `banger init [dir] [--force]`: start a deck by writing `index.html` from the starter template into `dir` (default: the working directory).
 - `banger preview [file]`: preview with live reload. Without `[file]`, `preview`, `snap` and `export` use `index.html` in the working directory. The runtime URL in the HTML is served from the bundled core, so it works offline and before publishing.
 - `banger snap [file] [--stop N] [--step M|last] [--out path] [--out-dir dir] [--scale 1|2]`: render states as 1920x1080 PNG files. Without `--stop` every stop is written. The PNG files are not guaranteed to be byte-identical between runs: anti-aliasing of text can differ by a pixel, so compare them with a tolerance.
 - `banger export [file] --pdf [--out path] [--steps last|all]`: one PDF page per stop, with vector text.

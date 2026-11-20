@@ -4,7 +4,8 @@ The `banger` command for [Banger](https://github.com/bangerpage/banger) presenta
 
 ```
 npm install -g @bangerpage/cli
-cd my-talk          # a directory with index.html
+banger init my-talk # write my-talk/index.html from the starter
+cd my-talk
 banger preview      # preview with live reload
 banger snap         # every stop as a 1920x1080 PNG
 banger export --pdf # one PDF page per stop
