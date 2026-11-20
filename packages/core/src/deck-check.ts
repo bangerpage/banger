@@ -49,19 +49,38 @@ interface Edges {
   bottom: number;
 }
 
-/** How far, in layout px, the elements inside `container` reach past `limit`; `bang-free` boxes have their own check. */
-function reachPast(container: Element, limit: Edges, scale: number): { x: number; y: number } {
-  let x = 0;
-  let y = 0;
+interface Reach {
+  x: number;
+  y: number;
+  worst: Element | null;
+}
+
+/**
+ * How far, in layout px, the elements inside `container` reach past `limit`, and which element reaches furthest.
+ * Inline elements (`<br>`, `<b>`, ...) are skipped: their box is the font's full height, which is taller than a tight
+ * heading line, while the block that holds them already covers the text. `bang-free` boxes have their own check.
+ */
+function reachPast(container: Element, limit: Edges, scale: number): Reach {
+  const reach: Reach = { x: 0, y: 0, worst: null };
+  let most = 0;
   for (const child of container.querySelectorAll("*")) {
     if (child.localName === "script" || child.localName === "style" || child.closest("bang-free")) continue;
+    if (getComputedStyle(child).display === "inline") continue;
     const r = child.getBoundingClientRect();
     if (r.width === 0 && r.height === 0) continue;
-    x = Math.max(x, (limit.left - r.left) / scale, (r.right - limit.right) / scale);
-    y = Math.max(y, (limit.top - r.top) / scale, (r.bottom - limit.bottom) / scale);
+    const x = Math.max(0, (limit.left - r.left) / scale, (r.right - limit.right) / scale);
+    const y = Math.max(0, (limit.top - r.top) / scale, (r.bottom - limit.bottom) / scale);
+    reach.x = Math.max(reach.x, x);
+    reach.y = Math.max(reach.y, y);
+    if (Math.max(x, y) > most) {
+      most = Math.max(x, y);
+      reach.worst = child;
+    }
   }
-  return { x, y };
+  return reach;
 }
+
+const furthest = (reach: Reach) => (reach.worst ? ` (furthest: ${selectorOf(reach.worst)})` : "");
 
 const amount = (x: number, y: number): string[] =>
   [
@@ -94,14 +113,14 @@ export function frameOverflowWarnings(frames: readonly CheckedFrame[]): string[]
     );
     if (parts.length > 0) {
       out.push(
-        `${frameName(el)}: the content does not fit inside the frame margins by ${parts.join(", ")}; what passes the frame edge is cut off, so shorten it or use smaller sizes`,
+        `${frameName(el)}: the content does not fit inside the frame margins by ${parts.join(", ")}${furthest(reach)}; what passes the frame edge is cut off, so shorten it or use smaller sizes`,
       );
     }
     for (const card of el.querySelectorAll("bang-card")) {
-      const { x, y } = reachPast(card, card.getBoundingClientRect(), scale);
-      const cardParts = amount(x, y);
+      const cardReach = reachPast(card, card.getBoundingClientRect(), scale);
+      const cardParts = amount(cardReach.x, cardReach.y);
       if (cardParts.length > 0) {
-        out.push(`${selectorOf(card)}: the content sticks out of the card by ${cardParts.join(", ")}; shorten it or use smaller sizes`);
+        out.push(`${selectorOf(card)}: the content sticks out of the card by ${cardParts.join(", ")}${furthest(cardReach)}; shorten it or use smaller sizes`);
       }
     }
   }
