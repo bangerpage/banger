@@ -77,6 +77,20 @@ describe("runtime", () => {
     expect(await state(page)).toEqual({ stop: 0, step: 0 });
   });
 
+  it("a stop without steps takes the frame's steps on its first visit and none on later ones", async () => {
+    const { page, warnings } = await openVirtual(
+      "auto-steps",
+      `<!doctype html><meta charset="utf-8"><title>t</title><script type="module" src="/dist/index.js"></script>
+<bang-root><bang-frame id="a" at="0,0"><bang-list step="1"><li>1</li><li>2</li></bang-list><bang-text data-step="3">3</bang-text></bang-frame>
+<bang-frame id="b" at="1,0"><bang-text>b</bang-text></bang-frame>
+<bang-path><bang-stop frame="a"></bang-stop><bang-stop frame="a" region="0,0,0.5,0.5"></bang-stop><bang-stop frame="b"></bang-stop><bang-stop frame="a" steps="1"></bang-stop></bang-path></bang-root>`,
+    );
+    expect(await call(page, "root.getPath().map((s) => s.steps)")).toEqual([3, 0, 0, 1]);
+    for (let i = 0; i < 4; i++) await page.keyboard.press("ArrowRight");
+    expect(await state(page)).toEqual({ stop: 1, step: 0 });
+    expect(warnings.filter((w) => w.includes("needs"))).toEqual([]);
+  });
+
   it("AC-RT-1 keys move through stops and steps without adding history", async () => {
     const { page } = await open("deck.html");
     const length = await page.evaluate(() => history.length);

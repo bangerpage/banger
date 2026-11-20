@@ -297,7 +297,7 @@ A point where the camera stops: a whole frame, a region of a frame, or the overv
 | `frame` | string | - | The `id` of the `bang-frame` to show. |
 | `region` | string | - | Part of the frame to fill the screen with, as "x,y,w,h" fractions from 0 to 1. |
 | `overview` | boolean | `false` | Show every frame instead of one. |
-| `steps` | number | `0` | How many steps can be revealed at this stop. |
+| `steps` | number | - | How many steps can be revealed at this stop. Without it, the first stop on a frame takes as many steps as the frame's content asks for (`data-step`, and the `step` of lists and charts), and later stops on that frame take none. |
 
 Slots:
 

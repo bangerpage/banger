@@ -471,8 +471,10 @@ describe("nested list", () => {
     expect(await noisy.page.evaluate(() => (document.querySelector("#n1") as any).stepCount)).toBe(0);
     await ready(noisy.page);
     await ready(d.page);
-    for (const dk of [d, noisy]) expect(dk.warnings.some((w) => w.includes("needs 3 steps"))).toBe(true);
-    expect(noisy.warnings.some((w) => /needs (?!3 )\d+ steps/.test(w))).toBe(false);
+    for (const dk of [d, noisy]) {
+      expect(await dk.page.evaluate(() => (document.querySelector("bang-root") as any).getPath()[0].steps)).toBe(3);
+      expect(dk.warnings.some((w) => w.includes("needs"))).toBe(false);
+    }
   });
 
   it("AC-NEST-3 leaves a top-level list unchanged", async () => {

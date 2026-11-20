@@ -45,7 +45,7 @@
 
 ## グラフを系列ごとに見せる
 
-系列を 1 本ずつ足して話したいときは `bang-chart` に `step` を書き、停止点の `steps` を系列の数に合わせる。
+系列を 1 本ずつ足して話したいときは `bang-chart` に `step` を書く。停止点の `steps` は省けば系列の数になる。
 
 ```html
 <bang-root theme="light">

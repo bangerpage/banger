@@ -489,9 +489,15 @@ export class BangRoot extends BangElement {
 
     const stops: StopModel[] = [];
     const notes: string[] = [];
+    const stepped = new Set<string>();
     for (const el of this.querySelectorAll("bang-path > bang-stop")) {
       const read = readStop(el);
       let stop = read.stop;
+      if (read.auto && stop.kind !== "overview") {
+        const frame = this.frames.find((f) => f.id === stop.frame);
+        if (frame && !stepped.has(frame.id)) stop = { ...stop, steps: stepsNeeded(frame.el) };
+      }
+      if (stop.kind !== "overview" && stop.frame) stepped.add(stop.frame);
       if (stop.kind !== "overview" && !(stop.frame && seen.has(stop.frame))) {
         warnOnce(
           `stopframe|${stop.frame}`,
