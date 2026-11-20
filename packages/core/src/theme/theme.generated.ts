@@ -41,6 +41,12 @@ export const themeCss = `:host {
   --bang-leading-l: 1.1;
   --bang-leading-xl: 1;
   --bang-leading-2xl: 0.95;
+  --bang-leading-text-xs: 1.7;
+  --bang-leading-text-s: 1.65;
+  --bang-leading-text-m: 1.55;
+  --bang-leading-text-l: 1.45;
+  --bang-leading-text-xl: 1.3;
+  --bang-leading-text-2xl: 1.2;
   --bang-gap-xs: var(--bang-space-4);
   --bang-gap-s: var(--bang-space-6);
   --bang-gap-m: var(--bang-space-8);

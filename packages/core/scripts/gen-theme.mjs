@@ -9,6 +9,8 @@ const OUT_PATH = join(here, "..", "src/theme/theme.generated.ts");
 export const EXCLUDED_COLOR_TOKENS = ["lime", "on-lime"];
 export const PRESENTATION_SIZES = { xs: 28, s: 36, m: 48, l: 64, xl: 96, "2xl": 144 };
 export const PRESENTATION_LEADING = { xs: 1.6, s: 1.5, m: 1.35, l: 1.1, xl: 1.0, "2xl": 0.95 };
+/** Leading of running text (text, list, stat captions): looser than headings, since Japanese body text needs room between lines. */
+export const TEXT_LEADING = { xs: 1.7, s: 1.65, m: 1.55, l: 1.45, xl: 1.3, "2xl": 1.2 };
 export const PRESENTATION_GAPS = {
   xs: "space-4",
   s: "space-6",
@@ -62,6 +64,7 @@ export function buildThemeCss(tokens, opts = {}) {
     ...lines(tokens.borderWidth.tokens, "border-", "border"),
     ...Object.entries(PRESENTATION_SIZES).map(([k, v]) => `  --bang-size-${k}: ${v}px;`),
     ...Object.entries(PRESENTATION_LEADING).map(([k, v]) => `  --bang-leading-${k}: ${v};`),
+    ...Object.entries(TEXT_LEADING).map(([k, v]) => `  --bang-leading-text-${k}: ${v};`),
     ...Object.keys(PRESENTATION_SIZES).map((k) => {
       if (!gaps[k]) throw new Error(`gen-theme: no gap token for size "${k}"`);
       return `  --bang-gap-${k}: var(--bang-${gaps[k]});`;

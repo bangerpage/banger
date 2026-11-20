@@ -37,7 +37,7 @@ export class BangText extends BangElement {
     const size = pick(this, "size", SIZES, "s");
     const tone = pick(this, "tone", TONES, "default");
     return html`<style>
-        :host { font-size: var(--bang-size-${size}); line-height: calc(var(--bang-leading-${size}) * var(--bang-text-leading-scale, 1)); color: var(--bang-tone-${tone}); }
+        :host { font-size: var(--bang-size-${size}); line-height: calc(var(--bang-leading-text-${size}) * var(--bang-text-leading-scale, 1)); color: var(--bang-tone-${tone}); }
       </style><slot></slot>`;
   }
 }

@@ -51,7 +51,7 @@ export class BangStat extends BangElement {
     if (value === null) warnOnce("stat|value", "[banger] <bang-stat> needs a value attribute");
     return html`<style>
         .value { font-size: var(--bang-size-${size}); line-height: calc(var(--bang-leading-${size}) * var(--bang-heading-leading-scale, 1)); color: var(--bang-tone-${tone}); }
-        .label { font-size: var(--bang-size-${labelSize}); line-height: var(--bang-leading-${labelSize}); }
+        .label { font-size: var(--bang-size-${labelSize}); line-height: var(--bang-leading-text-${labelSize}); }
       </style><div class="value">${value ?? ""}</div>${this.label ? html`<div class="label">${this.label}</div>` : ""}`;
   }
 }

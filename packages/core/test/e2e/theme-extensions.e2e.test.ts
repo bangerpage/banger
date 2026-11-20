@@ -86,11 +86,11 @@ describe("typography", () => {
     const text = await css(page, "bang-text", PROPS);
     expect(text["font-weight"]).toBe("300");
     expect(parseFloat(text["letter-spacing"])).toBeCloseTo(0.72, 2);
-    expect(parseFloat(text["line-height"])).toBeCloseTo(64.8, 2);
+    expect(parseFloat(text["line-height"])).toBeCloseTo(71.28, 1);
     const list = await css(page, "bang-list", PROPS);
     expect(list["font-weight"]).toBe("300");
     expect(parseFloat(list["letter-spacing"])).toBeCloseTo(0.72, 2);
-    expect(parseFloat(list["line-height"])).toBeCloseTo(64.8, 2);
+    expect(parseFloat(list["line-height"])).toBeCloseTo(71.28, 1);
     const markerLh = await page.evaluate(() => {
       const host = document.querySelector("bang-list") as HTMLElement;
       const probe = document.createElement("div");
@@ -100,7 +100,7 @@ describe("typography", () => {
       probe.remove();
       return h;
     });
-    expect(parseFloat(markerLh)).toBeCloseTo(64.8, 2);
+    expect(parseFloat(markerLh)).toBeCloseTo(71.28, 1);
     expect((await css(page, "bang-stat", ["font-weight"], true))["font-weight"]).toBe("900");
   });
 
@@ -118,7 +118,7 @@ describe("typography", () => {
       const list = await css(page, "bang-list", PROPS);
       expect(list["font-weight"]).toBe("400");
       expect(list["letter-spacing"]).toBe("normal");
-      expect(parseFloat(text["line-height"])).toBeCloseTo(54, 2);
+      expect(parseFloat(text["line-height"])).toBeCloseTo(59.4, 2);
       expect((await css(page, "bang-stat", ["font-weight"], true))["font-weight"]).toBe("800");
       const vars = await inlineVars(page);
       for (const name of NEW_VARS) expect(vars, `${theme} ${name}`).not.toContain(name);
@@ -433,6 +433,27 @@ describe("nested list", () => {
     });
     expect(lines.count).toBeGreaterThanOrEqual(2);
     expect(Math.abs(lines.first - lines.last)).toBeLessThanOrEqual(1);
+  });
+
+  it("separates a parent item and its children from the next group, and keeps a list without nesting tight", async () => {
+    const d = await deck("{}", nest('size="m"'));
+    const gaps = await d.page.evaluate(() => {
+      const box = (s: string) => document.querySelector(s)!.getBoundingClientRect();
+      return {
+        intoChild: box("#n1").top - box("#pl1").bottom,
+        afterGroup: box("#pl2").top - box("#n1").bottom,
+        betweenParents: box("#pl3").top - box("#pl2").bottom,
+      };
+    });
+    // Half a parent line (48px x 1.55) between groups; a tenth of a child line (36px x 1.65) before the children.
+    expect(gaps.intoChild).toBeCloseTo(5.94, 0);
+    expect(gaps.afterGroup).toBeCloseTo(37.2, 0);
+    expect(gaps.betweenParents).toBeCloseTo(37.2, 0);
+    const flat = await deck("{}", `<bang-frame id="a"><bang-list size="m"><li id="f1">One</li><li id="f2">Two</li></bang-list></bang-frame>`);
+    const flatGap = await flat.page.evaluate(
+      () => document.querySelector("#f2")!.getBoundingClientRect().top - document.querySelector("#f1")!.getBoundingClientRect().bottom,
+    );
+    expect(flatGap).toBeCloseTo(0, 0);
   });
 
   it("AC-NEST-2 reveals the nested list with the preceding parent item and ignores it for step counts", async () => {
