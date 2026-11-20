@@ -5,7 +5,7 @@ import { fileURLToPath } from "node:url";
 const repoRoot = join(dirname(fileURLToPath(import.meta.url)), "..");
 const coreRoot = join(repoRoot, "packages/core");
 
-const GLOBAL_ATTRS = ["id", "class", "slot", "data-*", "aria-*", "role", "hidden", "title", "lang", "dir", "tabindex"];
+const GLOBAL_ATTRS = ["id", "lang", "dir", "data-step", "aria-*", "role"];
 const RUNTIME_URL = /https:\/\/cdn\.jsdelivr\.net\/npm\/(?:@bangerpage\/core|banger-core)@[^/\s"']+\/dist\/index\.js/g;
 
 /** `'a' | 'b' | undefined` -> `["a", "b"]`; null when the type is not a union of string literals. */
@@ -97,7 +97,12 @@ export function stampText(text, name, version) {
 
 function filesToStamp() {
   const fixtures = join(repoRoot, "packages/cli/test/fixtures");
-  const list = [join(repoRoot, "skill/templates/starter.html"), join(repoRoot, "examples/minimal/index.html")];
+  const list = [
+    join(repoRoot, "skill/templates/starter.html"),
+    join(repoRoot, "examples/minimal/index.html"),
+    join(repoRoot, "README.md"),
+    join(repoRoot, "packages/core/README.md"),
+  ];
   if (existsSync(fixtures)) {
     for (const name of readdirSync(fixtures).sort()) if (name.endsWith(".html")) list.push(join(fixtures, name));
   }

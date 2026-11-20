@@ -1,12 +1,24 @@
 {
   "name": "@bangerpage/core",
   "version": "0.1.0",
+  "description": "Runtime for Banger: presentations written as one HTML file, with frames on a canvas and a camera that stops at each point.",
+  "keywords": [
+    "presentation",
+    "slides",
+    "web-components",
+    "html",
+    "lit"
+  ],
   "type": "module",
   "license": "MIT",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/bangerpage/banger.git",
     "directory": "packages/core"
+  },
+  "homepage": "https://github.com/bangerpage/banger/tree/main/packages/core#readme",
+  "bugs": {
+    "url": "https://github.com/bangerpage/banger/issues"
   },
   "publishConfig": {
     "access": "public"
@@ -37,7 +49,8 @@
     "test:e2e": "vitest run --config vitest.e2e.config.ts",
     "typecheck": "tsc --noEmit",
     "prepack": "node ../../scripts/copy-legal.mjs",
-    "gen:cem": "cem analyze"
+    "gen:cem": "cem analyze",
+    "prepublishOnly": "pnpm run build"
   },
   "devDependencies": {
     "@custom-elements-manifest/analyzer": "^0.11.0",
@@ -48,5 +61,13 @@
     "playwright-core": "^1.65.1",
     "vitest": "^5.1.0"
   },
-  "customElements": "custom-elements.json"
+  "customElements": "custom-elements.json",
+  "peerDependencies": {
+    "lit": "^3.3.0"
+  },
+  "peerDependenciesMeta": {
+    "lit": {
+      "optional": true
+    }
+  }
 }

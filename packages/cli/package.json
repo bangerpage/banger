@@ -1,12 +1,23 @@
 {
   "name": "@bangerpage/cli",
   "version": "0.1.0",
+  "description": "The banger command: preview, snap and export Banger presentations to PNG and PDF.",
+  "keywords": [
+    "presentation",
+    "pdf",
+    "cli",
+    "playwright"
+  ],
   "type": "module",
   "license": "MIT",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/bangerpage/banger.git",
     "directory": "packages/cli"
+  },
+  "homepage": "https://github.com/bangerpage/banger/tree/main/packages/cli#readme",
+  "bugs": {
+    "url": "https://github.com/bangerpage/banger/issues"
   },
   "bin": {
     "banger": "./dist/bin.js"
@@ -34,7 +45,8 @@
     "test": "vitest run",
     "test:e2e": "vitest run --config vitest.e2e.config.ts",
     "typecheck": "tsc --noEmit",
-    "prepack": "node ../../scripts/copy-legal.mjs"
+    "prepack": "node ../../scripts/copy-legal.mjs",
+    "prepublishOnly": "pnpm run build"
   },
   "dependencies": {
     "@bangerpage/core": "workspace:*",

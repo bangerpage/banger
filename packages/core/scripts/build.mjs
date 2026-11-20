@@ -1,11 +1,12 @@
 import { execFileSync } from "node:child_process";
-import { mkdirSync, rmSync, writeFileSync } from "node:fs";
+import { mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { build } from "esbuild";
 import { writeThirdPartyLicenses } from "./third-party-licenses.mjs";
 
 const pkgRoot = join(dirname(fileURLToPath(import.meta.url)), "..");
+const pkgVersion = JSON.parse(readFileSync(join(pkgRoot, "package.json"), "utf8")).version;
 
 /** Writes `custom-elements.json`; `check` reads it at run time and it ships in the tarball. */
 export function generateManifest() {
@@ -28,6 +29,7 @@ export async function buildEntry() {
     legalComments: "external",
     metafile: true,
     tsconfig: "tsconfig.json",
+    define: { __BANGER_VERSION__: JSON.stringify(pkgVersion) },
   });
   mkdirSync(join(pkgRoot, ".build"), { recursive: true });
   writeFileSync(join(pkgRoot, ".build/meta.json"), JSON.stringify(result.metafile));

@@ -1,3 +1,4 @@
+import { version } from "./version.js";
 import { css, html, unsafeCSS, type PropertyValues } from "lit";
 import { property, state } from "lit/decorators.js";
 import { pick, warnOnce } from "./attrs.js";
@@ -103,6 +104,9 @@ function isEditable(target: EventTarget | null): boolean {
  * @slot - `bang-frame` elements and one `bang-path`.
  */
 export class BangRoot extends BangElement {
+  /** The runtime version, so a deck can tell which build it is running on. */
+  static readonly version = version;
+
   static styles = [
     unsafeCSS(themeCss),
     css`

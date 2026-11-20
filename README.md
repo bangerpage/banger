@@ -8,7 +8,7 @@ License: MIT
 ## Packages
 
 - `packages/core` (`@bangerpage/core`): the runtime (custom elements, camera, state) and its theme.
-- `packages/cli` (`@bangerpage/cli`): the `banger` command and a library entry for `dev`, `snap` and PDF export.
+- `packages/cli` (`@bangerpage/cli`): the `banger` command (preview, PNG snapshots, PDF export, themes) and a library entry for PDF export.
 - `skill/`: the AI skill (`SKILL.md`, component reference, patterns, starter template).
 - `examples/minimal`: a small deck that shows the main components.
 
@@ -27,6 +27,12 @@ Write one HTML file and load the runtime with a single line (see `skill/template
 ```
 
 The available elements and their attributes are listed in `skill/reference/components.md`.
+
+### Versions and network access
+
+- Pin the exact runtime version in the URL (`@bangerpage/core@0.1.0`), not a range such as `@0` or `@0.1`. The runtime loads its chunks by relative path, so a range that moves to a new version can break a page that has the old entry cached. While the version is `0.x`, a minor release may rename elements, attributes or theme keys; a pinned deck keeps working on the version it names. The running version is `customElements.get("bang-root").version`.
+- The CLI renders every deck with the core it bundles and prints a warning when the deck pins another version. Check a deck with the CLI version that matches its pin.
+- Opening a deck loads the runtime from the CDN and the fonts from Google Fonts (`fonts.googleapis.com` and `fonts.gstatic.com`), so it needs network access, and each viewer's browser contacts those hosts. A custom theme can change the font families (`fontsHref`), but the default families are still requested.
 
 ## Custom theme
 
@@ -48,7 +54,7 @@ To reuse one look across decks, keep a `theme.json` and run `banger theme init` 
 ## CLI
 
 - `banger preview [file]`: preview with live reload. Without `[file]`, `preview`, `snap` and `export` use `index.html` in the working directory. The runtime URL in the HTML is served from the bundled core, so it works offline and before publishing.
-- `banger snap [file] [--stop N] [--step M|last] [--out path] [--out-dir dir] [--scale 1|2]`: render states as 1920x1080 PNG files. Without `--stop` every stop is written.
+- `banger snap [file] [--stop N] [--step M|last] [--out path] [--out-dir dir] [--scale 1|2]`: render states as 1920x1080 PNG files. Without `--stop` every stop is written. The PNG files are not guaranteed to be byte-identical between runs: anti-aliasing of text can differ by a pixel, so compare them with a tolerance.
 - `banger export [file] --pdf [--out path] [--steps last|all]`: one PDF page per stop, with vector text.
 - `banger theme init [file] [--from <preset>] [--force]`: write a `theme.json` from a bundled preset (`signal`, `signal-dark`, `sunshine`, `midnight`).
 - `banger theme apply <theme.json> <deck.html>`: embed the theme in a deck and set `theme="custom"`. Running it again gives the same result.
@@ -83,4 +89,9 @@ Generated files (`skill/reference/components.md`, the runtime URL in the starter
 
 ## Release
 
-Publishing is done by a person with `pnpm -r publish`. Before publishing, `pnpm gen:check`, `pnpm build` and `pnpm test:e2e` must all pass.
+Publishing is done by a person.
+
+1. Set the same `version` in `packages/core/package.json` and `packages/cli/package.json`, run `pnpm gen` (it updates the runtime URL in the starter, the example, the READMEs and the fixtures) and commit.
+2. `pnpm gen:check`, `pnpm build`, `pnpm test` and `pnpm test:e2e` must all pass.
+3. `pnpm -r publish` publishes core before cli; each package builds itself first (`prepublishOnly`).
+4. Tag the commit `v<version>` and push it.

@@ -47,6 +47,12 @@ describe("runtime", () => {
     await Promise.all(opened.map((d) => d.context.close()));
   });
 
+  it("names the runtime version the build was made from", async () => {
+    const { page } = await open("deck.html");
+    const pkg = JSON.parse(readFileSync(join(dirname(fileURLToPath(import.meta.url)), "../../package.json"), "utf8"));
+    expect(await page.evaluate(() => (customElements.get("bang-root") as unknown as { version: string }).version)).toBe(pkg.version);
+  });
+
   it("AC-RT-1 keys move through stops and steps without adding history", async () => {
     const { page } = await open("deck.html");
     const length = await page.evaluate(() => history.length);

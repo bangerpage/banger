@@ -1,10 +1,11 @@
 import { execFileSync } from "node:child_process";
-import { chmodSync } from "node:fs";
+import { chmodSync, rmSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { build } from "esbuild";
 
 const pkgRoot = join(dirname(fileURLToPath(import.meta.url)), "..");
+rmSync(join(pkgRoot, "dist"), { recursive: true, force: true });
 
 const common = {
   absWorkingDir: pkgRoot,

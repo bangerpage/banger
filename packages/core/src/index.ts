@@ -18,6 +18,7 @@ export { BangShape } from "./content/shape.js";
 export { BangFree } from "./content/free.js";
 export { BangTheme } from "./theme-element.js";
 export { BangRoot } from "./root.js";
+export { version } from "./version.js";
 export type { OverflowItem, RootMode, StopInfo, TextSample } from "./root.js";
 export type { ReadyFailure, ReadyReport } from "./ready.js";
 export type { ThemeDefinition } from "./theme/custom.js";

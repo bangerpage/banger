@@ -9,7 +9,7 @@ import { scopeCss, supportsScope } from "../free-check.js";
  *
  * Put one root element directly under it, and write its rules in a `<style>` directly under `bang-free`; that `<style>` is wrapped in `@scope`, so its rules apply only inside the box. A `<style>` anywhere deeper is not wrapped. Take colours from the theme (`var(--bang-color-*)`), never colour codes. A `style` attribute is allowed only for placing things in px. Do not write a `<script>`. `data-step` on an inner element reveals it step by step. An `<img>` inside is awaited before export, but an SVG `<image>` is not. Whatever sticks out of the box is clipped.
  *
- * With `overlay`, the box covers the whole frame and the other parts do not move: place it as the only and last child of the `bang-frame`. Coordinates are px from the top-left of the frame (the same as in a `banger snap` image). `banger snap` warns about colour codes and about elements sticking out of the box.
+ * With `overlay`, the box covers the whole frame and the other parts do not move: use at most one overlay box per frame, and make it the last child of the `bang-frame`. Coordinates are px from the top-left of the frame (the same as in a `banger snap` image). `banger snap` warns about colour codes and about elements sticking out of the box.
  *
  * ```html
  * <bang-free>
