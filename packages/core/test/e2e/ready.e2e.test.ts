@@ -122,4 +122,15 @@ describe("ready", () => {
     expect(tall[0]).toMatch(/^frame "tall": the content does not fit inside the frame margins by \d+px vertically; what passes the frame edge is cut off, so shorten it or use smaller sizes$/);
     expect(warnings.some((w) => w.startsWith('frame "a":') || w.startsWith('frame "b":'))).toBe(false);
   });
+
+  it("AC-WARN-3 reports content that runs out of a card whose height is fixed, and through the frame margin", async () => {
+    const { page } = await open("card-overflow.html", { query: "mode=export" });
+    const { warnings } = await ready(page);
+    const about = (prefix: string) => warnings.filter((w) => w.startsWith(prefix));
+    expect(about('frame "grow": the content does not fit inside the frame margins by ')).toHaveLength(1);
+    expect(about("bang-card#outer: the content sticks out of the card by ")[0]).toMatch(/by \d+px vertically;/);
+    expect(about("bang-card#inner: the content sticks out of the card by ")[0]).toMatch(/by \d+px vertically;/);
+    expect(warnings.filter((w) => w.includes("plain") || w.includes("#fits"))).toEqual([]);
+  });
 });
+

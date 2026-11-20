@@ -42,20 +42,67 @@ export function overlapWarnings(frames: readonly CheckedFrame[]): string[] {
   return out;
 }
 
-/** Content that reaches past a frame's inner margin: the frame clips at its edge, so it is cut off or crowds the edge. */
+interface Edges {
+  left: number;
+  top: number;
+  right: number;
+  bottom: number;
+}
+
+/** How far, in layout px, the elements inside `container` reach past `limit`; `bang-free` boxes have their own check. */
+function reachPast(container: Element, limit: Edges, scale: number): { x: number; y: number } {
+  let x = 0;
+  let y = 0;
+  for (const child of container.querySelectorAll("*")) {
+    if (child.localName === "script" || child.localName === "style" || child.closest("bang-free")) continue;
+    const r = child.getBoundingClientRect();
+    if (r.width === 0 && r.height === 0) continue;
+    x = Math.max(x, (limit.left - r.left) / scale, (r.right - limit.right) / scale);
+    y = Math.max(y, (limit.top - r.top) / scale, (r.bottom - limit.bottom) / scale);
+  }
+  return { x, y };
+}
+
+const amount = (x: number, y: number): string[] =>
+  [
+    x > OVERFLOW_TOLERANCE_PX ? `${Math.round(x)}px horizontally` : "",
+    y > OVERFLOW_TOLERANCE_PX ? `${Math.round(y)}px vertically` : "",
+  ].filter(Boolean);
+
+/**
+ * Content that reaches past a frame's inner margin (the frame clips at its edge, so it is cut off or crowds the edge),
+ * and content that sticks out of a `bang-card`, which does not clip and lets it run over what is below.
+ */
 export function frameOverflowWarnings(frames: readonly CheckedFrame[]): string[] {
   const out: string[] = [];
   for (const { el } of frames) {
     const box = el.shadowRoot?.querySelector<HTMLElement>(".frame");
-    if (!box) continue;
-    const x = box.scrollWidth - box.clientWidth;
-    const y = box.scrollHeight - box.clientHeight;
-    const parts = [
-      x > OVERFLOW_TOLERANCE_PX ? `${x}px horizontally` : "",
-      y > OVERFLOW_TOLERANCE_PX ? `${y}px vertically` : "",
-    ].filter(Boolean);
+    if (!box || el.offsetWidth === 0) continue;
+    const rect = el.getBoundingClientRect();
+    const scale = rect.width / el.offsetWidth;
+    const pad = getComputedStyle(box);
+    const inner = {
+      left: rect.left + parseFloat(pad.paddingLeft) * scale,
+      top: rect.top + parseFloat(pad.paddingTop) * scale,
+      right: rect.right - parseFloat(pad.paddingRight) * scale,
+      bottom: rect.bottom - parseFloat(pad.paddingBottom) * scale,
+    };
+    const reach = reachPast(el, inner, scale);
+    const parts = amount(
+      Math.max(reach.x, box.scrollWidth - box.clientWidth),
+      Math.max(reach.y, box.scrollHeight - box.clientHeight),
+    );
     if (parts.length > 0) {
-      out.push(`${frameName(el)}: the content does not fit inside the frame margins by ${parts.join(", ")}; what passes the frame edge is cut off, so shorten it or use smaller sizes`);
+      out.push(
+        `${frameName(el)}: the content does not fit inside the frame margins by ${parts.join(", ")}; what passes the frame edge is cut off, so shorten it or use smaller sizes`,
+      );
+    }
+    for (const card of el.querySelectorAll("bang-card")) {
+      const { x, y } = reachPast(card, card.getBoundingClientRect(), scale);
+      const cardParts = amount(x, y);
+      if (cardParts.length > 0) {
+        out.push(`${selectorOf(card)}: the content sticks out of the card by ${cardParts.join(", ")}; shorten it or use smaller sizes`);
+      }
     }
   }
   return out;

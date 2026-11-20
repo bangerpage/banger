@@ -32,7 +32,7 @@ description: HTML 1 枚で「めくらない」プレゼンテーション (キ�
 ## コマンド
 
 - `banger preview [file]`: プレビューとライブリロード。`[file]` を省くと、今いるディレクトリの `index.html` を使う (`snap` と `export` も同じ)。
-- `banger check [file] [--json]`: 全停止点を最後の段で描き、問題を 1 行ずつ出す。フレームに収まらない中身、存在しない `bang-*` の部品名、同じセルに置いたフレーム、無いフレームを指す停止点、使えない属性の値、読めない色、描けなかった部品が出る。問題があれば終了コード 1。`--json` で `{ ok, stops, warnings, failed }` を出す。
+- `banger check [file] [--json]`: 全停止点を最後の段で描き、問題を 1 行ずつ出す。フレームの余白の内側に収まらない中身、カードからはみ出す中身、存在しない `bang-*` の部品名、同じセルに置いたフレーム、無いフレームを指す停止点、使えない属性の値、読めない色、描けなかった部品が出る。問題があれば終了コード 1。`--json` で `{ ok, stops, warnings, failed }` を出す。
 - `banger snap [file] [--stop N] [--step M|last] [--steps last|all] [--out path] [--out-dir dir] [--scale 1|2]`: 状態を 1920x1080 の PNG にする。停止点を省くと全停止点を最後の段で出す。`--steps all` を付けると、順に出す途中の段もすべて出す。自分で見て直すために使う。
 - `banger export [file] --pdf [--out path] [--steps last|all]`: 停止点ごとに 1 ページの PDF にする。
 - `banger theme init [file] [--from <preset>] [--force]`: 同梱のひな形 (`signal` `signal-dark` `sunshine` `midnight`) から `theme.json` を作る。

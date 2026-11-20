@@ -1,0 +1,12 @@
+<!doctype html>
+<html lang="en">
+<head><meta charset="utf-8"><title>card overflow</title></head>
+<body>
+<script type="module" src="/dist/index.js"></script>
+<bang-root>
+  <bang-frame id="grow" at="0,0" crumb="Actions"><bang-card id="outer" grow><bang-card id="inner"><bang-list size="s"><li><b>Step 1: a heading line for this step</b></li><bang-list size='s'><li>A sub item that explains the step in a little more detail</li></bang-list><li><b>Step 2: a heading line for this step</b></li><bang-list size='s'><li>A sub item that explains the step in a little more detail</li></bang-list><li><b>Step 3: a heading line for this step</b></li><bang-list size='s'><li>A sub item that explains the step in a little more detail</li></bang-list><li><b>Step 4: a heading line for this step</b></li><bang-list size='s'><li>A sub item that explains the step in a little more detail</li></bang-list><li><b>Step 5: a heading line for this step</b></li><bang-list size='s'><li>A sub item that explains the step in a little more detail</li></bang-list><li><b>Step 6: a heading line for this step</b></li><bang-list size='s'><li>A sub item that explains the step in a little more detail</li></bang-list></bang-list></bang-card></bang-card></bang-frame>
+  <bang-frame id="plain" at="1,0"><bang-card id="fits"><bang-list size="s"><li><b>Step 1: a heading line for this step</b></li><bang-list size='s'><li>A sub item that explains the step in a little more detail</li></bang-list><li><b>Step 2: a heading line for this step</b></li><bang-list size='s'><li>A sub item that explains the step in a little more detail</li></bang-list><li><b>Step 3: a heading line for this step</b></li><bang-list size='s'><li>A sub item that explains the step in a little more detail</li></bang-list></bang-list></bang-card></bang-frame>
+  <bang-path><bang-stop frame="grow"></bang-stop><bang-stop frame="plain"></bang-stop></bang-path>
+</bang-root>
+</body>
+</html>
