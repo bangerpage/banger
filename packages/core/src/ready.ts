@@ -1,3 +1,4 @@
+import { recordedWarnings } from "./attrs.js";
 import { fontsSettled, loadFonts } from "./base-style.js";
 import { READY_TIMEOUT_MS, selectorOf } from "./element.js";
 import { freeWarnings } from "./free-check.js";
@@ -86,5 +87,6 @@ export async function collectReady(
 
   (await loadFonts(collectText(root), fontsTimeoutMs)).forEach((w) => warnings.add(w));
   freeWarnings(root).forEach((w) => warnings.add(w));
+  recordedWarnings().forEach((w) => warnings.add(w));
   return { ok: failed.length === 0, failed, warnings: [...warnings] };
 }

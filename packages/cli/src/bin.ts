@@ -1,6 +1,7 @@
 import { readFileSync, realpathSync } from "node:fs";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import { BrowserNotFoundError, installHint } from "./browser.js";
+import { runCheck } from "./commands/check.js";
 import { runExport } from "./commands/export.js";
 import { runInit } from "./commands/init.js";
 import { runPreview } from "./commands/preview.js";
@@ -17,6 +18,8 @@ commands:
   preview [file] [--port N]        preview with live reload
   snap [file] [--stop N] [--step M|last] [--steps last|all] [--out path] [--out-dir dir] [--scale 1|2]
                                    render states as 1920x1080 PNGs
+  check [file] [--json]            render every stop and list the problems the runtime finds;
+                                   exits 1 when there is any
   export [file] --pdf [--out path] [--steps last|all]
                                    write a PDF, one page per stop
   theme init [file] [--from <preset>] [--force]
@@ -37,7 +40,7 @@ options:
   --version    show the version
 `;
 
-const COMMANDS = new Set(["init", "preview", "snap", "export", "theme", "skill"]);
+const COMMANDS = new Set(["init", "preview", "snap", "check", "export", "theme", "skill"]);
 
 function version(): string {
   const manifest = fileURLToPath(new URL("../package.json", import.meta.url));
@@ -63,6 +66,8 @@ async function dispatch(argv: string[]): Promise<number> {
       return runPreview(rest);
     case "snap":
       return runSnap(rest);
+    case "check":
+      return runCheck(rest);
     case "export":
       return runExport(rest);
     case "theme":

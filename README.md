@@ -85,7 +85,7 @@ banger skill install --project   # or ./.claude/skills/banger for this project o
 
 Running it again after updating the CLI replaces the copy; a directory that `banger` did not write is left alone unless you pass `--force`. For another agent, `--dir <path>` writes the skill wherever that agent reads skills from.
 
-With the skill, the agent agrees on the outline as a list of stops, writes `index.html`, runs `banger snap` to look at every stop, and fixes what the CLI warns about (overflow, unreadable colours, failed components).
+With the skill, the agent agrees on the outline as a list of stops, writes `index.html`, runs `banger check` and `banger snap` to look at every stop, and fixes what the CLI warns about (overflow, unknown tags, unreadable colours, failed components).
 
 ## Elements
 
@@ -141,6 +141,7 @@ To reuse one look across decks, keep a `theme.json` and run `banger theme init` 
 - `banger init [dir] [--force]`: start a deck by writing `index.html` from the starter template into `dir` (default: the working directory).
 - `banger preview [file]`: preview with live reload. Without `[file]`, `preview`, `snap` and `export` use `index.html` in the working directory. The runtime URL in the HTML is served from the bundled core, so it works offline and before publishing.
 - `banger snap [file] [--stop N] [--step M|last] [--steps last|all] [--out path] [--out-dir dir] [--scale 1|2]`: render states as 1920x1080 PNG files. Without `--stop` every stop is written at its last step; `--steps all` also writes every step on the way. The PNG files are not guaranteed to be byte-identical between runs: anti-aliasing of text can differ by a pixel, so compare them with a tolerance.
+- `banger check [file] [--json]`: render every stop without taking pictures and list the problems the runtime finds: content larger than its frame, `bang-*` tags that do not exist, frames on the same cell, stops naming a missing frame, invalid attribute values, unreadable colours and failed components. It exits 1 when there is any problem; `--json` prints `{ ok, stops, warnings, failed }`.
 - `banger export [file] --pdf [--out path] [--steps last|all]`: one PDF page per stop, with vector text.
 - `banger theme init [file] [--from <preset>] [--force]`: write a `theme.json` from a bundled preset (`signal`, `signal-dark`, `sunshine`, `midnight`).
 - `banger theme apply <theme.json> <deck.html>`: embed the theme in a deck and set `theme="custom"`. Running it again gives the same result.

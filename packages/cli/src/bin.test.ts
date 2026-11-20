@@ -30,6 +30,8 @@ describe("bin", () => {
     ["preview without a file or an index.html", ["preview"]],
     ["export without a file or an index.html", ["export", "--pdf"]],
     ["snap on a missing file", ["snap", "/nonexistent/deck.html"]],
+    ["check on a missing file", ["check", "/nonexistent/deck.html"]],
+    ["check with an unknown option", ["check", "deck.html", "--strict"]],
     ["export on a missing file", ["export", "/nonexistent/deck.html", "--pdf"]],
     ["export without a format", ["export", "deck.html"]],
     ["export with two formats", ["export", "deck.html", "--pdf", "--png"]],

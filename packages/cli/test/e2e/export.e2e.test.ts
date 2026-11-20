@@ -347,3 +347,30 @@ describe("preview", () => {
     }
   });
 });
+
+describe("check", () => {
+  it("passes a clean deck and the skill starter with exit 0 (AC-WARN-2)", async () => {
+    const starter = join(dirname(fileURLToPath(import.meta.url)), "../../../../skill/templates/starter.html");
+    for (const file of [fixture("basic.html"), starter]) {
+      const result = await runBin(["check", file]);
+      expect(result.code, result.stdout + result.stderr).toBe(0);
+      expect(result.stdout).toMatch(/^ok: \d+ stops, no problems\n$/);
+    }
+  });
+
+  it("lists the problems and exits 1; --json gives the same as data (AC-WARN-2)", async () => {
+    const file = await deckCopy("check-typo", (html) => html.replace("<bang-title>", "<bang-titel>Typo</bang-titel><bang-title>"));
+    const text = await runBin(["check", file]);
+    expect(text.code).toBe(1);
+    expect(text.stdout).toContain("<bang-titel> is not a Banger element; check the tag name");
+    expect(text.stdout).toMatch(/1 problem in \d+ stops\n$/);
+
+    const json = await runBin(["check", file, "--json"]);
+    expect(json.code).toBe(1);
+    const result = JSON.parse(json.stdout) as { ok: boolean; stops: number; warnings: string[]; failed: string[] };
+    expect(result.ok).toBe(false);
+    expect(result.failed).toEqual([]);
+    expect(result.warnings).toHaveLength(1);
+    expect(result.warnings[0]).toContain("<bang-titel>");
+  });
+});

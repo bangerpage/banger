@@ -77,7 +77,7 @@ describe("ready", () => {
         }),
     });
     const report = await ready(late.page, { fontsTimeoutMs: 15000 });
-    expect(report.warnings).toEqual([]);
+    expect(report.warnings.filter((w) => /font/.test(w))).toEqual([]);
     expect(await late.page.evaluate(() => document.fonts.check('800 1em "Bricolage Grotesque"'))).toBe(true);
 
     const slow = await open("deck.html", {
@@ -97,5 +97,29 @@ describe("ready", () => {
     });
     const report = await ready(page, { fontsTimeoutMs: 15000 });
     expect(report.warnings.some((w) => w.startsWith("font load failed: "))).toBe(true);
+  });
+
+  it("AC-WARN-1 reports the runtime's console warnings, unknown tags, overlapping frames and overflowing frames", async () => {
+    const name = `checks-${Date.now()}`;
+    server.virtual.set(
+      name,
+      `<!doctype html><html lang="en"><head><meta charset="utf-8"><title>t</title></head><body>
+<script type="module" src="/dist/index.js"></script>
+<bang-root>
+  <bang-frame id="a" at="0,0"><bang-title>Fine</bang-title><bang-titel>Typo</bang-titel><bang-titel>Again</bang-titel></bang-frame>
+  <bang-frame id="b" at="0,0"><bang-text>Same cell</bang-text></bang-frame>
+  <bang-frame id="tall" at="1,0">${"<bang-title size='2xl'>Line</bang-title>".repeat(12)}</bang-frame>
+  <bang-path><bang-stop frame="a"></bang-stop><bang-stop frame="missing"></bang-stop><bang-stop frame="tall"></bang-stop></bang-path>
+</bang-root></body></html>`,
+    );
+    const { page } = await open(`virtual/${name}.html`, { query: "mode=export" });
+    const { warnings } = await ready(page);
+    expect(warnings).toContain('<bang-stop frame="missing"> does not match any bang-frame; treated as overview');
+    expect(warnings).toContain("bang-frame#a > bang-titel:nth-of-type(1): <bang-titel> is not a Banger element (2 times); check the tag name");
+    expect(warnings).toContain('frame "a" and frame "b" overlap on the canvas; give them different at values');
+    const tall = warnings.filter((w) => w.startsWith('frame "tall": the content does not fit'));
+    expect(tall).toHaveLength(1);
+    expect(tall[0]).toMatch(/^frame "tall": the content does not fit inside the frame margins by \d+px vertically; what passes the frame edge is cut off, so shorten it or use smaller sizes$/);
+    expect(warnings.some((w) => w.startsWith('frame "a":') || w.startsWith('frame "b":'))).toBe(false);
   });
 });

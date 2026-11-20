@@ -2,6 +2,7 @@ import { version } from "./version.js";
 import { css, html, unsafeCSS, type PropertyValues } from "lit";
 import { property, state } from "lit/decorators.js";
 import { pick, warnOnce } from "./attrs.js";
+import { frameOverflowWarnings, overlapWarnings, unknownTagWarnings } from "./deck-check.js";
 import {
   boundsOf,
   clipFor,
@@ -744,10 +745,20 @@ export class BangRoot extends BangElement {
     });
   }
 
-  /** Waits for every component's latest render and for fonts. Call after `goto` resolves. */
-  ready(opts?: { timeoutMs?: number; fontsTimeoutMs?: number }): Promise<ReadyReport> {
-    return collectReady(this, { ...opts, extraWarnings: [...this.themeWarnings, ...this.deckWarnings()] });
+  /**
+   * Waits for every component's latest render and for fonts. Call after `goto` resolves. `warnings` lists every problem
+   * found in the deck: the runtime's console warnings, unknown `bang-*` tags, frames that overlap and frame content
+   * larger than the frame.
+   */
+  async ready(opts?: { timeoutMs?: number; fontsTimeoutMs?: number }): Promise<ReadyReport> {
+    const report = await collectReady(this, {
+      ...opts,
+      extraWarnings: [...this.themeWarnings, ...this.deckWarnings(), ...unknownTagWarnings(this), ...overlapWarnings(this.frames)],
+    });
+    const warnings = new Set([...report.warnings, ...frameOverflowWarnings(this.frames)]);
+    return { ...report, warnings: [...warnings] };
   }
+
 
   private showStatus(text: string): void {
     this.statusText = text;

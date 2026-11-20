@@ -12,8 +12,9 @@ description: HTML 1 枚で「めくらない」プレゼンテーション (キ�
 1. 発表のアウトラインを、停止点の列として人と合意する。どのフレームをどの順で見せ、どこで寄り、どこで俯瞰に戻るかを先に決める。
 2. 発表ごとにディレクトリを 1 つ作り、`templates/starter.html` をその中の `index.html` にコピーして元にし、フレームと停止点を書く。部品と属性は `reference/components.md` にあるものだけを使う。
 3. そのディレクトリで `banger preview` を実行し、ブラウザでプレビューして動きを確認する。
-4. `banger snap` で全停止点を画像にして目で見る。はみ出しや読めない箇所を探す。
-5. 直して 3 に戻る。
+4. `banger check` で問題の一覧を出し、出たものを直す。問題が無ければ終了コードは 0 になる。
+5. `banger snap` で全停止点を画像にして目で見る。check では分からない、見た目の崩れを探す。
+6. 直して 3 に戻る。
 
 ## 原則
 
@@ -31,6 +32,7 @@ description: HTML 1 枚で「めくらない」プレゼンテーション (キ�
 ## コマンド
 
 - `banger preview [file]`: プレビューとライブリロード。`[file]` を省くと、今いるディレクトリの `index.html` を使う (`snap` と `export` も同じ)。
+- `banger check [file] [--json]`: 全停止点を最後の段で描き、問題を 1 行ずつ出す。フレームに収まらない中身、存在しない `bang-*` の部品名、同じセルに置いたフレーム、無いフレームを指す停止点、使えない属性の値、読めない色、描けなかった部品が出る。問題があれば終了コード 1。`--json` で `{ ok, stops, warnings, failed }` を出す。
 - `banger snap [file] [--stop N] [--step M|last] [--steps last|all] [--out path] [--out-dir dir] [--scale 1|2]`: 状態を 1920x1080 の PNG にする。停止点を省くと全停止点を最後の段で出す。`--steps all` を付けると、順に出す途中の段もすべて出す。自分で見て直すために使う。
 - `banger export [file] --pdf [--out path] [--steps last|all]`: 停止点ごとに 1 ページの PDF にする。
 - `banger theme init [file] [--from <preset>] [--force]`: 同梱のひな形 (`signal` `signal-dark` `sunshine` `midnight`) から `theme.json` を作る。

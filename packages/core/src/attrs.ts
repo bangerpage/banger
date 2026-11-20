@@ -7,16 +7,24 @@ export const SIZES = ["xs", "s", "m", "l", "xl", "2xl"] as const;
 export const TONES = ["default", "muted", "accent"] as const;
 
 const warned = new Set<string>();
+const recorded = new Set<string>();
 
-/** Warns once per key so a re-render loop cannot flood the console. */
+/** Warns once per key so a re-render loop cannot flood the console. The message is also kept for `ready()`. */
 export function warnOnce(key: string, message: string): void {
   if (warned.has(key)) return;
   warned.add(key);
+  recorded.add(message.replace(/^\[banger\] /, ""));
   console.warn(message);
+}
+
+/** Every message `warnOnce` has printed on this page, without the `[banger]` prefix. */
+export function recordedWarnings(): string[] {
+  return [...recorded];
 }
 
 export function resetWarnings(): void {
   warned.clear();
+  recorded.clear();
 }
 
 const tagOf = (el: AttrSource) => el.localName ?? "element";
