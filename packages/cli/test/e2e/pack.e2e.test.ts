@@ -61,9 +61,22 @@ describe("pack", () => {
   });
 
   it("AC-PKG-4 the cli tarball carries an executable bin and the library entry", async () => {
-    for (const file of ["dist/bin.js", "dist/index.js", "dist/index.d.ts", "LICENSE", "NOTICE"]) {
+    for (const file of [
+      "dist/bin.js",
+      "dist/index.js",
+      "dist/index.d.ts",
+      "dist/skill/SKILL.md",
+      "dist/skill/reference/components.md",
+      "dist/skill/templates/starter.html",
+      "dist/skill/meta.json",
+      "LICENSE",
+      "NOTICE",
+    ]) {
       expect(cliFiles, file).toContain(`package/${file}`);
     }
+    const meta = JSON.parse(await readFile(join(cliDir, "dist/skill/meta.json"), "utf8"));
+    const cliPkg = JSON.parse(await readFile(join(cliDir, "package.json"), "utf8"));
+    expect(meta).toEqual({ skillVersion: cliPkg.version, runtimeVersion: cliPkg.version });
     const bin = join(cliDir, "dist/bin.js");
     expect((await readFile(bin, "utf8")).startsWith("#!/usr/bin/env node")).toBe(true);
     expect((await stat(bin)).mode & 0o111).not.toBe(0);

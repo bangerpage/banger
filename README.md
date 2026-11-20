@@ -73,7 +73,17 @@ The current position is kept in the URL (`#stop=N&step=M`), so a reload or a sha
 
 `skill/` is an agent skill: `SKILL.md` describes the workflow and the rules, `reference/` lists every element, attribute and pattern, and `templates/starter.html` is the starting point. The skill text is in Japanese; the element reference is in English.
 
-To use it with Claude Code, copy the directory to `~/.claude/skills/banger/` (or `.claude/skills/banger/` in a project), then ask for a talk. The agent agrees on the outline as a list of stops, writes `index.html`, runs `banger snap` to look at every stop, and fixes what the CLI warns about (overflow, unreadable colours, failed components).
+The CLI carries the skill that matches its version. To use it with Claude Code, install it and ask for a talk:
+
+```
+npm install -g @bangerpage/cli
+banger skill install             # writes ~/.claude/skills/banger
+banger skill install --project   # or ./.claude/skills/banger for this project only
+```
+
+Running it again after updating the CLI replaces the copy; a directory that `banger` did not write is left alone unless you pass `--force`. For another agent, `--dir <path>` writes the skill wherever that agent reads skills from.
+
+With the skill, the agent agrees on the outline as a list of stops, writes `index.html`, runs `banger snap` to look at every stop, and fixes what the CLI warns about (overflow, unreadable colours, failed components).
 
 ## Elements
 
@@ -131,6 +141,7 @@ To reuse one look across decks, keep a `theme.json` and run `banger theme init` 
 - `banger export [file] --pdf [--out path] [--steps last|all]`: one PDF page per stop, with vector text.
 - `banger theme init [file] [--from <preset>] [--force]`: write a `theme.json` from a bundled preset (`signal`, `signal-dark`, `sunshine`, `midnight`).
 - `banger theme apply <theme.json> <deck.html>`: embed the theme in a deck and set `theme="custom"`. Running it again gives the same result.
+- `banger skill install [--project | --dir <path>] [--force]`: copy the agent skill bundled with this CLI version to `~/.claude/skills/banger` (or `./.claude/skills/banger`, or `<path>`).
 
 In a terminal, the CLI checks npm for a newer `@bangerpage/cli` at most once a day and prints a notice on the next run; the check never delays a command. Set `BANGER_NO_UPDATE_CHECK=1` to turn it off (it is also off when `CI` is set or stderr is not a terminal).
 

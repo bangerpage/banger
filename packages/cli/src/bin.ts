@@ -3,6 +3,7 @@ import { fileURLToPath, pathToFileURL } from "node:url";
 import { BrowserNotFoundError, installHint } from "./browser.js";
 import { runExport } from "./commands/export.js";
 import { runPreview } from "./commands/preview.js";
+import { runSkill } from "./commands/skill.js";
 import { runSnap } from "./commands/snap.js";
 import { runTheme } from "./commands/theme.js";
 import { CliError } from "./errors.js";
@@ -20,6 +21,9 @@ commands:
                                    write a theme.json from a bundled preset
   theme apply <theme.json> <deck.html>
                                    embed the theme in a deck, idempotently
+  skill install [--project | --dir <path>] [--force]
+                                   copy the agent skill to ~/.claude/skills/banger
+                                   (--project: ./.claude/skills/banger)
 
   [file] defaults to index.html in the working directory.
 
@@ -31,7 +35,7 @@ options:
   --version    show the version
 `;
 
-const COMMANDS = new Set(["preview", "snap", "export", "theme"]);
+const COMMANDS = new Set(["preview", "snap", "export", "theme", "skill"]);
 
 function version(): string {
   const manifest = fileURLToPath(new URL("../package.json", import.meta.url));
@@ -59,6 +63,8 @@ async function dispatch(argv: string[]): Promise<number> {
       return runExport(rest);
     case "theme":
       return runTheme(rest);
+    case "skill":
+      return runSkill(rest);
     default:
       throw new CliError(2, `unknown command: ${command}\n${USAGE}`);
   }
