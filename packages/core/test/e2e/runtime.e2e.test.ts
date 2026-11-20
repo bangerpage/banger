@@ -53,6 +53,30 @@ describe("runtime", () => {
     expect(await page.evaluate(() => (customElements.get("bang-root") as unknown as { version: string }).version)).toBe(pkg.version);
   });
 
+  it("a horizontal touch swipe moves forward and back; a mouse drag, a vertical swipe and a short one do not", async () => {
+    const { page } = await open("deck.html");
+    const swipe = (dx: number, dy: number, pointerType = "touch") =>
+      page.evaluate(
+        ([dx, dy, pointerType]) => {
+          const at = (type: string, x: number, y: number) =>
+            window.dispatchEvent(
+              new PointerEvent(type, { pointerId: 7, isPrimary: true, pointerType: pointerType as string, clientX: x, clientY: y, bubbles: true }),
+            );
+          at("pointerdown", 900, 500);
+          at("pointerup", 900 + (dx as number), 500 + (dy as number));
+        },
+        [dx, dy, pointerType] as const,
+      );
+    await swipe(-200, 10);
+    expect(await state(page)).toEqual({ stop: 1, step: 0 });
+    await swipe(-200, 10, "mouse");
+    await swipe(-30, 0);
+    await swipe(-100, 300);
+    expect(await state(page)).toEqual({ stop: 1, step: 0 });
+    await swipe(200, -10);
+    expect(await state(page)).toEqual({ stop: 0, step: 0 });
+  });
+
   it("AC-RT-1 keys move through stops and steps without adding history", async () => {
     const { page } = await open("deck.html");
     const length = await page.evaluate(() => history.length);

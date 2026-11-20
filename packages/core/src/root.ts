@@ -85,6 +85,9 @@ function modeOf(): RootMode {
   return mode === "export" || mode === "presenter" ? mode : "live";
 }
 
+const SWIPE_MIN_PX = 50;
+const SWIPE_MAX_MS = 800;
+
 function isEditable(target: EventTarget | null): boolean {
   if (!(target instanceof HTMLElement)) return false;
   return target.isContentEditable || ["INPUT", "TEXTAREA", "SELECT"].includes(target.tagName);
@@ -118,6 +121,8 @@ export class BangRoot extends BangElement {
         background: var(--bang-color-line);
         color: var(--bang-color-ink);
         font-family: var(--bang-font-sans);
+        /* Horizontal swipes move between stops, so the browser keeps only vertical panning and pinch zoom. */
+        touch-action: pan-y pinch-zoom;
       }
       :host([data-mode="export"]) {
         position: relative;
@@ -233,6 +238,24 @@ export class BangRoot extends BangElement {
   private themeWarnings: string[] = [];
 
   private readonly onKeydown = (event: KeyboardEvent) => this.handleKey(event);
+  private swipeStart: { id: number; x: number; y: number; at: number } | null = null;
+  private readonly onPointerDown = (event: PointerEvent) => {
+    if (event.pointerType === "mouse" || !event.isPrimary) return;
+    if (isEditable(event.composedPath()[0] ?? event.target)) return;
+    this.swipeStart = { id: event.pointerId, x: event.clientX, y: event.clientY, at: event.timeStamp };
+  };
+  private readonly onPointerUp = (event: PointerEvent) => {
+    const start = this.swipeStart;
+    if (!start || start.id !== event.pointerId) return;
+    this.swipeStart = null;
+    const dx = event.clientX - start.x;
+    const dy = event.clientY - start.y;
+    if (event.timeStamp - start.at > SWIPE_MAX_MS || Math.abs(dx) < SWIPE_MIN_PX || Math.abs(dx) < Math.abs(dy) * 1.5) return;
+    void (dx < 0 ? this.next() : this.prev());
+  };
+  private readonly onPointerCancel = () => {
+    this.swipeStart = null;
+  };
   private readonly onHashChange = () => {
     const state = this.hashState();
     void this.commit(state, { animate: true, source: "hash", overview: false });
@@ -251,6 +274,9 @@ export class BangRoot extends BangElement {
     if (this.mode !== "export") {
       window.addEventListener("keydown", this.onKeydown);
       window.addEventListener("hashchange", this.onHashChange);
+      window.addEventListener("pointerdown", this.onPointerDown);
+      window.addEventListener("pointerup", this.onPointerUp);
+      window.addEventListener("pointercancel", this.onPointerCancel);
       if (typeof BroadcastChannel !== "undefined") {
         this.sync = new PresenterSync();
         this.sync.onRemote((remote) => {
@@ -270,6 +296,9 @@ export class BangRoot extends BangElement {
     super.disconnectedCallback();
     window.removeEventListener("keydown", this.onKeydown);
     window.removeEventListener("hashchange", this.onHashChange);
+    window.removeEventListener("pointerdown", this.onPointerDown);
+    window.removeEventListener("pointerup", this.onPointerUp);
+    window.removeEventListener("pointercancel", this.onPointerCancel);
     this.motionQuery?.removeEventListener("change", this.onMotionChange);
     this.resizeObserver?.disconnect();
     this.sync?.close();

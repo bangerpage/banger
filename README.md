@@ -65,6 +65,7 @@ For a fuller deck, open `examples/showcase/index.html` (the one in the pictures 
 | `o` or Esc | Overview of the whole canvas |
 | `p` | Presenter window with speaker notes, kept in sync with the audience window |
 | `f` | Full screen |
+| Swipe left / right | Next / previous, on a touch screen |
 
 The current position is kept in the URL (`#stop=N&step=M`), so a reload or a shared link lands on the same place.
 
