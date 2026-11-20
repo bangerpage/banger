@@ -91,6 +91,26 @@ describe("runtime", () => {
     expect(warnings.filter((w) => w.includes("needs"))).toEqual([]);
   });
 
+  it("only the frame the camera shows takes focus; the overview and export leave frames as they are", async () => {
+    const html = `<!doctype html><meta charset="utf-8"><title>t</title><script type="module" src="/dist/index.js"></script>
+<bang-root><bang-frame id="a" at="0,0"><bang-text>a</bang-text></bang-frame><bang-frame id="b" at="1,0"><bang-text>b</bang-text></bang-frame>
+<bang-path><bang-stop frame="a"></bang-stop><bang-stop frame="b" region="0,0,0.5,0.5"></bang-stop><bang-stop overview></bang-stop></bang-path></bang-root>`;
+    const { page } = await openVirtual("inert", html);
+    const inert = () => page.evaluate(() => ["#a", "#b"].map((s) => (document.querySelector(s) as HTMLElement).inert));
+    expect(await inert()).toEqual([false, true]);
+    await page.keyboard.press("ArrowRight");
+    expect(await inert()).toEqual([true, false]);
+    await page.keyboard.press("ArrowRight");
+    expect(await inert()).toEqual([true, true]);
+    await page.keyboard.press("Home");
+    await page.keyboard.press("o");
+    expect(await inert()).toEqual([true, true]);
+    await page.keyboard.press("o");
+    expect(await inert()).toEqual([false, true]);
+    const exported = await openVirtual("inert-export", html, { query: "mode=export" });
+    expect(await exported.page.evaluate(() => ["#a", "#b"].map((s) => (document.querySelector(s) as HTMLElement).inert))).toEqual([false, false]);
+  });
+
   it("AC-RT-1 keys move through stops and steps without adding history", async () => {
     const { page } = await open("deck.html");
     const length = await page.evaluate(() => history.length);

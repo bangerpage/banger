@@ -654,6 +654,14 @@ export class BangRoot extends BangElement {
     }
   }
 
+  /** Keeps keyboard focus and assistive technology on the frame the camera shows; the overview is for looking only. */
+  private applyInert(): void {
+    if (this.mode === "export") return;
+    const stop = this.path.stops[this.current.stop];
+    const shown = this.inOverview || !stop || stop.kind === "overview" ? null : stop.frame;
+    for (const f of this.frames) f.el.inert = f.id !== shown;
+  }
+
   private commit(
     wanted: BangState,
     opts: { animate: boolean; source: Source; overview: boolean },
@@ -667,6 +675,7 @@ export class BangRoot extends BangElement {
     this.current = state;
     this.inOverview = opts.overview;
     this.applySteps();
+    this.applyInert();
     const moved = this.moveCamera(poseFor(rect, this.stageNow), opts.animate);
     this.applyClip();
     if (opts.source !== "hash" && location.hash !== serializeHash(state)) {
