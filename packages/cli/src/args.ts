@@ -9,3 +9,9 @@ export function parseArgsStrict<const T extends NonNullable<ParseArgsConfig["opt
     throw new CliError(2, (error as Error).message);
   }
 }
+
+/** The deck file from the positionals; with none, `index.html` in the working directory. */
+export function deckFile(positionals: string[], usage: string): string {
+  if (positionals.length > 1) throw new CliError(2, usage);
+  return positionals[0] ?? "index.html";
+}

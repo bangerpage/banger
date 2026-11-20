@@ -259,10 +259,10 @@ describe("export", () => {
   });
 });
 
-describe("dev", () => {
-  /** Starts `banger dev` and resolves once its URL is printed. */
-  async function startDev(file: string) {
-    const child = spawn(process.execPath, [binPath, "dev", file, "--port", "0"], { stdio: ["ignore", "pipe", "pipe"] });
+describe("preview", () => {
+  /** Starts `banger preview` and resolves once its URL is printed. */
+  async function startPreview(args: string[], cwd?: string) {
+    const child = spawn(process.execPath, [binPath, "preview", ...args, "--port", "0"], { cwd, stdio: ["ignore", "pipe", "pipe"] });
     let stderr = "";
     child.stderr.on("data", (chunk) => (stderr += chunk));
     const url = await new Promise<string>((resolve, reject) => {
@@ -271,7 +271,7 @@ describe("dev", () => {
         stdout += chunk;
         if (stdout.includes("\n")) resolve(stdout.trim());
       });
-      child.once("exit", (code) => reject(new Error(`dev exited early (${code}): ${stderr}`)));
+      child.once("exit", (code) => reject(new Error(`preview exited early (${code}): ${stderr}`)));
     });
     const stop = () =>
       new Promise<number | null>((resolve) => {
@@ -282,7 +282,7 @@ describe("dev", () => {
   }
 
   it("serves the deck with the local runtime and stops on SIGINT (AC-DEV-3)", async () => {
-    const dev = await startDev(fixture("basic.html"));
+    const dev = await startPreview([fixture("basic.html")]);
     const browser = await chromium.launch({ channel: "chrome" }).catch(() => chromium.launch());
     try {
       const page = await browser.newPage();
@@ -302,8 +302,22 @@ describe("dev", () => {
     const copy = join(work, "dev-version.html");
     await copyFile(fixture("basic.html"), copy);
     await writeFile(copy, (await readFile(copy, "utf8")).replace(/(core)@[^/]+(\/dist)/, "$1@0.0.1$2"));
-    const dev = await startDev(copy);
+    const dev = await startPreview([copy]);
     expect(dev.stderr()).toMatch(/warning: the deck loads \S+@0\.0\.1 but this CLI uses \S+@\d/);
     expect(await dev.stop()).toBe(0);
+  });
+
+  it("serves index.html in the working directory when the file is omitted", async () => {
+    const dir = join(work, "preview-default");
+    await mkdir(dir, { recursive: true });
+    await copyFile(fixture("basic.html"), join(dir, "index.html"));
+    const dev = await startPreview([], dir);
+    try {
+      const response = await fetch(dev.url);
+      expect(response.status).toBe(200);
+      expect(await response.text()).toContain("<bang-root");
+    } finally {
+      expect(await dev.stop()).toBe(0);
+    }
   });
 });

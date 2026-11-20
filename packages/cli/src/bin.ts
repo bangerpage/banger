@@ -1,8 +1,8 @@
 import { readFileSync, realpathSync } from "node:fs";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import { BrowserNotFoundError, installHint } from "./browser.js";
-import { runDev } from "./commands/dev.js";
 import { runExport } from "./commands/export.js";
+import { runPreview } from "./commands/preview.js";
 import { runSnap } from "./commands/snap.js";
 import { runTheme } from "./commands/theme.js";
 import { CliError } from "./errors.js";
@@ -10,15 +10,17 @@ import { CliError } from "./errors.js";
 export const USAGE = `usage: banger <command> [options]
 
 commands:
-  dev <file> [--port N]            preview with live reload
-  snap <file> [--stop N] [--step M|last] [--out path] [--out-dir dir] [--scale 1|2]
+  preview [file] [--port N]        preview with live reload
+  snap [file] [--stop N] [--step M|last] [--out path] [--out-dir dir] [--scale 1|2]
                                    render states as 1920x1080 PNGs
-  export <file> --pdf [--out path] [--steps last|all]
+  export [file] --pdf [--out path] [--steps last|all]
                                    write a PDF, one page per stop
   theme init [file] [--from <preset>] [--force]
                                    write a theme.json from a bundled preset
   theme apply <theme.json> <deck.html>
                                    embed the theme in a deck, idempotently
+
+  [file] defaults to index.html in the working directory.
 
 options:
   --help       show this help
@@ -42,8 +44,8 @@ async function dispatch(argv: string[]): Promise<number> {
     return 0;
   }
   switch (command) {
-    case "dev":
-      return runDev(rest);
+    case "preview":
+      return runPreview(rest);
     case "snap":
       return runSnap(rest);
     case "export":

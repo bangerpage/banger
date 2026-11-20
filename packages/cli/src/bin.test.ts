@@ -22,9 +22,9 @@ describe("bin", () => {
   it.each([
     ["no command", []],
     ["unknown command", ["frobnicate"]],
-    ["snap without a file", ["snap"]],
-    ["dev without a file", ["dev"]],
-    ["export without a file", ["export"]],
+    ["snap without a file or an index.html", ["snap"]],
+    ["preview without a file or an index.html", ["preview"]],
+    ["export without a file or an index.html", ["export", "--pdf"]],
     ["snap on a missing file", ["snap", "/nonexistent/deck.html"]],
     ["export on a missing file", ["export", "/nonexistent/deck.html", "--pdf"]],
     ["export without a format", ["export", "deck.html"]],

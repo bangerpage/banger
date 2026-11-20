@@ -1,9 +1,9 @@
-import { parseArgsStrict } from "../args.js";
+import { deckFile, parseArgsStrict } from "../args.js";
 import { CliError } from "../errors.js";
 import { exportPdf } from "../export/pdf.js";
 import type { StepSelection } from "../capture.js";
 
-const USAGE = "usage: banger export <file> --pdf [--out path] [--steps last|all]";
+const USAGE = "usage: banger export [file] --pdf [--out path] [--steps last|all]";
 
 export async function runExport(argv: string[]): Promise<number> {
   if (argv.includes("--help")) {
@@ -15,8 +15,7 @@ export async function runExport(argv: string[]): Promise<number> {
     out: { type: "string" },
     steps: { type: "string" },
   });
-  const [file] = positionals;
-  if (!file || positionals.length > 1) throw new CliError(2, USAGE);
+  const file = deckFile(positionals, USAGE);
   if (!values.pdf) throw new CliError(2, `choose exactly one export format\n${USAGE}`);
   if (values.steps !== undefined && values.steps !== "last" && values.steps !== "all") {
     throw new CliError(2, `invalid --steps: ${values.steps} (expected last or all)`);

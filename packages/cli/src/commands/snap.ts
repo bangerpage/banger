@@ -1,10 +1,10 @@
 import { mkdir, writeFile } from "node:fs/promises";
 import { dirname, join } from "node:path";
-import { parseArgsStrict } from "../args.js";
+import { deckFile, parseArgsStrict } from "../args.js";
 import { captureState, clearStopFiles, expandStates, formatReadyFailure, stopFileName, withCapture } from "../capture.js";
 import { CliError } from "../errors.js";
 
-const USAGE = "usage: banger snap <file> [--stop N] [--step M|last] [--out path] [--out-dir dir] [--scale 1|2]";
+const USAGE = "usage: banger snap [file] [--stop N] [--step M|last] [--out path] [--out-dir dir] [--scale 1|2]";
 
 function parseCount(name: string, value: string): number {
   if (!/^\d+$/.test(value)) throw new CliError(2, `invalid --${name}: ${value}`);
@@ -23,8 +23,7 @@ export async function runSnap(argv: string[]): Promise<number> {
     "out-dir": { type: "string" },
     scale: { type: "string" },
   });
-  const [file] = positionals;
-  if (!file || positionals.length > 1) throw new CliError(2, USAGE);
+  const file = deckFile(positionals, USAGE);
   if (values.scale !== undefined && values.scale !== "1" && values.scale !== "2") {
     throw new CliError(2, `invalid --scale: ${values.scale} (expected 1 or 2)`);
   }

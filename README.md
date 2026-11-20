@@ -47,9 +47,9 @@ To reuse one look across decks, keep a `theme.json` and run `banger theme init` 
 
 ## CLI
 
-- `banger dev <file>`: preview with live reload. The runtime URL in the HTML is served from the bundled core, so it works offline and before publishing.
-- `banger snap <file> [--stop N] [--step M|last] [--out path] [--out-dir dir] [--scale 1|2]`: render states as 1920x1080 PNG files. Without `--stop` every stop is written.
-- `banger export <file> --pdf [--out path] [--steps last|all]`: one PDF page per stop, with vector text.
+- `banger preview [file]`: preview with live reload. Without `[file]`, `preview`, `snap` and `export` use `index.html` in the working directory. The runtime URL in the HTML is served from the bundled core, so it works offline and before publishing.
+- `banger snap [file] [--stop N] [--step M|last] [--out path] [--out-dir dir] [--scale 1|2]`: render states as 1920x1080 PNG files. Without `--stop` every stop is written.
+- `banger export [file] --pdf [--out path] [--steps last|all]`: one PDF page per stop, with vector text.
 - `banger theme init [file] [--from <preset>] [--force]`: write a `theme.json` from a bundled preset (`signal`, `signal-dark`, `sunshine`, `midnight`).
 - `banger theme apply <theme.json> <deck.html>`: embed the theme in a deck and set `theme="custom"`. Running it again gives the same result.
 
