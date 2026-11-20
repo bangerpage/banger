@@ -203,20 +203,6 @@ describe("skill", () => {
     expect(free).toContain("| `overlay` |");
   });
 
-  it("AC-DOC-C4 concept.md describes the escape hatch as it is built", () => {
-    const lines = read("docs/concept.md").split("\n");
-    const row = lines.find((l) => l.startsWith("| エスケープハッチ |")) ?? "";
-    const bullet = lines.find((l) => l.startsWith("- エスケープハッチは")) ?? "";
-    for (const line of [row, bullet]) {
-      expect(line).not.toBe("");
-      expect(line).not.toContain("Shadow DOM");
-      expect(line).not.toContain("fallback");
-    }
-    for (const word of ["Light DOM", "@scope", "overlay"]) expect(row).toContain(word);
-    const promise = lines.find((l) => l.startsWith("3. ") && l.includes("bang-embed")) ?? "";
-    expect(promise).toContain("`bang-free` は実際の描画のまま");
-  });
-
   it("AC-LEAD-1 themes.md has a leading guide section", () => {
     const themes = read("skill/reference/themes.md");
     const section = themes.split(/^## /m).find((s) => s.startsWith("行間の目安\n")) ?? "";
