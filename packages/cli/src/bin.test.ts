@@ -5,6 +5,7 @@ let stdout = "";
 let stderr = "";
 
 beforeEach(() => {
+  vi.stubEnv("BANGER_NO_UPDATE_CHECK", "1");
   stdout = "";
   stderr = "";
   vi.spyOn(process.stdout, "write").mockImplementation((chunk) => {
@@ -16,7 +17,10 @@ beforeEach(() => {
     return true;
   });
 });
-afterEach(() => vi.restoreAllMocks());
+afterEach(() => {
+  vi.restoreAllMocks();
+  vi.unstubAllEnvs();
+});
 
 describe("bin", () => {
   it.each([

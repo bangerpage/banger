@@ -6,6 +6,7 @@ import { runPreview } from "./commands/preview.js";
 import { runSnap } from "./commands/snap.js";
 import { runTheme } from "./commands/theme.js";
 import { CliError } from "./errors.js";
+import { checkForUpdate } from "./update-check.js";
 
 export const USAGE = `usage: banger <command> [options]
 
@@ -22,10 +23,15 @@ commands:
 
   [file] defaults to index.html in the working directory.
 
+  In a terminal, banger checks npm for a newer release once a day and prints a notice.
+  Set BANGER_NO_UPDATE_CHECK=1 to turn it off; it is also off when CI is set.
+
 options:
   --help       show this help
   --version    show the version
 `;
+
+const COMMANDS = new Set(["preview", "snap", "export", "theme"]);
 
 function version(): string {
   const manifest = fileURLToPath(new URL("../package.json", import.meta.url));
@@ -43,6 +49,7 @@ async function dispatch(argv: string[]): Promise<number> {
     process.stdout.write(`${version()}\n`);
     return 0;
   }
+  if (COMMANDS.has(command)) void checkForUpdate({ current: version() });
   switch (command) {
     case "preview":
       return runPreview(rest);

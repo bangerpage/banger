@@ -59,6 +59,8 @@ To reuse one look across decks, keep a `theme.json` and run `banger theme init` 
 - `banger theme init [file] [--from <preset>] [--force]`: write a `theme.json` from a bundled preset (`signal`, `signal-dark`, `sunshine`, `midnight`).
 - `banger theme apply <theme.json> <deck.html>`: embed the theme in a deck and set `theme="custom"`. Running it again gives the same result.
 
+In a terminal, the CLI checks npm for a newer `@bangerpage/cli` at most once a day and prints a notice on the next run; the check never delays a command. Set `BANGER_NO_UPDATE_CHECK=1` to turn it off (it is also off when `CI` is set or stderr is not a terminal).
+
 The CLI drives Chrome through `playwright-core`. If no browser is found it prints the command to install one and exits with code 2.
 
 ### As a library
