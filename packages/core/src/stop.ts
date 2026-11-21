@@ -8,7 +8,7 @@ import { parseRegion, type StopModel } from "./state.js";
 const MAX_STEPS = 999;
 
 /**
- * A point where the camera stops: a whole frame, a region of a frame, or the overview.
+ * A point where the camera stops: a whole frame, an element or a region of a frame, or the overview.
  *
  * ```html
  * <bang-root>
@@ -31,6 +31,12 @@ export class BangStop extends BangElement {
 
   /** The `id` of the `bang-frame` to show. */
   @property() frame?: string;
+
+  /**
+   * The `id` of an element inside the frame (a card, a column) to fill the screen with. The camera follows the
+   * element's box, so it stays right when the layout changes. Wins over `region`.
+   */
+  @property({ attribute: "focus" }) focusId?: string;
 
   /** Part of the frame to fill the screen with, as "x,y,w,h" fractions from 0 to 1. */
   @property() region?: string;
@@ -64,6 +70,8 @@ export function readStop(el: Element): { stop: StopModel; notes: string; auto: b
     }
     return { stop: { kind: "overview", steps }, notes, auto: false };
   }
+  const focus = el.getAttribute("focus")?.trim();
+  if (focus) return { stop: { kind: "focus", frame, focus, steps }, notes, auto };
   const rawRegion = el.getAttribute("region");
   if (rawRegion !== null) {
     const region = parseRegion(rawRegion);

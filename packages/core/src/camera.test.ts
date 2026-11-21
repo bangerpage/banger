@@ -6,6 +6,7 @@ import {
   frameRect,
   layoutFrames,
   poseFor,
+  pullBackFor,
   regionRect,
   retarget,
   sample,
@@ -74,6 +75,34 @@ describe("camera", () => {
     expect(tx).toBe(960 - 960);
     expect(ty).toBe(540 - 540);
     expect(scale).toBe(2);
+  });
+
+  it("pullBackFor leaves moves between neighbouring frames as a plain pan", () => {
+    const a = poseFor(frame, stage);
+    const b = poseFor(frameRect([1, 0], [1, 1], 240), stage);
+    expect(pullBackFor(a, b, stage)).toBe(0);
+    const tween = startTween(a, b, 0, stage);
+    expect(sample(tween, tween.duration / 2).zoom).toBeCloseTo(1);
+  });
+
+  it("a far move zooms out at its midpoint far enough to show both ends", () => {
+    const a = poseFor(frame, stage);
+    const b = poseFor(frameRect([4, 0], [1, 1], 240), stage);
+    expect(pullBackFor(a, b, stage)).toBeLessThan(0);
+    const tween = startTween(a, b, 0, stage);
+    const mid = sample(tween, tween.duration / 2);
+    const visible = stage.w / mid.zoom;
+    expect(visible).toBeGreaterThanOrEqual(b.cx - a.cx + 1920 - 1e-6);
+    expect(sample(tween, tween.duration)).toEqual(b);
+    expect(tween.duration).toBeGreaterThan(800);
+  });
+
+  it("a far move into a close-up does not pull back past what both ends need", () => {
+    const a = poseFor(frame, stage);
+    const close = poseFor(regionRect(frameRect([4, 2], [1, 1], 240), { x: 0.5, y: 0.5, w: 0.25, h: 0.25 }), stage);
+    const tween = startTween(a, close, 0, stage);
+    const mid = sample(tween, tween.duration / 2);
+    expect(stage.w / mid.zoom).toBeGreaterThanOrEqual(Math.abs(close.cx - a.cx) + 1920 - 1e-6);
   });
 
   it("retarget continues from the sampled pose", () => {

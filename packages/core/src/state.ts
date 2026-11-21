@@ -12,9 +12,11 @@ export interface Region {
 }
 
 export interface StopModel {
-  kind: "frame" | "region" | "overview";
+  kind: "frame" | "region" | "focus" | "overview";
   frame?: string;
   region?: Region;
+  /** The `id` of the element inside the frame that the camera fits, for `focus` stops. */
+  focus?: string;
   steps: number;
 }
 

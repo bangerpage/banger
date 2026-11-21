@@ -24,12 +24,17 @@ export interface CameraTween {
   to: CameraPose;
   start: number;
   duration: number;
+  /** How far (in log zoom) the move pulls back at its midpoint, beyond the straight zoom change. 0 or less. */
+  pullBack: number;
 }
 
 export const FRAME_WIDTH = 1920;
 export const FRAME_HEIGHT = 1080;
 const MIN_DURATION = 400;
 const MAX_DURATION = 800;
+const MAX_PULL_BACK_DURATION = 1300;
+/** A move pulls back once its distance is this many times the wider of the two views. Neighbouring grid frames stay below it. */
+const PULL_BACK_DISTANCE = 1.5;
 
 const clamp01 = (t: number) => Math.min(Math.max(t, 0), 1);
 
@@ -85,6 +90,17 @@ export function targetFor(stop: StopModel, frames: Record<string, Rect>, stage: 
   return poseFor(stop.kind === "region" && stop.region ? regionRect(frame, stop.region) : frame, stage);
 }
 
+/** Below this share of the screen a frame counts as far; above `NEAR_TO`, as near. Between them it fades. */
+const NEAR_FROM = 0.5;
+const NEAR_TO = 0.8;
+
+/** 0 when the frame fills at most half the screen (in its wider direction), 1 from 80%, smooth in between. */
+export function nearness(rect: Rect, pose: CameraPose, stage: Size): number {
+  const share = Math.max((rect.w * pose.zoom) / stage.w, (rect.h * pose.zoom) / stage.h);
+  const t = clamp01((share - NEAR_FROM) / (NEAR_TO - NEAR_FROM));
+  return t * t * (3 - 2 * t);
+}
+
 export function stageSize(viewport: Size): Size {
   const s0 = Math.min(viewport.w / FRAME_WIDTH, viewport.h / FRAME_HEIGHT);
   return { w: FRAME_WIDTH * s0, h: FRAME_HEIGHT * s0 };
@@ -103,8 +119,27 @@ export function ease(t: number): number {
   return x < 0.5 ? 4 * x * x * x : 1 - Math.pow(-2 * x + 2, 3) / 2;
 }
 
+/**
+ * For a far move, how much to zoom out beyond the straight change so the midpoint shows both ends. A move whose distance
+ * is under `PULL_BACK_DISTANCE` views gets 0, so moves between neighbours stay a plain pan.
+ */
+export function pullBackFor(from: CameraPose, to: CameraPose, stage: Size): number {
+  const viewW = Math.max(stage.w / from.zoom, stage.w / to.zoom);
+  const viewH = Math.max(stage.h / from.zoom, stage.h / to.zoom);
+  const dx = Math.abs(to.cx - from.cx);
+  const dy = Math.abs(to.cy - from.cy);
+  if (Math.hypot(dx / viewW, dy / viewH) < PULL_BACK_DISTANCE) return 0;
+  const both = Math.min(stage.w / (dx + viewW), stage.h / (dy + viewH));
+  const straight = (Math.log(from.zoom) + Math.log(to.zoom)) / 2;
+  return Math.min(0, Math.log(both) - straight);
+}
+
 export function startTween(from: CameraPose, to: CameraPose, now: number, stage: Size): CameraTween {
-  return { from, to, start: now, duration: durationFor(from, to, stage) };
+  const pullBack = pullBackFor(from, to, stage);
+  const duration = pullBack < 0
+    ? Math.min(durationFor(from, to, stage) + 250 * -pullBack, MAX_PULL_BACK_DURATION)
+    : durationFor(from, to, stage);
+  return { from, to, start: now, duration, pullBack };
 }
 
 export function sample(tween: CameraTween, now: number): CameraPose {
@@ -116,7 +151,7 @@ export function sample(tween: CameraTween, now: number): CameraPose {
   return {
     cx: from.cx + (to.cx - from.cx) * e,
     cy: from.cy + (to.cy - from.cy) * e,
-    zoom: from.zoom * Math.pow(to.zoom / from.zoom, e),
+    zoom: from.zoom * Math.pow(to.zoom / from.zoom, e) * Math.exp(tween.pullBack * Math.sin(Math.PI * e)),
   };
 }
 

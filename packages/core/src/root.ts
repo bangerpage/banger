@@ -1,5 +1,5 @@
 import { version } from "./version.js";
-import { css, html, unsafeCSS, type PropertyValues } from "lit";
+import { css, html, nothing, svg, unsafeCSS, type PropertyValues } from "lit";
 import { property, state } from "lit/decorators.js";
 import { pick, warnOnce } from "./attrs.js";
 import { frameOverflowWarnings, overlapWarnings, unknownTagWarnings } from "./deck-check.js";
@@ -10,6 +10,7 @@ import {
   FRAME_WIDTH,
   layoutFrames,
   poseFor,
+  nearness,
   regionRect,
   retarget,
   sample,
@@ -46,7 +47,7 @@ export type RootMode = "live" | "export" | "presenter";
 
 export interface StopInfo {
   index: number;
-  kind: "frame" | "region" | "overview";
+  kind: "frame" | "region" | "focus" | "overview";
   frame?: string;
   steps: number;
   notes: string;
@@ -78,6 +79,13 @@ interface FrameEntry {
 }
 
 const FRAME_GAP = 240;
+const MAP_GAP = 720;
+/** How far the map ground reaches past the outermost frames. */
+const MAP_MARGIN = 960;
+/** Ground shown around the frames in the overview of a map, so the outermost places do not touch the screen edge. */
+const MAP_OVERVIEW_MARGIN = 320;
+/** Space kept around a focused element, as a fraction of its larger side measured in 16:9. */
+const FOCUS_MARGIN = 0.08;
 const STATUS_MS = 4000;
 const FULL_STAGE: Size = { w: FRAME_WIDTH, h: FRAME_HEIGHT };
 
@@ -156,6 +164,39 @@ export class BangRoot extends BangElement {
         height: 0;
         transform-origin: 0 0;
       }
+      .ground {
+        position: absolute;
+        background-color: color-mix(in srgb, var(--bang-color-paper) 70%, var(--bang-color-line));
+        background-image:
+          radial-gradient(ellipse 34% 30% at 22% 30%, transparent 0 60%, color-mix(in srgb, var(--bang-color-line) 55%, transparent) 60% 60.6%, transparent 60.6% 75%, color-mix(in srgb, var(--bang-color-line) 55%, transparent) 75% 75.6%, transparent 75.6% 90%, color-mix(in srgb, var(--bang-color-line) 55%, transparent) 90% 90.6%, transparent 90.6%),
+          radial-gradient(ellipse 30% 36% at 78% 72%, transparent 0 60%, color-mix(in srgb, var(--bang-color-line) 55%, transparent) 60% 60.6%, transparent 60.6% 75%, color-mix(in srgb, var(--bang-color-line) 55%, transparent) 75% 75.6%, transparent 75.6% 90%, color-mix(in srgb, var(--bang-color-line) 55%, transparent) 90% 90.6%, transparent 90.6%),
+          radial-gradient(ellipse 22% 20% at 70% 18%, transparent 0 55%, color-mix(in srgb, var(--bang-color-line) 55%, transparent) 55% 56%, transparent 56% 78%, color-mix(in srgb, var(--bang-color-line) 55%, transparent) 78% 79%, transparent 79%),
+          linear-gradient(color-mix(in srgb, var(--bang-color-ink) 6%, transparent) 4px, transparent 4px),
+          linear-gradient(90deg, color-mix(in srgb, var(--bang-color-ink) 6%, transparent) 4px, transparent 4px);
+        background-size: auto, auto, auto, 480px 480px, 480px 480px;
+      }
+      .roads {
+        position: absolute;
+        inset: 0;
+        width: 100%;
+        height: 100%;
+        overflow: visible;
+      }
+      .road {
+        stroke: color-mix(in srgb, var(--bang-color-ink) 22%, var(--bang-color-paper));
+        stroke-width: 96;
+        stroke-linecap: round;
+      }
+      .road-center {
+        stroke: var(--bang-color-paper);
+        stroke-width: 10;
+        stroke-dasharray: 60 50;
+        stroke-linecap: round;
+      }
+      :host([format="map"]) .viewport,
+      :host([format="map"]) {
+        background: color-mix(in srgb, var(--bang-color-paper) 70%, var(--bang-color-line));
+      }
       .status {
         position: absolute;
         left: 50%;
@@ -209,6 +250,15 @@ export class BangRoot extends BangElement {
 
   /** Color theme. "custom" reads the colors and fonts from a bang-theme child. */
   @property() theme: "light" | "dark" | "custom" = "light";
+
+  /**
+   * How the canvas is presented. `slides` (the default) is frames side by side. `map` draws the canvas as a map: a
+   * ground with contour lines under the frames, roads for each frame's `link`, wider gaps, and fog over every frame the
+   * talk has not reached yet. Export pages show what is around the stop instead of masking it.
+   */
+  @property() format: "slides" | "map" = "slides";
+
+  @state() private ground: { rect: Rect; roads: { x1: number; y1: number; x2: number; y2: number }[] } | null = null;
 
   @state() private stage: Size = FULL_STAGE;
   @state() private statusText = "";
@@ -311,6 +361,11 @@ export class BangRoot extends BangElement {
 
   protected willUpdate(changed: PropertyValues): void {
     if (changed.has("theme")) this.applyTheme();
+    if (changed.has("format") && this.initialized) {
+      this.buildPath();
+      this.current = clamp(this.current, this.path);
+      void this.commit(this.current, { animate: false, source: "hash", overview: this.inOverview });
+    }
   }
 
   protected firstUpdated(_changed: PropertyValues): void {
@@ -327,6 +382,7 @@ export class BangRoot extends BangElement {
 
   render() {
     pick(this, "theme", ["light", "dark", "custom"] as const, "light");
+    pick(this, "format", ["slides", "map"] as const, "slides");
     if (this.mode === "presenter") {
       const info = this.path.stops[this.current.stop];
       return html`${renderPresenter({
@@ -344,11 +400,24 @@ export class BangRoot extends BangElement {
     return html`<div class="viewport">
         <div class="stage" style="width:${this.stage.w}px;height:${this.stage.h}px">
           <div class="clip">
-            <div class="canvas"><slot @slotchange=${this.onSlotChange}></slot></div>
+            <div class="canvas">${this.renderGround()}<slot @slotchange=${this.onSlotChange}></slot></div>
           </div>
         </div>
       </div>
       <div class="status" role="status">${this.statusText}</div>`;
+  }
+
+  private renderGround() {
+    const ground = this.ground;
+    if (!ground) return nothing;
+    const { rect } = ground;
+    return html`<div class="ground" style="left:${rect.x}px;top:${rect.y}px;width:${rect.w}px;height:${rect.h}px">
+      <svg class="roads" viewBox="${rect.x} ${rect.y} ${rect.w} ${rect.h}" aria-hidden="true">
+        ${ground.roads.map(
+          (r) => svg`<line class="road" x1=${r.x1} y1=${r.y1} x2=${r.x2} y2=${r.y2}></line><line class="road-center" x1=${r.x1} y1=${r.y1} x2=${r.x2} y2=${r.y2}></line>`,
+        )}
+      </svg>
+    </div>`;
   }
 
   private onSlotChange = () => {
@@ -478,15 +547,20 @@ export class BangRoot extends BangElement {
       if (id) seen.add(id);
       entries.push({ id: id || `\0${i}`, at: parseAt(el.getAttribute("at")), span: parseSpan(el.getAttribute("span")), el });
     });
-    const rects = layoutFrames(entries, FRAME_GAP);
+    const isMap = this.getAttribute("format") === "map";
+    const rects = layoutFrames(entries, isMap ? MAP_GAP : FRAME_GAP);
     this.frameMap = rects;
     this.frames = entries.map((e) => ({ el: e.el, id: e.id, rect: rects[e.id] }));
     for (const f of this.frames) {
+      if (isMap) f.el.setAttribute("data-bang-format", "map");
+      else f.el.removeAttribute("data-bang-format");
       f.el.style.setProperty("--bang-frame-x", `${f.rect.x}px`);
       f.el.style.setProperty("--bang-frame-y", `${f.rect.y}px`);
       f.el.style.setProperty("--bang-frame-w", `${f.rect.w}px`);
       f.el.style.setProperty("--bang-frame-h", `${f.rect.h}px`);
     }
+
+    this.ground = isMap ? groundFor(this.frames) : null;
 
     const stops: StopModel[] = [];
     const notes: string[] = [];
@@ -550,12 +624,51 @@ export class BangRoot extends BangElement {
 
   private rectFor(state: BangState, overview: boolean): Rect | null {
     const all = this.allRects();
-    const bounds = all.length > 0 ? boundsOf(all) : { x: 0, y: 0, w: FRAME_WIDTH, h: FRAME_HEIGHT };
+    let bounds = all.length > 0 ? boundsOf(all) : { x: 0, y: 0, w: FRAME_WIDTH, h: FRAME_HEIGHT };
+    if (this.ground && all.length > 0) {
+      const m = MAP_OVERVIEW_MARGIN;
+      bounds = { x: bounds.x - m, y: bounds.y - m, w: bounds.w + 2 * m, h: bounds.h + 2 * m };
+    }
     const stop = this.path.stops[state.stop];
     if (overview || !stop || stop.kind === "overview" || stop.frame === undefined) return bounds;
     const frame = this.frameMap[stop.frame];
     if (!frame) return null;
+    if (stop.kind === "focus" && stop.focus) return this.focusRect(stop.frame, stop.focus) ?? frame;
     return stop.kind === "region" && stop.region ? regionRect(frame, stop.region) : frame;
+  }
+
+  /** The canvas rect of an element inside a frame, with a margin, or null when it is missing or not laid out. */
+  private focusRect(frameId: string, id: string): Rect | null {
+    const entry = this.frames.find((f) => f.id === frameId);
+    if (!entry) return null;
+    const target = entry.el.querySelector<HTMLElement>(`#${CSS.escape(id)}`);
+    if (!target) {
+      warnOnce(`focus|${frameId}|${id}`, `[banger] <bang-stop focus="${id}"> does not match an element inside frame "${frameId}"; showing the whole frame`);
+      return null;
+    }
+    const outer = entry.el.getBoundingClientRect();
+    const inner = target.getBoundingClientRect();
+    if (outer.width === 0 || inner.width === 0 || inner.height === 0) return null;
+    const scale = outer.width / entry.rect.w;
+    const box = {
+      x: entry.rect.x + (inner.left - outer.left) / scale,
+      y: entry.rect.y + (inner.top - outer.top) / scale,
+      w: inner.width / scale,
+      h: inner.height / scale,
+    };
+    const pad = Math.max(box.w, box.h * (FRAME_WIDTH / FRAME_HEIGHT)) * FOCUS_MARGIN;
+    return { x: box.x - pad, y: box.y - pad, w: box.w + 2 * pad, h: box.h + 2 * pad };
+  }
+
+  /** Re-aims a camera at rest, for when the layout under a focus stop settled after the camera moved (fonts, images). */
+  private refreshPose(): void {
+    if (!this.initialized || this.tween) return;
+    const target = this.targetPose(this.current, this.inOverview);
+    const p = this.pose;
+    if (Math.abs(target.cx - p.cx) < 0.5 && Math.abs(target.cy - p.cy) < 0.5 && Math.abs(target.zoom / p.zoom - 1) < 1e-4) return;
+    this.pose = target;
+    this.applyPose(target);
+    this.applyClip();
   }
 
   private targetPose(state: BangState, overview: boolean): CameraPose {
@@ -570,13 +683,24 @@ export class BangRoot extends BangElement {
   private applyPose(pose: CameraPose): void {
     const canvas = this.canvasEl();
     if (canvas) canvas.style.transform = toTransform(pose, this.stageNow, this.mode !== "export").css;
+    this.applyNearness(pose);
+  }
+
+  /** Sets --bang-near on every frame from how much of the screen it fills, for `show="near|far"` and frame labels. */
+  private applyNearness(pose: CameraPose): void {
+    const stage = this.stageNow;
+    for (const f of this.frames) {
+      const near = nearness(f.rect, pose, stage);
+      const value = near.toFixed(3);
+      if (f.el.style.getPropertyValue("--bang-near") !== value) f.el.style.setProperty("--bang-near", value);
+    }
   }
 
   private applyClip(): void {
     const clip = this.renderRoot.querySelector<HTMLElement>(".clip");
     if (!clip) return;
     const rect = this.rectFor(this.current, this.inOverview);
-    if (this.mode !== "export" || !rect) {
+    if (this.mode !== "export" || !rect || this.getAttribute("format") === "map") {
       clip.style.clipPath = "none";
       return;
     }
@@ -642,7 +766,10 @@ export class BangRoot extends BangElement {
   }
 
   private applySteps(): void {
+    const fog = this.getAttribute("format") === "map";
     for (const f of this.frames) {
+      const first = this.path.stops.findIndex((s) => s.kind !== "overview" && s.frame === f.id);
+      f.el.toggleAttribute("data-bang-fog", fog && first > this.current.stop);
       const step = frameStep(f.id, this.current, this.path);
       f.el.currentStep = step;
       for (const el of f.el.querySelectorAll("[data-step]")) {
@@ -755,6 +882,7 @@ export class BangRoot extends BangElement {
       ...opts,
       extraWarnings: [...this.themeWarnings, ...this.deckWarnings(), ...unknownTagWarnings(this), ...overlapWarnings(this.frames)],
     });
+    this.refreshPose();
     const warnings = new Set([...report.warnings, ...frameOverflowWarnings(this.frames)]);
     return { ...report, warnings: [...warnings] };
   }
@@ -814,6 +942,34 @@ export class BangRoot extends BangElement {
     event.preventDefault();
     void action();
   }
+}
+
+function groundFor(frames: FrameEntry[]): { rect: Rect; roads: { x1: number; y1: number; x2: number; y2: number }[] } | null {
+  if (frames.length === 0) return null;
+  const b = boundsOf(frames.map((f) => f.rect));
+  const rect = { x: b.x - MAP_MARGIN, y: b.y - MAP_MARGIN, w: b.w + 2 * MAP_MARGIN, h: b.h + 2 * MAP_MARGIN };
+  const byId = new Map(frames.map((f) => [f.id, f]));
+  const seen = new Set<string>();
+  const roads: { x1: number; y1: number; x2: number; y2: number }[] = [];
+  for (const f of frames) {
+    for (const other of (f.el.getAttribute("link") ?? "").split(/\s+/).filter(Boolean)) {
+      const to = byId.get(other);
+      if (!to) {
+        warnOnce(`link|${f.id}|${other}`, `[banger] bang-frame "${f.id}" links to "${other}", which is not a bang-frame id; no road is drawn`);
+        continue;
+      }
+      const key = [f.id, other].sort().join("\0");
+      if (seen.has(key) || to === f) continue;
+      seen.add(key);
+      roads.push({
+        x1: f.rect.x + f.rect.w / 2,
+        y1: f.rect.y + f.rect.h / 2,
+        x2: to.rect.x + to.rect.w / 2,
+        y2: to.rect.y + to.rect.h / 2,
+      });
+    }
+  }
+  return { rect, roads };
 }
 
 function stepsNeeded(frame: Element): number {

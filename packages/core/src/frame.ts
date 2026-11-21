@@ -63,6 +63,48 @@ ${unsafeCSS(
       line-height: var(--bang-leading-s);
       color: var(--bang-tone-default);
     }
+    .label {
+      position: absolute;
+      inset: 0;
+      z-index: 1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: var(--bang-space-24);
+      box-sizing: border-box;
+      text-align: center;
+      text-wrap: balance;
+      word-break: auto-phrase;
+      font-family: var(--bang-font-display);
+      font-weight: var(--bang-heading-weight, 800);
+      letter-spacing: var(--bang-heading-tracking, -0.03em);
+      font-size: calc(var(--bang-size-2xl) * 1.5);
+      line-height: var(--bang-leading-xl);
+      color: var(--bang-tone-default, var(--bang-color-ink));
+      opacity: calc(1 - var(--bang-near, 1));
+      pointer-events: none;
+    }
+    :host([label]) ::slotted(*) {
+      opacity: calc(0.12 + 0.88 * var(--bang-near, 1));
+    }
+    .fog {
+      display: none;
+    }
+    :host([data-bang-fog]) .fog {
+      position: absolute;
+      inset: 0;
+      z-index: 2;
+      display: block;
+      background:
+        radial-gradient(ellipse at 30% 35%, color-mix(in srgb, var(--bang-color-paper) 70%, white) 0 20%, transparent 55%),
+        radial-gradient(ellipse at 75% 70%, color-mix(in srgb, var(--bang-color-paper) 70%, white) 0 25%, transparent 60%),
+        color-mix(in srgb, var(--bang-color-paper) 55%, var(--bang-color-line));
+      transition: opacity 400ms;
+    }
+    :host([data-bang-format="map"]) .frame {
+      border-radius: var(--bang-radius-l, 48px);
+      outline: 8px solid color-mix(in srgb, var(--bang-color-ink) 14%, transparent);
+    }
     .frame {
       position: relative;
       display: flex;
@@ -107,6 +149,12 @@ ${unsafeCSS(
   @property() crumb?: string;
 
   /**
+   * A large name shown over the frame when the camera is far away (the overview, or a stop on another frame), with the
+   * content faded behind it. It fades out as the camera comes close. Use it to name a place on a map or a chapter.
+   */
+  @property() label?: string;
+
+  /**
    * Vertical position of the children. `center` centres them; `spread` puts the first child at the top and the last at
    * the bottom, with the rest between. Use it to split a cover's title from the name. With one child it sits at the top.
    */
@@ -120,7 +168,10 @@ ${unsafeCSS(
     pick(this, "ground", ["default", "cover"] as const, "default");
     pick(this, "valign", ["center", "spread"] as const, "center");
     const crumb = this.crumb?.trim();
-    return html`<div class="frame">${crumb ? html`<div class="crumb">${crumb}</div>` : ""}<slot></slot></div>`;
+    const label = this.label?.trim();
+    return html`<div class="frame">${crumb ? html`<div class="crumb">${crumb}</div>` : ""}<slot></slot>${label
+      ? html`<div class="label" aria-hidden="true">${label}</div>`
+      : ""}<div class="fog" aria-hidden="true"></div></div>`;
   }
 }
 
