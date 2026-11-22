@@ -13,6 +13,7 @@ import {
   nearness,
   regionRect,
   retarget,
+  viewInside,
   sample,
   stageSize,
   toTransform,
@@ -633,7 +634,10 @@ export class BangRoot extends BangElement {
     if (overview || !stop || stop.kind === "overview" || stop.frame === undefined) return bounds;
     const frame = this.frameMap[stop.frame];
     if (!frame) return null;
-    if (stop.kind === "focus" && stop.focus) return this.focusRect(stop.frame, stop.focus) ?? frame;
+    if (stop.kind === "focus" && stop.focus) {
+      const focus = this.focusRect(stop.frame, stop.focus);
+      return focus ? viewInside(focus, frame, this.stageNow) : frame;
+    }
     return stop.kind === "region" && stop.region ? regionRect(frame, stop.region) : frame;
   }
 
@@ -779,6 +783,26 @@ export class BangRoot extends BangElement {
       for (const el of f.el.querySelectorAll("[step]")) {
         if ("frameStep" in el) (el as StepAware).frameStep = step;
       }
+    }
+    this.applySpotlight();
+  }
+
+  /** On a focus stop, fades every frame but the stop's and, inside it, everything off the path from the frame to the focused element. */
+  private applySpotlight(): void {
+    for (const el of this.querySelectorAll("[data-bang-dim]")) el.removeAttribute("data-bang-dim");
+    const stop = this.path.stops[this.current.stop];
+    if (this.inOverview || !stop || stop.kind !== "focus" || !stop.focus) return;
+    const entry = this.frames.find((f) => f.id === stop.frame);
+    const target = entry?.el.querySelector<HTMLElement>(`#${CSS.escape(stop.focus)}`);
+    if (!entry || !target) return;
+    const dim = (el: Element) => {
+      el.setAttribute("data-bang-spot", "");
+      el.setAttribute("data-bang-dim", "");
+    };
+    for (const f of this.frames) if (f !== entry) dim(f.el);
+    for (let node: Element = target; node !== entry.el && node.parentElement; node = node.parentElement) {
+      node.setAttribute("data-bang-spot", "");
+      for (const sibling of node.parentElement.children) if (sibling !== node) dim(sibling);
     }
   }
 

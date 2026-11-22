@@ -101,6 +101,17 @@ export function nearness(rect: Rect, pose: CameraPose, stage: Size): number {
   return t * t * (3 - 2 * t);
 }
 
+/** Widens `rect` to the screen's shape and slides it inside `frame`, so a close-up never shows the frame's edge; the whole frame when the close-up would not fit in it. */
+export function viewInside(rect: Rect, frame: Rect, stage: Size): Rect {
+  const aspect = stage.w / stage.h;
+  const w = Math.max(rect.w, rect.h * aspect);
+  const h = w / aspect;
+  if (w >= frame.w || h >= frame.h) return frame;
+  const x = Math.min(Math.max(rect.x + rect.w / 2 - w / 2, frame.x), frame.x + frame.w - w);
+  const y = Math.min(Math.max(rect.y + rect.h / 2 - h / 2, frame.y), frame.y + frame.h - h);
+  return { x, y, w, h };
+}
+
 export function stageSize(viewport: Size): Size {
   const s0 = Math.min(viewport.w / FRAME_WIDTH, viewport.h / FRAME_HEIGHT);
   return { w: FRAME_WIDTH * s0, h: FRAME_HEIGHT * s0 };

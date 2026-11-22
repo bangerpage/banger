@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+  viewInside,
   boundsOf,
   clipFor,
   durationFor,
@@ -133,5 +134,22 @@ describe("camera", () => {
     expect(clipFor(tall, poseFor(tall, stage), stage)).toEqual({ top: 0, right: 480, bottom: 0, left: 480 });
     const small = { x: 0, y: 0, w: 960, h: 540 };
     expect(clipFor(small, poseFor(small, stage), stage)).toEqual(zero);
+  });
+
+  describe("viewInside", () => {
+    const frame = { x: 0, y: 0, w: 1920, h: 1080 };
+    const stage = { w: 1920, h: 1080 };
+
+    it("widens a close-up to the screen's shape around its centre", () => {
+      expect(viewInside({ x: 800, y: 400, w: 400, h: 100 }, frame, stage)).toEqual({ x: 800, y: 337.5, w: 400, h: 225 });
+    });
+
+    it("slides a close-up near an edge back inside the frame", () => {
+      expect(viewInside({ x: 1800, y: 1000, w: 192, h: 108 }, frame, stage)).toEqual({ x: 1728, y: 972, w: 192, h: 108 });
+    });
+
+    it("shows the whole frame when the close-up is as wide as the frame", () => {
+      expect(viewInside({ x: 0, y: 800, w: 1920, h: 200 }, frame, stage)).toEqual(frame);
+    });
   });
 });
