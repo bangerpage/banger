@@ -96,7 +96,7 @@ A 1920x1080 area of the canvas. Content that does not fit is clipped.
 | `tone` | `default`, `accent`, `inverse` | `default` | The frame's ground: `default` uses the theme's paper, `accent` the theme's signal, `inverse` the theme's ink. Text colours follow so they stay readable. Use it for covers and section dividers. |
 | `ground` | `default`, `cover` | `default` | Which ground the frame uses. `cover` applies the custom theme's `coverGradient`; `tone` wins over it, and without a `coverGradient` the normal ground stays. |
 | `crumb` | string | - | A bold heading-size line (36px) at the top left, inside the top margin. It does not move the content and is cut to one line. |
-| `label` | string | - | A large name shown over the frame when the camera is far away (the overview, or a stop on another frame), with the content faded behind it. It fades out as the camera comes close. Use it to name a place on a map or a chapter. |
+| `label` | string | - | A large name shown over the frame when the camera is far away (the overview, or a stop on another frame), with the content faded behind it. It fades out as the camera comes close. Use it to name a place on a map or a chapter. Experimental, made for `format="map"`; it may change in any release. |
 | `valign` | `center`, `spread` | `center` | Vertical position of the children. `center` centres them; `spread` puts the first child at the top and the last at the bottom, with the rest between. Use it to split a cover's title from the name. With one child it sits at the top. |
 
 Slots:
@@ -222,7 +222,7 @@ The presentation root: lays frames out on a canvas and moves the camera between 
 | Attribute | Values | Default | Description |
 | --- | --- | --- | --- |
 | `theme` | `light`, `dark`, `custom` | `light` | Color theme. "custom" reads the colors and fonts from a bang-theme child. |
-| `format` | `slides`, `map` | `slides` | How the canvas is presented. `slides` (the default) is frames side by side. `map` draws the canvas as a map: a ground with contour lines under the frames, roads for each frame's `link`, wider gaps, and fog over every frame the talk has not reached yet. Export pages show what is around the stop instead of masking it. |
+| `format` | `slides`, `map` | `slides` | How the canvas is presented. `slides` (the default) is frames side by side. `map` draws the canvas as a map: a ground with contour lines under the frames, roads for each frame's `link`, wider gaps, and fog over every frame the talk has not reached yet. Export pages show what is around the stop instead of masking it. `map` is experimental: its look and behaviour may change in any release. Use `slides` unless the author asks for a map. |
 
 Slots:
 

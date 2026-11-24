@@ -256,6 +256,7 @@ export class BangRoot extends BangElement {
    * How the canvas is presented. `slides` (the default) is frames side by side. `map` draws the canvas as a map: a
    * ground with contour lines under the frames, roads for each frame's `link`, wider gaps, and fog over every frame the
    * talk has not reached yet. Export pages show what is around the stop instead of masking it.
+   * `map` is experimental: its look and behaviour may change in any release. Use `slides` unless the author asks for a map.
    */
   @property() format: "slides" | "map" = "slides";
 

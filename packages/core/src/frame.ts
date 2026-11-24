@@ -151,6 +151,7 @@ ${unsafeCSS(
   /**
    * A large name shown over the frame when the camera is far away (the overview, or a stop on another frame), with the
    * content faded behind it. It fades out as the camera comes close. Use it to name a place on a map or a chapter.
+   * Experimental, made for `format="map"`; it may change in any release.
    */
   @property() label?: string;
 
