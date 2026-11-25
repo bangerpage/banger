@@ -1,10 +1,10 @@
 import { mkdir, writeFile } from "node:fs/promises";
 import { dirname, join } from "node:path";
-import { deckFile, parseArgsStrict } from "../args.js";
-import { captureState, clearStopFiles, expandStates, formatReadyFailure, stopFileName, withCapture } from "../capture.js";
+import { checkLangOption, deckFile, parseArgsStrict } from "../args.js";
+import { captureState, clearStopFiles, expandStates, forEachLanguage, formatReadyFailure, stopFileName } from "../capture.js";
 import { CliError } from "../errors.js";
 
-const USAGE = "usage: banger snap [file] [--stop N] [--step M|last] [--steps last|all] [--out path] [--out-dir dir] [--scale 1|2]";
+const USAGE = "usage: banger snap [file] [--stop N] [--step M|last] [--steps last|all] [--out path] [--out-dir dir] [--scale 1|2] [--lang <language>|all]";
 
 function parseCount(name: string, value: string): number {
   if (!/^\d+$/.test(value)) throw new CliError(2, `invalid --${name}: ${value}`);
@@ -23,6 +23,7 @@ export async function runSnap(argv: string[]): Promise<number> {
     out: { type: "string" },
     "out-dir": { type: "string" },
     scale: { type: "string" },
+    lang: { type: "string" },
   });
   const file = deckFile(positionals, USAGE);
   if (values.scale !== undefined && values.scale !== "1" && values.scale !== "2") {
@@ -39,9 +40,10 @@ export async function runSnap(argv: string[]): Promise<number> {
   const stop = values.stop === undefined ? undefined : parseCount("stop", values.stop);
   const stepArg = values.step === undefined || values.step === "last" ? "last" : parseCount("step", values.step);
   const outDir = values["out-dir"] ?? "snap";
+  checkLangOption(values.lang, values.out);
 
   const failures = new Set<string>();
-  await withCapture(file, { scale }, async (session) => {
+  await forEachLanguage(file, values.lang, { scale }, async (session, run) => {
     let only;
     if (stop !== undefined) {
       const info = session.path[stop];
@@ -52,12 +54,13 @@ export async function runSnap(argv: string[]): Promise<number> {
     }
     const states = expandStates(session.path, selection, only);
     const single = only !== undefined;
-    if (!single) await clearStopFiles(outDir);
+    const dir = run.tag !== "" ? join(outDir, run.language) : outDir;
+    if (!single) await clearStopFiles(dir);
     for (const ref of states) {
       const report = await session.goto(ref);
-      for (const failure of report.failed) failures.add(formatReadyFailure(failure));
+      for (const failure of report.failed) failures.add(`${run.tag}${formatReadyFailure(failure)}`);
       const png = await captureState(session, ref);
-      const target = (single && values.out) || join(outDir, stopFileName(ref.stop, ref.step));
+      const target = (single && values.out) || join(dir, stopFileName(ref.stop, ref.step));
       await mkdir(dirname(target), { recursive: true });
       await writeFile(target, png);
     }

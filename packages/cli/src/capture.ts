@@ -19,11 +19,17 @@ export interface CaptureSession {
   page: Page;
   path: StopInfo[];
   title: string;
+  /** The deck's `languages` (empty when it has none). */
+  languages: string[];
+  /** The language this page shows ("" when the deck has no languages). */
+  language: string;
   /** Moves to `ref` and waits until everything in that state has rendered. Call sequentially. */
   goto(ref: StopRef): Promise<ReadyReport>;
 }
 
 export interface CaptureOptions {
+  /** Opens the deck with `?lang=<lang>`; omitted, the deck shows its first language. */
+  lang?: string;
   scale?: 1 | 2;
   launchers?: BrowserLaunchers;
   runtimeVersionCheck?: boolean;
@@ -70,6 +76,11 @@ export async function clearStopFiles(dir: string): Promise<string[]> {
     }
   }
   return removed;
+}
+
+/** The query part of the deck URL in export mode, optionally pinning the language. */
+export function pageQuery(lang?: string): string {
+  return lang === undefined ? "mode=export" : `mode=export&lang=${encodeURIComponent(lang)}`;
 }
 
 export const defaultOnWarning = (message: string) => {
@@ -124,7 +135,7 @@ export async function withCapture<T>(
         if (response.status() >= 400) failedRequests.push(`${response.url()} (${response.status()})`);
       });
 
-      await page.goto(server.urlFor("mode=export#stop=0&step=last"), { waitUntil: "commit" });
+      await page.goto(server.urlFor(`${pageQuery(opts.lang)}#stop=0&step=last`), { waitUntil: "commit" });
       const timeoutMs = opts.runtimeTimeoutMs ?? RUNTIME_LOAD_TIMEOUT_MS;
       const loaded = await page.evaluate(
         (ms) =>
@@ -154,10 +165,19 @@ export async function withCapture<T>(
       const path = await page.evaluate(
         () => (document.querySelector("bang-root") as unknown as { getPath(): StopInfo[] }).getPath(),
       );
+      const { languages, language } = await page.evaluate(() => {
+        const root = document.querySelector("bang-root") as unknown as {
+          getLanguages?(): string[];
+          getLanguage?(): string;
+        };
+        return { languages: root.getLanguages?.() ?? [], language: root.getLanguage?.() ?? "" };
+      });
       const session: CaptureSession = {
         page,
         path,
         title: await page.title(),
+        languages,
+        language,
         async goto(ref) {
           const report = await page.evaluate(async ({ stop, step }) => {
             const root = document.querySelector("bang-root") as unknown as {
@@ -182,4 +202,47 @@ export async function withCapture<T>(
 
 export function formatReadyFailure(failure: { tag: string; selector: string; reason: string }): string {
   return `ready failed: ${failure.tag} ${failure.selector}: ${failure.reason}`;
+}
+
+export interface LanguageRun {
+  language: string;
+  /** `"[ja] "` when several languages are being run, otherwise `""`. */
+  tag: string;
+  index: number;
+}
+
+/** Rejects a `--lang` that this deck cannot honour (exit 2). */
+export function assertLanguage(session: CaptureSession, lang: string): void {
+  if (session.languages.length === 0) throw new CliError(2, "this deck has no languages; remove --lang");
+  if (session.language.toLowerCase() !== lang.toLowerCase()) {
+    throw new CliError(2, `--lang ${lang} is not one of the deck's languages (${session.languages.join(", ")})`);
+  }
+}
+
+/**
+ * Runs `fn` once per requested language, one browser at a time. `lang` undefined is the first language,
+ * `"all"` every language, anything else that one language. A deck without languages runs once.
+ */
+export async function forEachLanguage<T>(
+  file: string,
+  lang: string | undefined,
+  opts: CaptureOptions,
+  fn: (session: CaptureSession, run: LanguageRun) => Promise<T>,
+): Promise<T[]> {
+  const all = lang === "all";
+  const results: T[] = [];
+  const languages = await withCapture(file, { ...opts, lang: all ? undefined : lang }, async (session) => {
+    if (lang !== undefined && !all) assertLanguage(session, lang);
+    const run = { language: session.language, tag: all && session.languages.length > 0 ? `[${session.language}] ` : "", index: 0 };
+    results.push(await fn(session, run));
+    return session.languages;
+  });
+  if (all) {
+    for (let index = 1; index < languages.length; index++) {
+      await withCapture(file, { ...opts, lang: languages[index], runtimeVersionCheck: false }, async (session) => {
+        results.push(await fn(session, { language: session.language, tag: `[${session.language}] `, index }));
+      });
+    }
+  }
+  return results;
 }

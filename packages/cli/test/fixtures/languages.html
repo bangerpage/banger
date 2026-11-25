@@ -1,0 +1,52 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8">
+  <title>Banger languages</title>
+</head>
+<body>
+<script type="module" src="https://cdn.jsdelivr.net/npm/@bangerpage/core@0.1.2/dist/index.js"></script>
+<bang-root theme="light" languages="ja en">
+  <bang-frame id="cover" at="0,0" crumb="はじめに" crumb-en="Intro">
+    <bang-title>
+      <span lang="ja">めくらない発表</span>
+      <span lang="en">Presentations that move</span>
+    </bang-title>
+    <bang-stack>
+      <bang-text lang="ja">キャンバスを動く</bang-text>
+      <bang-text lang="en">Travel across a canvas</bang-text>
+    </bang-stack>
+  </bang-frame>
+  <bang-frame id="points" at="1,0">
+    <bang-title size="m">
+      <span lang="ja">ポイント</span>
+      <span lang="en">Key points</span>
+    </bang-title>
+    <bang-list step="1">
+      <li lang="ja">停止点で止まる</li>
+      <li lang="en">Stop at each point</li>
+      <li lang="ja">段で出す</li>
+      <li lang="en">Reveal in steps</li>
+    </bang-list>
+  </bang-frame>
+  <bang-frame id="detail" at="2,0">
+    <bang-text lang="ja" data-step="1">詳しく見る</bang-text>
+    <bang-text lang="en" data-step="1">A closer look</bang-text>
+  </bang-frame>
+  <bang-path>
+    <bang-stop frame="cover">
+      <bang-notes lang="ja">導入</bang-notes>
+      <bang-notes lang="en">Introduction</bang-notes>
+    </bang-stop>
+    <bang-stop frame="points">
+      <bang-notes lang="ja">ポイントを順に出す</bang-notes>
+      <bang-notes lang="en">Show the points one by one</bang-notes>
+    </bang-stop>
+    <bang-stop frame="detail">
+      <bang-notes lang="ja">詳細</bang-notes>
+      <bang-notes lang="en">Details</bang-notes>
+    </bang-stop>
+  </bang-path>
+</bang-root>
+</body>
+</html>

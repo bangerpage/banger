@@ -40,6 +40,8 @@ describe("bin", () => {
     ["snap with a bad --steps", ["snap", "deck.html", "--steps", "some"]],
     ["snap with --steps and --stop", ["snap", "deck.html", "--steps", "all", "--stop", "0"]],
     ["snap with a bad --stop", ["snap", "deck.html", "--stop", "x"]],
+    ["snap with --lang and no value", ["snap", "deck.html", "--lang"]],
+    ["export with --lang and no value", ["export", "deck.html", "--pdf", "--lang"]],
     ["theme without a subcommand", ["theme"]],
     ["theme with an unknown subcommand", ["theme", "frob"]],
     ["theme apply without files", ["theme", "apply"]],

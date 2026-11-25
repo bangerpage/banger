@@ -2,7 +2,7 @@ import { mkdir, mkdtemp, readdir, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
-import { clearStopFiles, expandStates, stopFileName } from "./capture.js";
+import { clearStopFiles, expandStates, pageQuery, stopFileName } from "./capture.js";
 
 const path = [{ steps: 0 }, { steps: 2 }];
 
@@ -19,6 +19,12 @@ describe("capture", () => {
       { stop: 1, step: 2 },
     ]);
     expect(expandStates(path, "all", { stop: 1, step: 1 })).toEqual([{ stop: 1, step: 1 }]);
+  });
+
+  it("pageQuery", () => {
+    expect(pageQuery()).toBe("mode=export");
+    expect(pageQuery("en")).toBe("mode=export&lang=en");
+    expect(pageQuery("zh-TW")).toBe("mode=export&lang=zh-TW");
   });
 
   it("stopFileName", () => {

@@ -15,3 +15,9 @@ export function deckFile(positionals: string[], usage: string): string {
   if (positionals.length > 1) throw new CliError(2, usage);
   return positionals[0] ?? "index.html";
 }
+
+/** Rejects a `--lang` that is empty or `all` together with a single `--out` file (exit 2). */
+export function checkLangOption(lang: string | undefined, out: string | undefined): void {
+  if (lang === "") throw new CliError(2, "--lang needs a language or all");
+  if (lang === "all" && out !== undefined) throw new CliError(2, "--lang all cannot be used with --out");
+}

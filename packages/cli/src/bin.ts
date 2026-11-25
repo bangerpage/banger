@@ -19,10 +19,10 @@ commands:
   init [dir] [--force]             start a deck: write index.html from the starter
   preview [file] [--port N]        preview with live reload
   snap [file] [--stop N] [--step M|last] [--steps last|all] [--out path] [--out-dir dir] [--scale 1|2]
-                                   render states as 1920x1080 PNGs
+       [--lang <language>|all]     render states as 1920x1080 PNGs
   check [file] [--json]            render every stop and list the problems the runtime finds;
                                    exits 1 when there is any
-  export [file] --pdf [--out path] [--steps last|all]
+  export [file] --pdf [--out path] [--steps last|all] [--lang <language>|all]
                                    write a PDF, one page per stop
   theme init [file] [--from <preset>] [--force]
                                    write a theme.json from a bundled preset
@@ -40,6 +40,8 @@ commands:
                                    later runs update the same deck
 
   [file] defaults to index.html in the working directory.
+  --lang picks one of the deck's languages (default: the first); all writes every language
+  (snap/<language>/, deck.<language>.pdf). check always covers every language.
 
   In a terminal, banger checks npm for a newer release once a day and prints a notice.
   Set BANGER_NO_UPDATE_CHECK=1 to turn it off; it is also off when CI is set.
