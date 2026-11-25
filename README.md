@@ -65,6 +65,7 @@ For a fuller deck, open `examples/showcase/index.html` (the one in the pictures 
 | Left arrow, Backspace, Page Up | Previous step or stop |
 | Home / End | First / last stop |
 | `o` or Esc | Overview of the whole canvas |
+| Click a frame in the overview | Go to that frame |
 | `p` | Presenter window with speaker notes, kept in sync with the audience window |
 | `f` | Full screen |
 | Swipe left / right | Next / previous, on a touch screen |

@@ -165,6 +165,35 @@ describe("runtime", () => {
     expect(last).toEqual({ stop: 1, step: 2, overview: false });
   });
 
+  it("a click on a frame in the overview goes to that frame", async () => {
+    const html = `<!doctype html><meta charset="utf-8"><title>t</title><script type="module" src="/dist/index.js"></script>
+<bang-root><bang-frame id="a" at="0,0"><bang-text>a</bang-text></bang-frame><bang-frame id="b" at="1,0"><bang-text>b</bang-text></bang-frame>
+<bang-path><bang-stop frame="a"></bang-stop><bang-stop frame="a" region="0,0,0.5,0.5"></bang-stop><bang-stop frame="b"></bang-stop></bang-path></bang-root>`;
+    const { page } = await openVirtual("overview-click", html);
+    await page.emulateMedia({ reducedMotion: "reduce" });
+    const clickFrame = async (id: string) => {
+      const box = await page.evaluate((s) => {
+        const r = document.querySelector(s)!.getBoundingClientRect();
+        return { x: r.left + r.width / 2, y: r.top + r.height / 2 };
+      }, `#${id}`);
+      await page.mouse.click(box.x, box.y);
+    };
+    const inOverview = () => page.evaluate(() => document.querySelector("bang-root")!.hasAttribute("data-bang-overview"));
+    await page.keyboard.press("ArrowRight");
+    await page.keyboard.press("o");
+    expect(await inOverview()).toBe(true);
+    await clickFrame("b");
+    expect(await state(page)).toEqual({ stop: 2, step: 0 });
+    expect(await inOverview()).toBe(false);
+    await page.keyboard.press("ArrowLeft");
+    await page.keyboard.press("o");
+    await clickFrame("a");
+    expect(await state(page)).toEqual({ stop: 1, step: 0 });
+    expect(await inOverview()).toBe(false);
+    await clickFrame("b");
+    expect(await state(page)).toEqual({ stop: 1, step: 0 });
+  });
+
   it("AC-RT-4 presenter view shows notes and stays in sync both ways", async () => {
     const { page, context } = await open("deck.html");
     const popupPromise = context.waitForEvent("page");

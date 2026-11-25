@@ -190,6 +190,12 @@ export function clipFor(
  * `layer: false` gives a 2D transform. A 3D one puts the canvas on its own compositor layer, which moves smoothly but
  * may be drawn from a raster made at the previous zoom, so stills taken from it differ from run to run.
  */
+/** The canvas point under a point on the stage (stage pixels from its top left), for the camera at `pose`. */
+export function stageToCanvas(point: { x: number; y: number }, pose: CameraPose, stage: Size): { x: number; y: number } {
+  const { tx, ty, scale } = toTransform(pose, stage);
+  return { x: (point.x - tx) / scale, y: (point.y - ty) / scale };
+}
+
 export function toTransform(
   pose: CameraPose,
   stage: Size,

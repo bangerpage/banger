@@ -13,6 +13,7 @@ import {
   nearness,
   regionRect,
   retarget,
+  stageToCanvas,
   viewInside,
   sample,
   stageSize,
@@ -151,6 +152,9 @@ export class BangRoot extends BangElement {
         position: relative;
         flex: none;
         overflow: hidden;
+      }
+      :host([data-bang-overview]) .stage {
+        cursor: pointer;
       }
       .clip {
         position: absolute;
@@ -306,6 +310,21 @@ export class BangRoot extends BangElement {
     if (event.timeStamp - start.at > SWIPE_MAX_MS || Math.abs(dx) < SWIPE_MIN_PX || Math.abs(dx) < Math.abs(dy) * 1.5) return;
     void (dx < 0 ? this.next() : this.prev());
   };
+  /** In the overview, a click on a frame goes to it: the current stop when the talk is already there, else the frame's first stop. */
+  private readonly onStageClick = (event: MouseEvent) => {
+    if (!this.inOverview || this.tween) return;
+    const box = (event.currentTarget as HTMLElement).getBoundingClientRect();
+    const point = stageToCanvas({ x: event.clientX - box.left, y: event.clientY - box.top }, this.pose, this.stageNow);
+    const hit = this.frames.find((f) => point.x >= f.rect.x && point.x <= f.rect.x + f.rect.w && point.y >= f.rect.y && point.y <= f.rect.y + f.rect.h);
+    if (!hit) return;
+    const here = this.path.stops[this.current.stop];
+    if (here && here.kind !== "overview" && here.frame === hit.id) {
+      void this.overview(false);
+      return;
+    }
+    const first = this.path.stops.findIndex((s) => s.kind !== "overview" && s.frame === hit.id);
+    if (first >= 0) void this.goto(first, 0);
+  };
   private readonly onPointerCancel = () => {
     this.swipeStart = null;
   };
@@ -400,7 +419,7 @@ export class BangRoot extends BangElement {
         <div hidden><slot @slotchange=${this.onSlotChange}></slot></div>`;
     }
     return html`<div class="viewport">
-        <div class="stage" style="width:${this.stage.w}px;height:${this.stage.h}px">
+        <div class="stage" style="width:${this.stage.w}px;height:${this.stage.h}px" @click=${this.onStageClick}>
           <div class="clip">
             <div class="canvas">${this.renderGround()}<slot @slotchange=${this.onSlotChange}></slot></div>
           </div>
@@ -827,6 +846,7 @@ export class BangRoot extends BangElement {
     }
     this.current = state;
     this.inOverview = opts.overview;
+    this.toggleAttribute("data-bang-overview", opts.overview);
     this.applySteps();
     this.applyInert();
     const moved = this.moveCamera(poseFor(rect, this.stageNow), opts.animate);

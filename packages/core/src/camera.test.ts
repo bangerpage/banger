@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+  stageToCanvas,
   viewInside,
   boundsOf,
   clipFor,
@@ -151,5 +152,12 @@ describe("camera", () => {
     it("shows the whole frame when the close-up is as wide as the frame", () => {
       expect(viewInside({ x: 0, y: 800, w: 1920, h: 200 }, frame, stage)).toEqual(frame);
     });
+  });
+
+  it("maps a stage point back to the canvas point under it", () => {
+    const stage = { w: 1920, h: 1080 };
+    const pose = { cx: 3000, cy: 1000, zoom: 0.25 };
+    expect(stageToCanvas({ x: 960, y: 540 }, pose, stage)).toEqual({ x: 3000, y: 1000 });
+    expect(stageToCanvas({ x: 1160, y: 540 }, pose, stage)).toEqual({ x: 3800, y: 1000 });
   });
 });
