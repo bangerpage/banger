@@ -1,4 +1,5 @@
 import { selectorOf } from "./element.js";
+import { inLanguage } from "./language.js";
 import type { OverflowItem } from "./root.js";
 
 export const OVERFLOW_TOLERANCE_PX = 2;
@@ -90,9 +91,10 @@ function colorLiterals(free: Element): string[] {
 
 function misplacedOverlay(free: Element): boolean {
   const parent = free.parentElement;
+  if (!inLanguage(free)) return false;
   if (!parent || parent.localName !== "bang-frame") return true;
-  if (free.nextElementSibling) return true;
-  return [...parent.children].filter((c) => c.localName === "bang-free" && c.hasAttribute("overlay")).length >= 2;
+  for (let next = free.nextElementSibling; next; next = next.nextElementSibling) if (inLanguage(next)) return true;
+  return [...parent.children].filter((c) => c.localName === "bang-free" && c.hasAttribute("overlay") && inLanguage(c)).length >= 2;
 }
 
 function outermostSvg(el: Element): Element {

@@ -8,6 +8,12 @@ interface StateMessage {
   sender: string;
 }
 
+interface LanguageMessage {
+  type: "lang";
+  lang: string;
+  sender: string;
+}
+
 /** Keeps the audience window and the presenter window on the same state. Received states are never re-sent. */
 export class PresenterSync {
   private readonly channel: BroadcastChannel;
@@ -22,8 +28,20 @@ export class PresenterSync {
     this.channel.postMessage(message);
   }
 
+  sendLanguage(lang: string): void {
+    const message: LanguageMessage = { type: "lang", lang, sender: this.id };
+    this.channel.postMessage(message);
+  }
+
+  onRemoteLanguage(callback: (lang: string) => void): void {
+    this.channel.addEventListener("message", (event: MessageEvent<StateMessage | LanguageMessage>) => {
+      const data = event.data;
+      if (data?.type === "lang" && data.sender !== this.id) callback(data.lang);
+    });
+  }
+
   onRemote(callback: (state: BangState) => void): void {
-    this.channel.addEventListener("message", (event: MessageEvent<StateMessage>) => {
+    this.channel.addEventListener("message", (event: MessageEvent<StateMessage | LanguageMessage>) => {
       const data = event.data;
       if (data?.type === "state" && data.sender !== this.id) callback({ stop: data.stop, step: data.step });
     });
@@ -40,6 +58,7 @@ export interface PresenterView {
   step: number;
   steps: number;
   notes: string;
+  language?: string;
   elapsedMs: number;
   onPrev: () => void;
   onNext: () => void;
@@ -57,6 +76,7 @@ export function renderPresenter(view: PresenterView): TemplateResult {
     <div class="presenter-head">
       <span class="presenter-stop">Stop ${view.stop + 1} / ${view.stopCount}</span>
       <span class="presenter-step">Step ${view.step + 1} / ${view.steps + 1}</span>
+      ${view.language !== undefined ? html`<span class="presenter-language">${view.language}</span>` : ""}
       <span class="presenter-elapsed">${formatElapsed(view.elapsedMs)}</span>
     </div>
     <div class="presenter-notes">${view.notes}</div>

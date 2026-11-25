@@ -2,6 +2,7 @@ import { recordedWarnings } from "./attrs.js";
 import { fontsSettled, loadFonts } from "./base-style.js";
 import { READY_TIMEOUT_MS, selectorOf } from "./element.js";
 import { freeWarnings } from "./free-check.js";
+import { inLanguage } from "./language.js";
 
 export function withTimeout<T>(promise: Promise<T>, ms: number, message = "timed out"): Promise<T> {
   let timer: ReturnType<typeof setTimeout> | undefined;
@@ -60,7 +61,8 @@ export function collectText(root: Element): string {
       return;
     }
     if (node instanceof Element) {
-      if (node.localName === "script" || node.localName === "style") return;
+      if (node.localName === "script" || node.localName === "style" || node.localName === "bang-notes") return;
+      if (!inLanguage(node)) return;
       if (node.shadowRoot) node.shadowRoot.childNodes.forEach(visit);
     }
     node.childNodes.forEach(visit);
@@ -80,6 +82,7 @@ export async function collectReady(
 
   const items: ReadyItem[] = [];
   for (const el of root.querySelectorAll("*")) {
+    if (!inLanguage(el)) continue;
     const ready = (el as Element & { renderReady?: unknown }).renderReady;
     if (ready instanceof Promise) items.push({ selector: selectorOf(el), tag: el.localName, ready });
   }

@@ -58,8 +58,13 @@ export class BangStop extends BangElement {
 defineOnce("bang-stop", BangStop);
 
 /** `auto` is true when the stop has no `steps` attribute; the root then fills `steps` in from the frame's content. */
-export function readStop(el: Element): { stop: StopModel; notes: string; auto: boolean } {
-  const notesEl = [...el.children].find((c) => c.localName === "bang-notes");
+export function readStop(el: Element, language = ""): { stop: StopModel; notes: string; auto: boolean } {
+  const notesEls = [...el.children].filter((c) => c.localName === "bang-notes");
+  const want = language.toLowerCase();
+  const notesEl =
+    (want ? notesEls.find((c) => (c.getAttribute("lang") ?? "").toLowerCase() === want) : undefined) ??
+    (want ? notesEls.find((c) => !c.getAttribute("lang")) : undefined) ??
+    notesEls[0];
   const notes = notesEl ? notesText(notesEl) : "";
   const auto = !el.hasAttribute("steps");
   const steps = pickInt(el, "steps", 0, MAX_STEPS, 0);

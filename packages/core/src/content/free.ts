@@ -3,6 +3,7 @@ import { property } from "lit/decorators.js";
 import { warnOnce } from "../attrs.js";
 import { BangElement, defineOnce } from "../element.js";
 import { scopeCss, supportsScope } from "../free-check.js";
+import { inLanguage } from "../language.js";
 
 /**
  * An escape hatch for a figure no component can draw: a box that fills the space left in its container and holds free HTML, CSS and SVG.
@@ -67,7 +68,7 @@ export class BangFree extends BangElement {
   }
 
   private async waitImages(): Promise<void> {
-    const imgs = [...this.querySelectorAll("img")];
+    const imgs = [...this.querySelectorAll("img")].filter((img) => inLanguage(img));
     await Promise.all(
       imgs.map(async (img) => {
         try {

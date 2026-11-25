@@ -1,6 +1,7 @@
 import { fontsHref } from "./theme/theme.generated.js";
 import { warnOnce } from "./attrs.js";
 import { withTimeout } from "./ready.js";
+import { languageCss } from "./language.js";
 import type { FontsRequest } from "./theme/custom.js";
 
 const FONT_FACES: { family: string; weights: number[] }[] = [
@@ -51,6 +52,19 @@ const exportCss = `
 @page { size: 1920px 1080px; margin: 0 }
 html, body { height: 1080px; }
 `;
+
+/** Adds or refreshes `<style id="bang-lang">`, which hides every element whose `lang` is not the root's current language. */
+export function ensureLanguageStyle(languages: readonly string[]): void {
+  const text = languageCss(languages);
+  if (text === "") return;
+  let style = document.getElementById("bang-lang");
+  if (!style) {
+    style = document.createElement("style");
+    style.id = "bang-lang";
+    document.head.append(style);
+  }
+  style.textContent = text;
+}
 
 export function ensureBaseStyle(mode: "live" | "export" | "presenter"): void {
   if (document.getElementById("bang-base")) return;

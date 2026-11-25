@@ -144,13 +144,17 @@ ${unsafeCSS(
    */
   @property() ground: "default" | "cover" = "default";
 
-  /** A bold heading-size line (36px) at the top left, inside the top margin. It does not move the content and is cut to one line. */
+  /**
+   * A bold heading-size line (36px) at the top left, inside the top margin. It does not move the content and is cut to one line.
+   * In a deck with `languages`, write `crumb-<language>` (for example `crumb-en`) for each other language; a language without one shows `crumb`.
+   */
   @property() crumb?: string;
 
   /**
    * A large name shown over the frame when the camera is far away (the overview, or a stop on another frame), with the
    * content faded behind it. It fades out as the camera comes close. Use it to name a place on a map or a chapter.
    * Experimental, made for `format="map"`; it may change in any release.
+   * In a deck with `languages`, write `label-<language>` (for example `label-en`) for each other language; a language without one shows `label`.
    */
   @property() label?: string;
 
@@ -163,12 +167,19 @@ ${unsafeCSS(
   /** The step shown in this frame. Set by `bang-root`. */
   @property({ attribute: false }) currentStep = 0;
 
+  /** The text for `crumb` or `label` in the root's current language: `crumb-<language>` when set, else the plain attribute. */
+  private frameText(name: "crumb" | "label"): string {
+    const lang = this.closest("bang-root")?.getAttribute("lang")?.toLowerCase();
+    const localized = lang ? this.getAttribute(`${name}-${lang}`)?.trim() : "";
+    return localized || this[name]?.trim() || "";
+  }
+
   render() {
     pick(this, "tone", ["default", "accent", "inverse"] as const, "default");
     pick(this, "ground", ["default", "cover"] as const, "default");
     pick(this, "valign", ["center", "spread"] as const, "center");
-    const crumb = this.crumb?.trim();
-    const label = this.label?.trim();
+    const crumb = this.frameText("crumb");
+    const label = this.frameText("label");
     return html`<div class="frame">${crumb ? html`<div class="crumb">${crumb}</div>` : ""}<slot></slot>${label
       ? html`<div class="label" aria-hidden="true">${label}</div>`
       : ""}<div class="fog" aria-hidden="true"></div></div>`;

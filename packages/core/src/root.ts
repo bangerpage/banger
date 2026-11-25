@@ -25,8 +25,9 @@ import {
   type Rect,
   type Size,
 } from "./camera.js";
-import { ensureBaseStyle, ensureThemeFonts } from "./base-style.js";
+import { ensureBaseStyle, ensureLanguageStyle, ensureThemeFonts } from "./base-style.js";
 import { BangElement, defineOnce, selectorOf, type StepAware } from "./element.js";
+import { canonicalLanguage, inLanguage, nextLanguage, parseLanguages, resolveLanguage } from "./language.js";
 import { openPresenter, PresenterSync, renderPresenter } from "./presenter.js";
 import { collectReady, type ReadyReport } from "./ready.js";
 import {
@@ -91,15 +92,19 @@ const MAP_OVERVIEW_MARGIN = 320;
 /** Space kept around a focused element, as a fraction of its larger side measured in 16:9. */
 const FOCUS_MARGIN = 0.08;
 const SPOT_FADE_MS = 400;
-const HELP_KEYS: [string, string][] = [
-  ["→  Space  Enter  PageDown", "Next step or stop"],
-  ["←  Backspace  PageUp", "Previous step or stop"],
-  ["Home / End", "First / last stop"],
-  ["o  Esc", "Overview; click a frame to go there"],
-  ["p", "Presenter window with notes"],
-  ["f", "Full screen"],
-  ["?", "This help"],
-];
+function helpKeys(multilingual: boolean): [string, string][] {
+  const languageKey: [string, string][] = multilingual ? [["l", "Next language"]] : [];
+  return [
+    ["→  Space  Enter  PageDown", "Next step or stop"],
+    ["←  Backspace  PageUp", "Previous step or stop"],
+    ["Home / End", "First / last stop"],
+    ["o  Esc", "Overview; click a frame to go there"],
+    ["p", "Presenter window with notes"],
+    ...languageKey,
+    ["f", "Full screen"],
+    ["?", "This help"],
+  ];
+}
 const STATUS_MS = 4000;
 const FULL_STAGE: Size = { w: FRAME_WIDTH, h: FRAME_HEIGHT };
 
@@ -322,6 +327,14 @@ export class BangRoot extends BangElement {
    */
   @property({ reflect: true }) format: "slides" | "map" = "slides";
 
+  /**
+   * The languages of the deck as BCP 47 tags separated by spaces, for example `ja en`; the first is the author's language.
+   * An element inside a frame (and a `bang-notes`) with a `lang` of one of them shows only while that language is selected;
+   * elements without `lang` show in every language. The language comes from `?lang=`, then the browser's languages, then the first.
+   * The root writes the selected language to its own `lang` attribute. Read once when the root connects; changing it later has no effect.
+   */
+  @property() languages?: string;
+
   @state() private ground: Ground | null = null;
   /** The first stop of each frame, for the fog and for clicks in the overview. */
   private firstStop = new Map<string, number>();
@@ -347,6 +360,12 @@ export class BangRoot extends BangElement {
   private reducedMotion = false;
   private initialized = false;
   private sync: PresenterSync | null = null;
+  private languageList: string[] = [];
+  private currentLanguage = "";
+  private get multilingual(): boolean {
+    return this.languageList.length > 1;
+  }
+  private readonly onFontsLoaded = () => this.refreshPose();
   private resizeObserver: ResizeObserver | null = null;
   private statusTimer: ReturnType<typeof setTimeout> | undefined;
   private clockTimer: ReturnType<typeof setInterval> | undefined;
@@ -433,6 +452,7 @@ export class BangRoot extends BangElement {
     super.connectedCallback();
     this.mode = modeOf();
     this.setAttribute("data-mode", this.mode);
+    this.initLanguage();
     ensureBaseStyle(this.mode);
     this.applyTheme();
     this.motionQuery = window.matchMedia("(prefers-reduced-motion: reduce)");
@@ -451,7 +471,9 @@ export class BangRoot extends BangElement {
         this.sync.onRemote((remote) => {
           void this.commit(clamp(remote, this.path), { animate: true, source: "remote", overview: false });
         });
+        this.sync.onRemoteLanguage((lang) => this.setLanguage(lang, false));
       }
+      if (this.multilingual) document.fonts?.addEventListener("loadingdone", this.onFontsLoaded);
     }
     if (this.mode === "presenter") {
       this.startedAt = Date.now();
@@ -459,6 +481,56 @@ export class BangRoot extends BangElement {
         this.elapsedMs = Date.now() - this.startedAt;
       }, 1000);
     }
+  }
+
+  private initLanguage(): void {
+    const { languages, invalid } = parseLanguages(this.getAttribute("languages"));
+    for (const tag of invalid) {
+      warnOnce(`languages|${tag}`, `[banger] <bang-root languages> "${tag}" is not a language tag such as "ja" or "en-US"; ignored`);
+    }
+    this.languageList = languages;
+    if (languages.length === 0) return;
+    const query = new URLSearchParams(location.search).get("lang");
+    const { language, queryIgnored } = resolveLanguage({
+      languages,
+      query,
+      navigatorLanguages: navigator.languages ?? [navigator.language],
+      useNavigator: this.mode !== "export",
+    });
+    if (queryIgnored) {
+      warnOnce(`lang|${query}`, `[banger] ?lang="${query}" is not one of the languages (${languages.join(", ")}); ignored`);
+    }
+    this.currentLanguage = language;
+    ensureLanguageStyle(languages);
+    this.setAttribute("lang", language);
+    document.documentElement.lang = language;
+  }
+
+  /** The deck's languages from the `languages` attribute; empty for a deck without them. */
+  getLanguages(): string[] {
+    return [...this.languageList];
+  }
+
+  /** The selected language; "" for a deck without languages. */
+  getLanguage(): string {
+    return this.currentLanguage;
+  }
+
+  private setLanguage(wanted: string, broadcast: boolean): boolean {
+    const lang = canonicalLanguage(wanted, this.languageList);
+    if (!this.initialized || lang === undefined || lang === this.currentLanguage) return false;
+    this.currentLanguage = lang;
+    this.setAttribute("lang", lang);
+    document.documentElement.lang = lang;
+    for (const el of this.querySelectorAll("[step]")) (el as Partial<StepAware>).requestUpdate?.();
+    for (const f of this.frames) (f.el as Partial<BangElement>).requestUpdate?.();
+    this.buildPath();
+    void this.commit(this.current, { animate: false, source: "hash", overview: this.inOverview });
+    const url = new URL(location.href);
+    url.searchParams.set("lang", lang);
+    history.replaceState(null, "", url.href);
+    if (broadcast) this.sync?.sendLanguage(lang);
+    return true;
   }
 
   disconnectedCallback(): void {
@@ -473,6 +545,7 @@ export class BangRoot extends BangElement {
     this.resizeObserver?.disconnect();
     this.sync?.close();
     this.sync = null;
+    document.fonts?.removeEventListener("loadingdone", this.onFontsLoaded);
     clearInterval(this.clockTimer);
     clearTimeout(this.statusTimer);
     this.stopTween();
@@ -512,6 +585,7 @@ export class BangRoot extends BangElement {
           step: this.current.step,
           steps: info?.steps ?? 0,
           notes: this.notes[this.current.stop] ?? "",
+          language: this.multilingual ? this.currentLanguage : undefined,
           elapsedMs: this.elapsedMs,
           onPrev: () => void this.prev(),
           onNext: () => void this.next(),
@@ -535,7 +609,7 @@ export class BangRoot extends BangElement {
       <div class="help-panel" role="dialog" aria-label="Keyboard shortcuts">
         <h2>Keyboard shortcuts</h2>
         <dl>
-          ${HELP_KEYS.map(([keys, action]) => html`<dt>${keys}</dt><dd>${action}</dd>`)}
+          ${helpKeys(this.multilingual).map(([keys, action]) => html`<dt>${keys}</dt><dd>${action}</dd>`)}
         </dl>
       </div>
     </div>`;
@@ -706,7 +780,7 @@ export class BangRoot extends BangElement {
     const notes: string[] = [];
     const stepped = new Set<string>();
     for (const el of this.querySelectorAll("bang-path > bang-stop")) {
-      const read = readStop(el);
+      const read = readStop(el, this.currentLanguage);
       let stop = read.stop;
       if (read.auto && stop.kind !== "overview") {
         const frame = this.frames.find((f) => f.id === stop.frame);
@@ -1119,6 +1193,10 @@ export class BangRoot extends BangElement {
           if (!openPresenter()) this.showStatus("Presenter view could not be opened (popup blocked or unsupported).");
         };
         break;
+      case "l":
+        if (!this.multilingual) break;
+        action = () => this.setLanguage(nextLanguage(this.languageList, this.currentLanguage), true);
+        break;
       case "f":
         action = () => {
           const request = document.fullscreenElement
@@ -1180,6 +1258,7 @@ function groundFor(frames: FrameEntry[]): Ground | null {
 function stepsNeeded(frame: Element): number {
   let needed = 0;
   for (const el of frame.querySelectorAll("*")) {
+    if (!inLanguage(el)) continue;
     const data = Number(el.getAttribute("data-step"));
     if (el.hasAttribute("data-step") && Number.isFinite(data)) needed = Math.max(needed, data);
     const count = (el as { stepCount?: unknown }).stepCount;

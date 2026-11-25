@@ -2,6 +2,7 @@ import { css, html, type PropertyValues } from "lit";
 import { property } from "lit/decorators.js";
 import { pick, pickInt, SIZES, TONES, warnOnce } from "../attrs.js";
 import { defineOnce, StepAware } from "../element.js";
+import { inLanguage } from "../language.js";
 
 /**
  * A bulleted or numbered list. Write items as `li` children.
@@ -99,7 +100,7 @@ export class BangList extends StepAware {
   @property({ type: Boolean }) ordered = false;
 
   private items(): Element[] {
-    return [...this.children].filter((c) => c.localName === "li");
+    return [...this.children].filter((c) => c.localName === "li" && inLanguage(c));
   }
 
   private firstStep(): number | undefined {
@@ -138,8 +139,9 @@ export class BangList extends StepAware {
     items.forEach((li, i) => li.toggleAttribute("data-bang-hidden", i >= visible));
     let previous: Element | undefined;
     for (const child of this.children) {
-      if (child.localName === "li") previous = child;
-      else if (child.localName === "bang-list") {
+      if (child.localName === "li") {
+        if (inLanguage(child)) previous = child;
+      } else if (child.localName === "bang-list") {
         child.toggleAttribute("data-bang-hidden", previous?.hasAttribute("data-bang-hidden") ?? false);
       }
     }

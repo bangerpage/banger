@@ -95,8 +95,8 @@ A 1920x1080 area of the canvas. Content that does not fit is clipped.
 | `span` | string | `1,1` | Number of grid cells covered as "w,h" (integers from 1). |
 | `tone` | `default`, `accent`, `inverse` | `default` | The frame's ground: `default` uses the theme's paper, `accent` the theme's signal, `inverse` the theme's ink. Text colours follow so they stay readable. Use it for covers and section dividers. |
 | `ground` | `default`, `cover` | `default` | Which ground the frame uses. `cover` applies the custom theme's `coverGradient`; `tone` wins over it, and without a `coverGradient` the normal ground stays. |
-| `crumb` | string | - | A bold heading-size line (36px) at the top left, inside the top margin. It does not move the content and is cut to one line. |
-| `label` | string | - | A large name shown over the frame when the camera is far away (the overview, or a stop on another frame), with the content faded behind it. It fades out as the camera comes close. Use it to name a place on a map or a chapter. Experimental, made for `format="map"`; it may change in any release. |
+| `crumb` | string | - | A bold heading-size line (36px) at the top left, inside the top margin. It does not move the content and is cut to one line. In a deck with `languages`, write `crumb-<language>` (for example `crumb-en`) for each other language; a language without one shows `crumb`. |
+| `label` | string | - | A large name shown over the frame when the camera is far away (the overview, or a stop on another frame), with the content faded behind it. It fades out as the camera comes close. Use it to name a place on a map or a chapter. Experimental, made for `format="map"`; it may change in any release. In a deck with `languages`, write `label-<language>` (for example `label-en`) for each other language; a language without one shows `label`. |
 | `valign` | `center`, `spread` | `center` | Vertical position of the children. `center` centres them; `spread` puts the first child at the top and the last at the bottom, with the rest between. Use it to split a cover's title from the name. With one child it sits at the top. |
 
 Slots:
@@ -223,6 +223,7 @@ The presentation root: lays frames out on a canvas and moves the camera between 
 | --- | --- | --- | --- |
 | `theme` | `light`, `dark`, `custom` | `light` | Color theme. "custom" reads the colors and fonts from a bang-theme child. |
 | `format` | `slides`, `map` | `slides` | How the canvas is presented. `slides` (the default) is frames side by side. `map` draws the canvas as a map: a ground with contour lines under the frames, roads for each frame's `link`, wider gaps, and fog over every frame the talk has not reached yet. Export pages show what is around the stop instead of masking it. `map` is experimental: its look and behaviour may change in any release. Use `slides` unless the author asks for a map. |
+| `languages` | string | - | The languages of the deck as BCP 47 tags separated by spaces, for example `ja en`; the first is the author's language. An element inside a frame (and a `bang-notes`) with a `lang` of one of them shows only while that language is selected; elements without `lang` show in every language. The language comes from `?lang=`, then the browser's languages, then the first. The root writes the selected language to its own `lang` attribute. Read once when the root connects; changing it later has no effect. |
 
 Slots:
 
