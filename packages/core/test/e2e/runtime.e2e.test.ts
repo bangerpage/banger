@@ -53,19 +53,20 @@ describe("runtime", () => {
     expect(await page.evaluate(() => (customElements.get("bang-root") as unknown as { version: string }).version)).toBe(pkg.version);
   });
 
-  it("a horizontal touch swipe moves forward and back; a mouse drag, a vertical swipe and a short one do not", async () => {
+  it("a horizontal touch swipe and a quick long mouse flick move; slow or short mouse drags and vertical touch swipes do not", async () => {
     const { page } = await open("deck.html");
-    const swipe = (dx: number, dy: number, pointerType = "touch") =>
+    const swipe = (dx: number, dy: number, pointerType = "touch", ms = 0) =>
       page.evaluate(
-        ([dx, dy, pointerType]) => {
+        async ([dx, dy, pointerType, ms]) => {
           const at = (type: string, x: number, y: number) =>
             window.dispatchEvent(
               new PointerEvent(type, { pointerId: 7, isPrimary: true, pointerType: pointerType as string, clientX: x, clientY: y, bubbles: true }),
             );
           at("pointerdown", 900, 500);
+          if (ms) await new Promise((r) => setTimeout(r, ms as number));
           at("pointerup", 900 + (dx as number), 500 + (dy as number));
         },
-        [dx, dy, pointerType] as const,
+        [dx, dy, pointerType, ms] as const,
       );
     await swipe(-200, 10);
     expect(await state(page)).toEqual({ stop: 1, step: 0 });
@@ -74,6 +75,17 @@ describe("runtime", () => {
     await swipe(-100, 300);
     expect(await state(page)).toEqual({ stop: 1, step: 0 });
     await swipe(200, -10);
+    expect(await state(page)).toEqual({ stop: 0, step: 0 });
+    await swipe(0, -810, "mouse");
+    expect(await state(page)).toEqual({ stop: 1, step: 0 });
+    await swipe(0, -150, "mouse");
+    await swipe(0, -810, "mouse", 600);
+    expect(await state(page)).toEqual({ stop: 1, step: 0 });
+    await swipe(0, 810, "mouse");
+    expect(await state(page)).toEqual({ stop: 0, step: 0 });
+    await swipe(-1889, 0, "mouse");
+    expect(await state(page)).toEqual({ stop: 1, step: 0 });
+    await swipe(1763, 0, "mouse");
     expect(await state(page)).toEqual({ stop: 0, step: 0 });
   });
 

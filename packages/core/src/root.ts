@@ -98,6 +98,9 @@ function modeOf(): RootMode {
 
 const SWIPE_MIN_PX = 50;
 const SWIPE_MAX_MS = 800;
+/** Page-turner remotes for phones press the mouse, drag it most of the screen up, down or sideways in about 200ms and let go. A person's drag is rarely both this long and this quick. */
+const FLICK_MIN_PX = 300;
+const FLICK_MAX_MS = 400;
 
 function isEditable(target: EventTarget | null): boolean {
   if (!(target instanceof HTMLElement)) return false;
@@ -295,24 +298,40 @@ export class BangRoot extends BangElement {
   private themeWarnings: string[] = [];
 
   private readonly onKeydown = (event: KeyboardEvent) => this.handleKey(event);
-  private swipeStart: { id: number; x: number; y: number; at: number } | null = null;
+  private swipeStart: { id: number; mouse: boolean; x: number; y: number; at: number } | null = null;
+  private swiped = false;
   private readonly onPointerDown = (event: PointerEvent) => {
-    if (event.pointerType === "mouse" || !event.isPrimary) return;
+    if (!event.isPrimary || (event.pointerType === "mouse" && event.button !== 0)) return;
     if (isEditable(event.composedPath()[0] ?? event.target)) return;
-    this.swipeStart = { id: event.pointerId, x: event.clientX, y: event.clientY, at: event.timeStamp };
+    this.swipeStart = { id: event.pointerId, mouse: event.pointerType === "mouse", x: event.clientX, y: event.clientY, at: event.timeStamp };
   };
+  /** A touch swipe to the left or right, or a quick long mouse flick in any direction (up or left is next, as on a phone). */
   private readonly onPointerUp = (event: PointerEvent) => {
     const start = this.swipeStart;
     if (!start || start.id !== event.pointerId) return;
     this.swipeStart = null;
     const dx = event.clientX - start.x;
     const dy = event.clientY - start.y;
-    if (event.timeStamp - start.at > SWIPE_MAX_MS || Math.abs(dx) < SWIPE_MIN_PX || Math.abs(dx) < Math.abs(dy) * 1.5) return;
-    void (dx < 0 ? this.next() : this.prev());
+    const ms = event.timeStamp - start.at;
+    let forward: boolean;
+    if (start.mouse) {
+      const vertical = Math.abs(dy) > Math.abs(dx);
+      const along = vertical ? dy : dx;
+      const across = vertical ? dx : dy;
+      if (ms > FLICK_MAX_MS || Math.abs(along) < FLICK_MIN_PX || Math.abs(along) < Math.abs(across) * 1.5) return;
+      forward = along < 0;
+      window.getSelection()?.removeAllRanges();
+    } else {
+      if (ms > SWIPE_MAX_MS || Math.abs(dx) < SWIPE_MIN_PX || Math.abs(dx) < Math.abs(dy) * 1.5) return;
+      forward = dx < 0;
+    }
+    this.swiped = true;
+    setTimeout(() => (this.swiped = false));
+    void (forward ? this.next() : this.prev());
   };
   /** In the overview, a click on a frame goes to it: the current stop when the talk is already there, else the frame's first stop. */
   private readonly onStageClick = (event: MouseEvent) => {
-    if (!this.inOverview || this.tween) return;
+    if (!this.inOverview || this.tween || this.swiped) return;
     const box = (event.currentTarget as HTMLElement).getBoundingClientRect();
     const point = stageToCanvas({ x: event.clientX - box.left, y: event.clientY - box.top }, this.pose, this.stageNow);
     const hit = this.frames.find((f) => point.x >= f.rect.x && point.x <= f.rect.x + f.rect.w && point.y >= f.rect.y && point.y <= f.rect.y + f.rect.h);

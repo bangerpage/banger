@@ -69,6 +69,7 @@ For a fuller deck, open `examples/showcase/index.html` (the one in the pictures 
 | `p` | Presenter window with speaker notes, kept in sync with the audience window |
 | `f` | Full screen |
 | Swipe left / right | Next / previous, on a touch screen |
+| Quick long mouse flick up or left / down or right | Next / previous, for page-turner remotes that drag the mouse |
 
 The current position is kept in the URL (`#stop=N&step=M`), so a reload or a shared link lands on the same place.
 
