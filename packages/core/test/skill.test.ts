@@ -70,6 +70,19 @@ describe("skill", () => {
     expect(md).toMatch(/bang-free.*部品に無い/);
   });
 
+  it("AC-I18N-14 the skill and the components reference describe multilingual decks", () => {
+    const skill = read("skill/SKILL.md");
+    expect(skill).toContain("## 多言語の発表");
+    expect(skill).toContain("--lang");
+    const section = read("skill/reference/patterns.md").split(/^## /m).find((s) => s.startsWith("多言語で書く\n")) ?? "";
+    expect(section).not.toBe("");
+    const fences = [...section.matchAll(/```html\n([\s\S]*?)\n```/g)].map((m) => m[1]);
+    expect(fences.length).toBeGreaterThan(0);
+    for (const fence of fences) expect(fence).not.toMatch(/#[0-9a-fA-F]{3,8}\b|rgba?\(|\sstyle=/);
+    const root = read("skill/reference/components.md").split(/^## /m).find((s) => s.startsWith("bang-root\n")) ?? "";
+    expect(root).toContain("| `languages` |");
+  });
+
   it("AC-SKILL-5 enum attributes are inline unions and runtime URLs match the core package", () => {
     for (const decl of tagged) {
       for (const attr of decl.attributes ?? []) {

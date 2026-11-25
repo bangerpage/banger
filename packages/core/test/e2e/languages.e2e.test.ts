@@ -1,3 +1,6 @@
+import { readFileSync } from "node:fs";
+import { dirname, join } from "node:path";
+import { fileURLToPath } from "node:url";
 import type { Browser, Page } from "playwright-core";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { launch, openDeck, serveCore, type CoreServer, type Deck, type OpenOptions } from "./helpers.js";
@@ -377,4 +380,22 @@ describe("languages", () => {
     );
     expect((await warnings(plain)).some((w) => w.includes("crumb"))).toBe(false);
   });
+});
+
+describe("patterns.md multilingual recipe", () => {
+  const repoRoot = join(dirname(fileURLToPath(import.meta.url)), "../../../..");
+  const section = readFileSync(join(repoRoot, "skill/reference/patterns.md"), "utf8")
+    .split(/^## /m)
+    .find((s) => s.startsWith("多言語で書く\n")) ?? "";
+  const html = (/```html\n([\s\S]*?)\n```/.exec(section)?.[1] ?? "").replace(/src="chart-(ja|en)\.png"/g, 'src="/pixel.png"');
+
+  for (const language of ["ja", "en"]) {
+    it(`AC-I18N-14 renders in ${language} without warnings or failures`, async () => {
+      expect(html).toContain("<bang-root");
+      const { page: p } = await page(html, { query: `mode=export&lang=${language}` });
+      const report = await p.evaluate(() => (document.querySelector("bang-root") as any).ready());
+      expect(report.warnings).toEqual([]);
+      expect(report.failed).toEqual([]);
+    });
+  }
 });
