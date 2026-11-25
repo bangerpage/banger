@@ -11,3 +11,4 @@ snap/
 packages/*/LICENSE
 packages/*/NOTICE
 packages/core/THIRD-PARTY-LICENSES.txt
+.banger/

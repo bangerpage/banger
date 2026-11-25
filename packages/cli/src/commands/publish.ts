@@ -162,7 +162,10 @@ export async function runPublish(argv: string[], fetchImpl: typeof fetch = fetch
       if (!file) throw new CliError(1, `${host} asked for a file that was not offered (${blob.path})`);
       await client.putBlob(blob.url, readFileSync(file.abs), blob.method);
     }
-    process.stdout.write(`sent ${plan.uploads.length} of ${files.length} files (the rest were already on ${host})\n`);
+    const kept = files.length - plan.uploads.length;
+    process.stdout.write(
+      kept === 0 ? `sent ${files.length} files\n` : `sent ${plan.uploads.length} of ${files.length} files (${kept} already on ${host})\n`,
+    );
     const idempotency_key = randomUUID();
     const strict = values.strict === true;
     if (updating) {
