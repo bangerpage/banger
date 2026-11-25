@@ -91,6 +91,15 @@ const MAP_OVERVIEW_MARGIN = 320;
 /** Space kept around a focused element, as a fraction of its larger side measured in 16:9. */
 const FOCUS_MARGIN = 0.08;
 const SPOT_FADE_MS = 400;
+const HELP_KEYS: [string, string][] = [
+  ["→  Space  Enter  PageDown", "Next step or stop"],
+  ["←  Backspace  PageUp", "Previous step or stop"],
+  ["Home / End", "First / last stop"],
+  ["o  Esc", "Overview; click a frame to go there"],
+  ["p", "Presenter window with notes"],
+  ["f", "Full screen"],
+  ["?", "This help"],
+];
 const STATUS_MS = 4000;
 const FULL_STAGE: Size = { w: FRAME_WIDTH, h: FRAME_HEIGHT };
 
@@ -229,6 +238,39 @@ export class BangRoot extends BangElement {
         color: var(--bang-color-paper);
         font-size: 16px;
       }
+      .help {
+        position: absolute;
+        inset: 0;
+        display: grid;
+        place-items: center;
+        background: color-mix(in srgb, var(--bang-color-ink) 40%, transparent);
+      }
+      .help-panel {
+        padding: 32px 40px;
+        border-radius: var(--bang-radius-l);
+        background: var(--bang-color-surface);
+        color: var(--bang-color-ink);
+        font-family: var(--bang-font-sans);
+        font-size: 18px;
+        line-height: 1.6;
+      }
+      .help-panel h2 {
+        margin: 0 0 16px;
+        font-size: 22px;
+      }
+      .help-panel dl {
+        display: grid;
+        grid-template-columns: auto auto;
+        gap: 8px 32px;
+        margin: 0;
+      }
+      .help-panel dt {
+        font-family: var(--bang-font-mono);
+        color: var(--bang-color-ink-muted);
+      }
+      .help-panel dd {
+        margin: 0;
+      }
       .status:empty {
         display: none;
       }
@@ -287,6 +329,7 @@ export class BangRoot extends BangElement {
 
   @state() private stage: Size = FULL_STAGE;
   @state() private statusText = "";
+  @state() private helpOpen = false;
   @state() private elapsedMs = 0;
 
   private mode: RootMode = "live";
@@ -472,7 +515,7 @@ export class BangRoot extends BangElement {
           elapsedMs: this.elapsedMs,
           onPrev: () => void this.prev(),
           onNext: () => void this.next(),
-        })}<div class="status" role="status">${this.statusText}</div>
+        })}${this.renderHelp()}<div class="status" role="status">${this.statusText}</div>
         <div hidden><slot @slotchange=${this.onSlotChange}></slot></div>`;
     }
     return html`<div class="viewport">
@@ -482,7 +525,20 @@ export class BangRoot extends BangElement {
           </div>
         </div>
       </div>
+      ${this.renderHelp()}
       <div class="status" role="status">${this.statusText}</div>`;
+  }
+
+  private renderHelp() {
+    if (!this.helpOpen) return nothing;
+    return html`<div class="help" @click=${() => (this.helpOpen = false)}>
+      <div class="help-panel" role="dialog" aria-label="Keyboard shortcuts">
+        <h2>Keyboard shortcuts</h2>
+        <dl>
+          ${HELP_KEYS.map(([keys, action]) => html`<dt>${keys}</dt><dd>${action}</dd>`)}
+        </dl>
+      </div>
+    </div>`;
   }
 
   private renderGround() {
@@ -1026,8 +1082,16 @@ export class BangRoot extends BangElement {
     if (event.ctrlKey || event.metaKey || event.altKey || event.defaultPrevented) return;
     if (isEditable(event.composedPath()[0] ?? event.target)) return;
     const last = this.path.stops.length - 1;
+    if (this.helpOpen && (event.key === "Escape" || event.key === "?")) {
+      event.preventDefault();
+      this.helpOpen = false;
+      return;
+    }
     let action: (() => unknown) | null = null;
     switch (event.key) {
+      case "?":
+        action = () => (this.helpOpen = true);
+        break;
       case "ArrowRight":
       case " ":
       case "PageDown":

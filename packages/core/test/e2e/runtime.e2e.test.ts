@@ -221,6 +221,20 @@ describe("runtime", () => {
     expect(await state(page)).toEqual({ stop: 1, step: 0 });
   });
 
+  it("? opens the shortcut help, and ? or Esc closes it without moving", async () => {
+    const { page } = await open("deck.html");
+    const help = () => page.evaluate(() => document.querySelector("bang-root")!.shadowRoot!.querySelector(".help-panel")?.textContent ?? null);
+    await page.keyboard.press("?");
+    expect(await help()).toContain("Keyboard shortcuts");
+    await page.keyboard.press("Escape");
+    expect(await help()).toBeNull();
+    expect(await page.evaluate(() => document.querySelector("bang-root")!.hasAttribute("data-bang-overview"))).toBe(false);
+    await page.keyboard.press("?");
+    await page.keyboard.press("?");
+    expect(await help()).toBeNull();
+    expect(await state(page)).toEqual({ stop: 0, step: 0 });
+  });
+
   it("AC-RT-4 presenter view shows notes and stays in sync both ways", async () => {
     const { page, context } = await open("deck.html");
     const popupPromise = context.waitForEvent("page");

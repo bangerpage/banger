@@ -68,6 +68,7 @@ For a fuller deck, open `examples/showcase/index.html` (the one in the pictures 
 | Click a frame in the overview | Go to that frame |
 | `p` | Presenter window with speaker notes, kept in sync with the audience window |
 | `f` | Full screen |
+| `?` | Keyboard shortcuts |
 | Swipe left / right | Next / previous, on a touch screen |
 | Quick long mouse flick up or left / down or right | Next / previous, for page-turner remotes that drag the mouse |
 
