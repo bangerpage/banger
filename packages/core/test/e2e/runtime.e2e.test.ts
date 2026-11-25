@@ -87,6 +87,14 @@ describe("runtime", () => {
     await swipe(-1889, 0, "mouse");
     expect(await state(page)).toEqual({ stop: 1, step: 0 });
     expect(await page.evaluate(() => getComputedStyle(document.documentElement).userSelect)).toBe("none");
+    const cursorHidden = () => page.evaluate(() => document.querySelector("bang-root")!.hasAttribute("data-bang-nocursor"));
+    expect(await cursorHidden()).toBe(true);
+    const move = (dx: number) =>
+      page.evaluate((dx) => window.dispatchEvent(new PointerEvent("pointermove", { pointerType: "mouse", movementX: dx, movementY: 0, buttons: 0 })), dx);
+    await move(800);
+    expect(await cursorHidden()).toBe(true);
+    await move(5);
+    expect(await cursorHidden()).toBe(false);
     await swipe(1763, 0, "mouse");
     expect(await state(page)).toEqual({ stop: 0, step: 0 });
   });

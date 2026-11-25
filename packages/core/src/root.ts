@@ -101,6 +101,7 @@ const SWIPE_MAX_MS = 800;
 /** Page-turner remotes for phones press the mouse, drag it most of the screen up, down or sideways in about 200ms and let go. A person's drag is rarely both this long and this quick. */
 const FLICK_MIN_PX = 300;
 const FLICK_MAX_MS = 400;
+const CURSOR_WAKE_PX = 60;
 
 function isEditable(target: EventTarget | null): boolean {
   if (!(target instanceof HTMLElement)) return false;
@@ -155,6 +156,10 @@ export class BangRoot extends BangElement {
         position: relative;
         flex: none;
         overflow: hidden;
+      }
+      :host([data-bang-nocursor]),
+      :host([data-bang-nocursor]) * {
+        cursor: none !important;
       }
       :host([data-bang-overview]) .stage {
         cursor: pointer;
@@ -322,6 +327,7 @@ export class BangRoot extends BangElement {
       forward = along < 0;
       window.getSelection()?.removeAllRanges();
       document.documentElement.setAttribute("data-bang-remote", "");
+      this.setAttribute("data-bang-nocursor", "");
     } else {
       if (ms > SWIPE_MAX_MS || Math.abs(dx) < SWIPE_MIN_PX || Math.abs(dx) < Math.abs(dy) * 1.5) return;
       forward = dx < 0;
@@ -329,6 +335,11 @@ export class BangRoot extends BangElement {
     this.swiped = true;
     setTimeout(() => (this.swiped = false));
     void (forward ? this.next() : this.prev());
+  };
+  /** Shows the cursor again once a person moves the mouse; a remote teleports it in one jump with no button down, a hand moves it a little at a time. */
+  private readonly onPointerMove = (event: PointerEvent) => {
+    if (event.pointerType !== "mouse" || event.buttons !== 0 || !this.hasAttribute("data-bang-nocursor")) return;
+    if (Math.hypot(event.movementX, event.movementY) < CURSOR_WAKE_PX) this.removeAttribute("data-bang-nocursor");
   };
   /** In the overview, a click on a frame goes to it: the current stop when the talk is already there, else the frame's first stop. */
   private readonly onStageClick = (event: MouseEvent) => {
@@ -369,6 +380,7 @@ export class BangRoot extends BangElement {
       window.addEventListener("pointerdown", this.onPointerDown);
       window.addEventListener("pointerup", this.onPointerUp);
       window.addEventListener("pointercancel", this.onPointerCancel);
+      window.addEventListener("pointermove", this.onPointerMove);
       if (typeof BroadcastChannel !== "undefined") {
         this.sync = new PresenterSync();
         this.sync.onRemote((remote) => {
@@ -391,6 +403,7 @@ export class BangRoot extends BangElement {
     window.removeEventListener("pointerdown", this.onPointerDown);
     window.removeEventListener("pointerup", this.onPointerUp);
     window.removeEventListener("pointercancel", this.onPointerCancel);
+    window.removeEventListener("pointermove", this.onPointerMove);
     this.motionQuery?.removeEventListener("change", this.onMotionChange);
     this.resizeObserver?.disconnect();
     this.sync?.close();

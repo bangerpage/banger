@@ -21,6 +21,8 @@ html, body { margin: 0; overflow: hidden; background: var(--bang-color-paper, #F
 /* Set after the first mouse flick: a page-turner remote is driving the deck, and its drags would otherwise select text or drag images on every press. */
 html[data-bang-remote] { -webkit-user-select: none; user-select: none; }
 html[data-bang-remote] img { -webkit-user-drag: none; }
+/* The remote also moves the cursor up and down on every press; bang-root hides it until a person moves the mouse. */
+bang-root[data-bang-nocursor] * { cursor: none !important; }
 /* --bang-near is 1 when the frame fills the screen and 0 when the camera is far from it; bang-root sets it on every move. */
 bang-frame [show="near"] { opacity: var(--bang-near, 1); }
 bang-frame [show="far"] { opacity: calc(1 - var(--bang-near, 1)); }
