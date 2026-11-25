@@ -280,6 +280,10 @@ describe("export", () => {
       expect(result.code, result.stderr).toBe(0);
       expect(result.stderr).toContain(expected);
     }
+    const check = await runBin(["check", file]);
+    expect(check.code, check.stdout + check.stderr).toBe(0);
+    expect(check.stderr).toContain(`note: ${expected.slice("warning: ".length)}`);
+    expect(check.stdout).toContain("no problems");
     const matching = await runBin(["snap", fixture("basic.html"), "--stop", "0", "--out", join(work, "same.png")]);
     expect(matching.stderr).not.toContain("the deck loads");
   });

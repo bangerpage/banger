@@ -1,5 +1,8 @@
 import { deckFile, parseArgsStrict } from "../args.js";
 import { expandStates, formatReadyFailure, withCapture } from "../capture.js";
+import { CORE_PACKAGE, coreVersion } from "../core-package.js";
+import { readInput } from "../errors.js";
+import { runtimeVersionWarning } from "../html-transform.js";
 
 const USAGE = "usage: banger check [file] [--json]";
 
@@ -14,7 +17,13 @@ export interface CheckResult {
 export async function checkDeck(file: string): Promise<CheckResult> {
   const warnings: string[] = [];
   const failed = new Set<string>();
-  const stops = await withCapture(file, { onWarning: (message) => warnings.push(message) }, async (session) => {
+  // A deck pinned to another runtime version is not a problem with the deck: say so, but do not count it.
+  const pinned = runtimeVersionWarning(readInput(file), CORE_PACKAGE, coreVersion())?.message;
+  const onWarning = (message: string) => {
+    if (message === pinned) process.stderr.write(`note: ${message}\n`);
+    else warnings.push(message);
+  };
+  const stops = await withCapture(file, { onWarning }, async (session) => {
     for (const ref of expandStates(session.path, "last")) {
       const report = await session.goto(ref);
       for (const failure of report.failed) failed.add(formatReadyFailure(failure));
