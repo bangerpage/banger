@@ -3,6 +3,8 @@ Banger
 
 **Presentations that move, written as one HTML file.**
 
+English | [日本語](README.ja.md)
+
 ![A Banger deck seen from above: six frames laid out on a canvas](docs/images/showcase-overview.png)
 
 Banger puts your frames on a canvas and moves a camera between them. Zoom into a number, glide to the next idea, then pull back and show the whole picture. There are no slides to flip and no build step: a deck is one HTML file that opens in any browser, lives happily in git, and is small enough for an AI to write from start to finish.
@@ -10,7 +12,7 @@ Banger puts your frames on a canvas and moves a camera between them. Zoom into a
 ## Why Banger
 
 - **One file, one line.** Load the runtime with a single `<script>` tag and write the deck with `bang-*` elements. No bundler, no framework, no editor to install.
-- **A canvas, not a stack.** Frames sit on a grid. Stops decide where the camera rests: a whole frame, a region of it, or the overview of everything.
+- **A canvas, not a stack.** Frames sit on a grid. Stops decide where the camera rests: a whole frame, a region of it, one element in it, or the overview of everything.
 - **Good-looking by default.** Sizes, tones and gaps are tokens, not free-form CSS, so a deck stays on the design system whoever writes it. Pick a bundled theme or bring your own colours and fonts; unreadable colour pairs are flagged.
 - **Made for writing with AI.** The vocabulary is small and documented in `skill/`, so an agent can write a deck, render every stop with `banger snap`, look at the images and fix what overflows.
 - **Ready for the stage.** Step-by-step reveals for lists and chart series, speaker notes in a presenter window, full screen, and a PDF export with real, selectable text.
@@ -72,6 +74,8 @@ For a fuller deck, open `examples/showcase/index.html` (the one in the pictures 
 | Swipe left / right | Next / previous, on a touch screen |
 | Quick long mouse flick up or left / down or right | Next / previous, for page-turner remotes that drag the mouse |
 
+After the first flick from such a remote, the deck stops selecting text and hides the mouse cursor until you move the mouse by hand.
+
 The current position is kept in the URL (`#stop=N&step=M`), so a reload or a shared link lands on the same place.
 
 ## Writing decks with AI
@@ -96,7 +100,7 @@ With the skill, the agent agrees on the outline as a list of stops, writes `inde
 | --- | --- |
 | `bang-root` | The deck. Picks the theme. |
 | `bang-frame` | A 1920x1080 area on the canvas, placed with `at="col,row"`. |
-| `bang-path`, `bang-stop` | The order of camera stops: a frame, a `region` of it, or the `overview`. |
+| `bang-path`, `bang-stop` | The order of camera stops: a frame, a `region` of it, one element (`focus`), or the `overview`. |
 | `bang-title`, `bang-text`, `bang-list` | Headings, paragraphs and lists, revealed step by step if you like. |
 | `bang-columns`, `bang-stack`, `bang-card` | Layout. |
 | `bang-stat`, `bang-chart`, `bang-image`, `bang-shape` | Big numbers, charts, images, arrows and marks. |
@@ -113,6 +117,8 @@ Every attribute and its values are in `skill/reference/components.md`.
 - `skill/`: the AI skill (`SKILL.md`, component reference, patterns, starter template).
 - `examples/showcase`: the deck in the pictures above.
 - `examples/minimal`: a small deck that shows the main components.
+
+`bang-root format="map"` lays the frames out as an experimental map (ground, roads between linked frames, fog over the parts not yet reached). Its look and attributes may change in any release.
 
 ## Reference
 
@@ -136,6 +142,8 @@ Set `theme="custom"` on `bang-root` and put a `bang-theme` child with a JSON scr
   ...
 </bang-root>
 ```
+
+Besides colours and fonts, a theme can set typography (weights, leading, tracking), gradients for the ground, covers and bands, card shadows and corners (`cardShadow`, `cardRadius`) and the text colour on accent frames (`onSignal`). Every key is described in `skill/reference/themes.md`.
 
 To reuse one look across decks, keep a `theme.json` and run `banger theme init` once, then `banger theme apply theme.json deck.html` for each deck. Colors are checked for contrast when the deck is rendered, and `banger snap` prints a `warning:` line for unreadable combinations.
 
