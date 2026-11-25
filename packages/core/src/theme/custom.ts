@@ -14,6 +14,7 @@ export const THEME_TYPOGRAPHY_KEYS = [
 export const THEME_KEYS = [
   "base",
   ...THEME_COLOR_KEYS,
+  "onSignal",
   "paperGradient",
   "coverGradient",
   "bandGradient",
@@ -35,6 +36,8 @@ export interface ThemeDefinition {
   inkMuted?: string;
   line?: string;
   signal?: string;
+  /** Text on signal grounds (accent frames). Defaults to #141414 or #FFFFFF, whichever has the higher WCAG 2 contrast. */
+  onSignal?: string;
   /** A linear gradient for the frame ground. `paper` defaults to its first colour; text contrast is checked against every colour. */
   paperGradient?: PaperGradient;
   /** A gradient for frames that set `ground="cover"`. Text contrast is checked against every colour. */
@@ -222,6 +225,10 @@ export function parseThemeJson(text: string): ParsedTheme {
       const rgb = typeof value === "string" ? parseHex(value) : null;
       if (rgb) definition[key as (typeof THEME_COLOR_KEYS)[number]] = toHex(rgb);
       else warnings.push(`theme: "${key}" must be a #RGB or #RRGGBB color; ignored`);
+    } else if (key === "onSignal") {
+      const rgb = typeof value === "string" ? parseHex(value) : null;
+      if (rgb) definition.onSignal = toHex(rgb);
+      else warnings.push('theme: "onSignal" must be a #RGB or #RRGGBB color; ignored');
     } else if (key === "paperGradient" || key === "coverGradient" || key === "bandGradient") {
       const gradient = parsePaperGradient(value);
       if (gradient) definition[key] = gradient;
@@ -351,9 +358,10 @@ export function resolveTheme(definition: ThemeDefinition): ResolvedTheme {
       ? B["line-strong"]
       : toHex(shiftUntil(rgbOf(line), rgbOf(ink), [rgbOf(paper), rgbOf(surface)], 3));
   const onSignal =
-    contrastRatio(rgbOf(ON_SIGNAL_DARK), rgbOf(signal)) >= contrastRatio(rgbOf(ON_SIGNAL_LIGHT), rgbOf(signal))
+    given(definition.onSignal) ??
+    (contrastRatio(rgbOf(ON_SIGNAL_DARK), rgbOf(signal)) >= contrastRatio(rgbOf(ON_SIGNAL_LIGHT), rgbOf(signal))
       ? ON_SIGNAL_DARK
-      : ON_SIGNAL_LIGHT;
+      : ON_SIGNAL_LIGHT);
   const signalText =
     gradientGrounds.length === 0 && signal === B.signal && paper === B.paper && surface === B.surface
       ? B["signal-text"]
@@ -381,6 +389,13 @@ export function resolveTheme(definition: ThemeDefinition): ResolvedTheme {
   ] as const) {
     for (const color of g?.colors ?? []) {
       if (!grounds.some((x) => x.hex === color)) grounds.push({ hex: color, name: `${label} color ${color}` });
+    }
+  }
+  if (definition.onSignal !== undefined) {
+    const ratio = contrastRatio(rgbOf(onSignal), rgbOf(signal));
+    // Accent frames carry titles and short large lines, so the large-text limit applies; body-size text there needs 4.5:1.
+    if (ratio < 3) {
+      warnings.push(`theme: onSignal ${onSignal} on signal ${signal} is ${ratioText(ratio)}:1; 3:1 or more is needed even for large text`);
     }
   }
   for (const { hex: ground, name: on } of grounds) {

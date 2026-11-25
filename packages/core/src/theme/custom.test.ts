@@ -304,7 +304,7 @@ describe("custom theme", () => {
         expect(resolveTheme(def).warnings, name).toEqual([]);
         const parsed = parseThemeJson(serializeTheme(def));
         expect(parsed.warnings, name).toEqual([]);
-        expect(Object.keys(def).sort(), name).toEqual([...THEME_KEYS].filter((k) => !["fontsHref", "paperGradient", "coverGradient", "bandGradient", "typography", "cardShadow", "cardRadius", "highlight"].includes(k)).sort());
+        expect(Object.keys(def).sort(), name).toEqual([...THEME_KEYS].filter((k) => !["fontsHref", "paperGradient", "coverGradient", "bandGradient", "onSignal", "typography", "cardShadow", "cardRadius", "highlight"].includes(k)).sort());
         expect(def.fontSans).toBe(themeFontStacks.sans);
       }
     });
@@ -539,6 +539,23 @@ describe("cardShadow", () => {
     );
     expect(resolveTheme({ cardShadow: "none" }).vars).toEqual({});
     expect(resolveTheme({}).vars).toEqual({});
+  });
+});
+
+describe("onSignal", () => {
+  it("overrides the computed text colour on signal and carries it into accent frames", () => {
+    const resolved = resolveTheme({ onSignal: "#fff" });
+    expect(resolved.colors["on-signal"]).toBe("#FFFFFF");
+    expect(resolved.warnings).toEqual([]);
+    expect(frameToneColors(resolved.colors, "accent").ink).toBe("#FFFFFF");
+    expect(resolveTheme({}).colors["on-signal"]).toBe("#141414");
+  });
+
+  it("warns below 3:1 and on values that are not colours", () => {
+    expect(resolveTheme({ signal: "#FFC800", onSignal: "#FFFFFF" }).warnings).toContain(
+      "theme: onSignal #FFFFFF on signal #FFC800 is 1.55:1; 3:1 or more is needed even for large text",
+    );
+    expect(parseThemeJson('{ "onSignal": "white" }').warnings).toEqual(['theme: "onSignal" must be a #RGB or #RRGGBB color; ignored']);
   });
 });
 

@@ -23,6 +23,7 @@
 
 - `base`: `light` または `dark` (既定 `light`)。
 - 色の種: `paper` (地) `surface` (面) `ink` (本文) `inkMuted` (補足) `line` (罫線) `signal` (強調の塗り)。
+- `onSignal`: `signal` の地 (`tone="accent"` のフレーム) の上の文字色。書かなければ #141414 と #FFFFFF のうちコントラスト比が高いほうになる。鮮やかなオレンジや赤の地で白い文字にしたいときに `"#FFFFFF"` と書く。3:1 を割ると警告が出る。4.5:1 に届かない色なら、accent のフレームには見出しと大きな文字だけを置く。
 - `paperGradient`: フレームの地のグラデーション。`{ "angle": 135, "colors": ["#FFF6D6", "#FFC800"] }` のように、角度 (0〜360、既定 180 で上から下) と 2〜3 色を書く。
 - `coverGradient`: 表紙用のグラデーション。`paperGradient` と同じ形で、`ground="cover"` を書いたフレームだけの地になる。
 - `bandGradient`: 帯用のグラデーション。同じ形で、`<bang-card kind="band">` の地になる。
@@ -38,7 +39,7 @@
 ## 色
 
 - 色は `#RGB` か `#RRGGBB` だけ。`rgb()` や色名は警告されて無視される。
-- `line-strong` `on-signal` `signal-text` `focus` は種から計算で決まり、書けない。
+- `line-strong` `signal-text` `focus` は種から計算で決まり、書けない。
 - 種を変えなければ土台の手選びの値が使われるので、`signal` のひな形はそのまま `theme="light"` と同じ見た目になる。
 
 ## グラデーションの地

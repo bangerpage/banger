@@ -9,10 +9,11 @@ export function readThemeJson(root: Element): string | null {
 /**
  * The colors and fonts of a deck. Used by `<bang-root theme="custom">`; ignored otherwise. Draws nothing.
  *
- * Every key is optional. Keys left out take the value of the base theme. Colors are `#RGB` or `#RRGGBB` only. `line-strong`, `on-signal`, `signal-text` and `focus` are computed from the seeds and cannot be written. Only the first `bang-theme` is used. Contrast below the limits warns and is never corrected.
+ * Every key is optional. Keys left out take the value of the base theme. Colors are `#RGB` or `#RRGGBB` only. `line-strong`, `signal-text` and `focus` are computed from the seeds and cannot be written. Only the first `bang-theme` is used. Contrast below the limits warns and is never corrected.
  *
  * - `base`: `"light"` (default) or `"dark"`.
  * - Colors: `paper`, `surface`, `ink`, `inkMuted`, `line`, `signal`.
+ * - `onSignal`: the text colour on signal grounds (`tone="accent"` frames). Defaults to #141414 or #FFFFFF, whichever has the higher contrast with `signal`. Below 3:1 warns; keep body-size text off accent frames when it is under 4.5:1.
  * - `paperGradient`: `{ "angle": 0-360, "colors": [2 or 3 colors] }`, the ground of every frame.
  * - `coverGradient`: the same shape, the ground of frames that set `ground="cover"`.
  * - `bandGradient`: the same shape, the fill of `<bang-card kind="band">`.
