@@ -190,12 +190,13 @@ Generated files (`skill/reference/components.md`, the runtime URL in the starter
 
 ### Release
 
-Publishing is done by a person.
+Pushing a `v<version>` tag publishes both packages from CI (`.github/workflows/release.yml`).
 
-1. Set the same `version` in `packages/core/package.json` and `packages/cli/package.json`, run `pnpm gen` (it updates the runtime URL in the starter, the example, the READMEs and the fixtures) and commit.
-2. `pnpm gen:check`, `pnpm build`, `pnpm test` and `pnpm test:e2e` must all pass.
-3. `pnpm -r publish` publishes core before cli; each package builds itself first (`prepublishOnly`).
-4. Tag the commit `v<version>` and push it.
+1. Set the same `version` in `packages/core/package.json` and `packages/cli/package.json`, run `pnpm gen` (it updates the runtime URL in the starter, the examples, the READMEs and the fixtures) and commit.
+2. Push the commit and wait for `ci` to pass.
+3. Tag the commit `v<version>` and push the tag. The release workflow checks that the tag matches both versions, runs every check again, publishes core before cli with npm trusted publishing (no npm token in the repository) and creates the GitHub release.
+
+Trusted publishing is set up once per package on npmjs.com: in the package's settings, add a trusted publisher for the GitHub repository `bangerpage/banger` and the workflow `release.yml`.
 
 ## License
 
