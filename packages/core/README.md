@@ -5,7 +5,7 @@ The runtime for [Banger](https://github.com/bangerpage/banger): presentations wr
 Load it from a CDN with the exact version, then write the deck with `bang-*` elements:
 
 ```html
-<script type="module" src="https://cdn.jsdelivr.net/npm/@bangerpage/core@0.1.1/dist/index.js"></script>
+<script type="module" src="https://cdn.jsdelivr.net/npm/@bangerpage/core@0.1.2/dist/index.js"></script>
 <bang-root theme="light">
   <bang-frame id="intro" at="0,0"><bang-title>Hello</bang-title></bang-frame>
   <bang-path>
