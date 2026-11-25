@@ -28,7 +28,7 @@ bang-frame [show="near"] { opacity: var(--bang-near, 1); }
 bang-frame [show="far"] { opacity: calc(1 - var(--bang-near, 1)); }
 /* A focus stop keeps its element at full strength and fades the rest, so the edges of neighbours that fall inside the screen read as background rather than as part of the slide. */
 bang-frame[data-bang-spot], bang-frame [data-bang-spot] { transition: opacity var(--bang-duration-slow, 400ms); }
-bang-frame[data-bang-dim], bang-frame [data-bang-dim]:not([data-bang-hidden]) { opacity: 0.16; }
+bang-frame[data-bang-dim], bang-frame [data-bang-dim]:not([data-bang-hidden], [show="far"]) { opacity: 0.16; }
 @media (prefers-reduced-motion: reduce) { bang-frame[data-bang-spot], bang-frame [data-bang-spot] { transition: none; } }
 /* Layouts keep their natural height so the frame can centre them; only those holding a chart or image grow. Set here because document rules outrank :host. */
 /* A band spans its stack even when the stack centres or end-aligns its children. */

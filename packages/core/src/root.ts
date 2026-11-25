@@ -13,6 +13,8 @@ import {
   nearness,
   regionRect,
   retarget,
+  contains,
+  inflate,
   stageToCanvas,
   viewInside,
   sample,
@@ -88,6 +90,7 @@ const MAP_MARGIN = 960;
 const MAP_OVERVIEW_MARGIN = 320;
 /** Space kept around a focused element, as a fraction of its larger side measured in 16:9. */
 const FOCUS_MARGIN = 0.08;
+const SPOT_FADE_MS = 400;
 const STATUS_MS = 4000;
 const FULL_STAGE: Size = { w: FRAME_WIDTH, h: FRAME_HEIGHT };
 
@@ -181,7 +184,7 @@ export class BangRoot extends BangElement {
       }
       .ground {
         position: absolute;
-        background-color: color-mix(in srgb, var(--bang-color-paper) 70%, var(--bang-color-line));
+        background-color: var(--bang-map-ground);
         background-image:
           radial-gradient(ellipse 34% 30% at 22% 30%, transparent 0 60%, color-mix(in srgb, var(--bang-color-line) 55%, transparent) 60% 60.6%, transparent 60.6% 75%, color-mix(in srgb, var(--bang-color-line) 55%, transparent) 75% 75.6%, transparent 75.6% 90%, color-mix(in srgb, var(--bang-color-line) 55%, transparent) 90% 90.6%, transparent 90.6%),
           radial-gradient(ellipse 30% 36% at 78% 72%, transparent 0 60%, color-mix(in srgb, var(--bang-color-line) 55%, transparent) 60% 60.6%, transparent 60.6% 75%, color-mix(in srgb, var(--bang-color-line) 55%, transparent) 75% 75.6%, transparent 75.6% 90%, color-mix(in srgb, var(--bang-color-line) 55%, transparent) 90% 90.6%, transparent 90.6%),
@@ -210,7 +213,10 @@ export class BangRoot extends BangElement {
       }
       :host([format="map"]) .viewport,
       :host([format="map"]) {
-        background: color-mix(in srgb, var(--bang-color-paper) 70%, var(--bang-color-line));
+        background: var(--bang-map-ground);
+      }
+      :host {
+        --bang-map-ground: color-mix(in srgb, var(--bang-color-paper) 70%, var(--bang-color-line));
       }
       .status {
         position: absolute;
@@ -272,9 +278,14 @@ export class BangRoot extends BangElement {
    * talk has not reached yet. Export pages show what is around the stop instead of masking it.
    * `map` is experimental: its look and behaviour may change in any release. Use `slides` unless the author asks for a map.
    */
-  @property() format: "slides" | "map" = "slides";
+  @property({ reflect: true }) format: "slides" | "map" = "slides";
 
-  @state() private ground: { rect: Rect; roads: { x1: number; y1: number; x2: number; y2: number }[] } | null = null;
+  @state() private ground: Ground | null = null;
+  /** The first stop of each frame, for the fog and for clicks in the overview. */
+  private firstStop = new Map<string, number>();
+  /** Whether any frame reads --bang-near (`label` or `show`); without one, moves skip writing it. */
+  private readsNear = false;
+  private spotted: Element[] = [];
 
   @state() private stage: Size = FULL_STAGE;
   @state() private statusText = "";
@@ -320,23 +331,19 @@ export class BangRoot extends BangElement {
     const dx = event.clientX - start.x;
     const dy = event.clientY - start.y;
     const ms = event.timeStamp - start.at;
-    let forward: boolean;
+    const vertical = start.mouse && Math.abs(dy) > Math.abs(dx);
+    const along = vertical ? dy : dx;
+    const across = vertical ? dx : dy;
+    const [maxMs, minPx] = start.mouse ? [FLICK_MAX_MS, FLICK_MIN_PX] : [SWIPE_MAX_MS, SWIPE_MIN_PX];
+    if (ms > maxMs || Math.abs(along) < minPx || Math.abs(along) < Math.abs(across) * 1.5) return;
     if (start.mouse) {
-      const vertical = Math.abs(dy) > Math.abs(dx);
-      const along = vertical ? dy : dx;
-      const across = vertical ? dx : dy;
-      if (ms > FLICK_MAX_MS || Math.abs(along) < FLICK_MIN_PX || Math.abs(along) < Math.abs(across) * 1.5) return;
-      forward = along < 0;
       window.getSelection()?.removeAllRanges();
       document.documentElement.setAttribute("data-bang-remote", "");
       this.setAttribute("data-bang-nocursor", "");
-    } else {
-      if (ms > SWIPE_MAX_MS || Math.abs(dx) < SWIPE_MIN_PX || Math.abs(dx) < Math.abs(dy) * 1.5) return;
-      forward = dx < 0;
     }
     this.swiped = true;
     setTimeout(() => (this.swiped = false));
-    void (forward ? this.next() : this.prev());
+    void (along < 0 ? this.next() : this.prev());
   };
   private handMoves: number[] = [];
   /**
@@ -351,21 +358,22 @@ export class BangRoot extends BangElement {
     if (this.handMoves.length < CURSOR_WAKE_MOVES) return;
     this.handMoves = [];
     this.removeAttribute("data-bang-nocursor");
+    document.documentElement.removeAttribute("data-bang-remote");
   };
   /** In the overview, a click on a frame goes to it: the current stop when the talk is already there, else the frame's first stop. */
   private readonly onStageClick = (event: MouseEvent) => {
     if (!this.inOverview || this.tween || this.swiped) return;
     const box = (event.currentTarget as HTMLElement).getBoundingClientRect();
     const point = stageToCanvas({ x: event.clientX - box.left, y: event.clientY - box.top }, this.pose, this.stageNow);
-    const hit = this.frames.find((f) => point.x >= f.rect.x && point.x <= f.rect.x + f.rect.w && point.y >= f.rect.y && point.y <= f.rect.y + f.rect.h);
+    const hit = this.frames.find((f) => contains(f.rect, point));
     if (!hit) return;
     const here = this.path.stops[this.current.stop];
     if (here && here.kind !== "overview" && here.frame === hit.id) {
       void this.overview(false);
       return;
     }
-    const first = this.path.stops.findIndex((s) => s.kind !== "overview" && s.frame === hit.id);
-    if (first >= 0) void this.goto(first, 0);
+    const first = this.firstStop.get(hit.id);
+    if (first !== undefined) void this.goto(first, 0);
   };
   private readonly onPointerCancel = () => {
     this.swipeStart = null;
@@ -442,6 +450,8 @@ export class BangRoot extends BangElement {
     }
     this.current = this.hashState();
     this.initialized = true;
+    // A focus stop aims at an element's box, which moves when web fonts arrive after the first paint.
+    void document.fonts?.ready.then(() => this.refreshPose());
     void this.commit(this.current, { animate: false, source: "hash", overview: false });
   }
 
@@ -599,6 +609,10 @@ export class BangRoot extends BangElement {
     return this.mode === "export" ? FULL_STAGE : this.stage;
   }
 
+  private get isMap(): boolean {
+    return this.format === "map";
+  }
+
   private buildPath(): void {
     const frameEls = [...this.querySelectorAll<HTMLElement & { currentStep?: number }>("bang-frame")];
     const seen = new Set<string>();
@@ -612,7 +626,7 @@ export class BangRoot extends BangElement {
       if (id) seen.add(id);
       entries.push({ id: id || `\0${i}`, at: parseAt(el.getAttribute("at")), span: parseSpan(el.getAttribute("span")), el });
     });
-    const isMap = this.getAttribute("format") === "map";
+    const isMap = this.isMap;
     const rects = layoutFrames(entries, isMap ? MAP_GAP : FRAME_GAP);
     this.frameMap = rects;
     this.frames = entries.map((e) => ({ el: e.el, id: e.id, rect: rects[e.id] }));
@@ -650,6 +664,11 @@ export class BangRoot extends BangElement {
     }
     this.path = { stops };
     this.notes = notes;
+    this.firstStop = new Map();
+    stops.forEach((stop, i) => {
+      if (stop.kind !== "overview" && stop.frame && !this.firstStop.has(stop.frame)) this.firstStop.set(stop.frame, i);
+    });
+    this.readsNear = this.frames.some((f) => f.el.hasAttribute("label") || f.el.querySelector("[show]") !== null);
     this.warnShortSteps();
   }
 
@@ -690,10 +709,7 @@ export class BangRoot extends BangElement {
   private rectFor(state: BangState, overview: boolean): Rect | null {
     const all = this.allRects();
     let bounds = all.length > 0 ? boundsOf(all) : { x: 0, y: 0, w: FRAME_WIDTH, h: FRAME_HEIGHT };
-    if (this.ground && all.length > 0) {
-      const m = MAP_OVERVIEW_MARGIN;
-      bounds = { x: bounds.x - m, y: bounds.y - m, w: bounds.w + 2 * m, h: bounds.h + 2 * m };
-    }
+    if (this.isMap && all.length > 0) bounds = inflate(bounds, MAP_OVERVIEW_MARGIN);
     const stop = this.path.stops[state.stop];
     if (overview || !stop || stop.kind === "overview" || stop.frame === undefined) return bounds;
     const frame = this.frameMap[stop.frame];
@@ -705,8 +721,8 @@ export class BangRoot extends BangElement {
     return stop.kind === "region" && stop.region ? regionRect(frame, stop.region) : frame;
   }
 
-  /** The canvas rect of an element inside a frame, with a margin, or null when it is missing or not laid out. */
-  private focusRect(frameId: string, id: string): Rect | null {
+  /** The frame of a focus stop and the element it names, or null (with a warning) when the element is missing. */
+  private focusTarget(frameId: string, id: string): { entry: FrameEntry; target: HTMLElement } | null {
     const entry = this.frames.find((f) => f.id === frameId);
     if (!entry) return null;
     const target = entry.el.querySelector<HTMLElement>(`#${CSS.escape(id)}`);
@@ -714,6 +730,14 @@ export class BangRoot extends BangElement {
       warnOnce(`focus|${frameId}|${id}`, `[banger] <bang-stop focus="${id}"> does not match an element inside frame "${frameId}"; showing the whole frame`);
       return null;
     }
+    return { entry, target };
+  }
+
+  /** The canvas rect of an element inside a frame, with a margin, or null when it is missing or not laid out. */
+  private focusRect(frameId: string, id: string): Rect | null {
+    const found = this.focusTarget(frameId, id);
+    if (!found) return null;
+    const { entry, target } = found;
     const outer = entry.el.getBoundingClientRect();
     const inner = target.getBoundingClientRect();
     if (outer.width === 0 || inner.width === 0 || inner.height === 0) return null;
@@ -724,8 +748,7 @@ export class BangRoot extends BangElement {
       w: inner.width / scale,
       h: inner.height / scale,
     };
-    const pad = Math.max(box.w, box.h * (FRAME_WIDTH / FRAME_HEIGHT)) * FOCUS_MARGIN;
-    return { x: box.x - pad, y: box.y - pad, w: box.w + 2 * pad, h: box.h + 2 * pad };
+    return inflate(box, Math.max(box.w, box.h * (FRAME_WIDTH / FRAME_HEIGHT)) * FOCUS_MARGIN);
   }
 
   /** Re-aims a camera at rest, for when the layout under a focus stop settled after the camera moved (fonts, images). */
@@ -756,6 +779,7 @@ export class BangRoot extends BangElement {
 
   /** Sets --bang-near on every frame from how much of the screen it fills, for `show="near|far"` and frame labels. */
   private applyNearness(pose: CameraPose): void {
+    if (!this.readsNear) return;
     const stage = this.stageNow;
     for (const f of this.frames) {
       const near = nearness(f.rect, pose, stage);
@@ -767,8 +791,8 @@ export class BangRoot extends BangElement {
   private applyClip(): void {
     const clip = this.renderRoot.querySelector<HTMLElement>(".clip");
     if (!clip) return;
-    const rect = this.rectFor(this.current, this.inOverview);
-    if (this.mode !== "export" || !rect || this.getAttribute("format") === "map") {
+    const rect = this.mode === "export" && !this.isMap ? this.rectFor(this.current, this.inOverview) : null;
+    if (!rect) {
       clip.style.clipPath = "none";
       return;
     }
@@ -834,10 +858,9 @@ export class BangRoot extends BangElement {
   }
 
   private applySteps(): void {
-    const fog = this.getAttribute("format") === "map";
+    const fog = this.isMap;
     for (const f of this.frames) {
-      const first = this.path.stops.findIndex((s) => s.kind !== "overview" && s.frame === f.id);
-      f.el.toggleAttribute("data-bang-fog", fog && first > this.current.stop);
+      f.el.toggleAttribute("data-bang-fog", fog && (this.firstStop.get(f.id) ?? -1) > this.current.stop);
       const step = frameStep(f.id, this.current, this.path);
       f.el.currentStep = step;
       for (const el of f.el.querySelectorAll("[data-step]")) {
@@ -853,20 +876,30 @@ export class BangRoot extends BangElement {
 
   /** On a focus stop, fades every frame but the stop's and, inside it, everything off the path from the frame to the focused element. */
   private applySpotlight(): void {
-    for (const el of this.querySelectorAll("[data-bang-dim]")) el.removeAttribute("data-bang-dim");
+    const before = this.spotted;
+    this.spotted = [];
     const stop = this.path.stops[this.current.stop];
-    if (this.inOverview || !stop || stop.kind !== "focus" || !stop.focus) return;
-    const entry = this.frames.find((f) => f.id === stop.frame);
-    const target = entry?.el.querySelector<HTMLElement>(`#${CSS.escape(stop.focus)}`);
-    if (!entry || !target) return;
-    const dim = (el: Element) => {
+    const found =
+      !this.inOverview && stop?.kind === "focus" && stop.frame && stop.focus ? this.focusTarget(stop.frame, stop.focus) : null;
+    if (found) {
+      const { entry, target } = found;
+      for (const f of this.frames) if (f !== entry) this.spotted.push(f.el);
+      for (let node: Element = target; node !== entry.el && node.parentElement; node = node.parentElement) {
+        for (const sibling of node.parentElement.children) if (sibling !== node) this.spotted.push(sibling);
+      }
+    }
+    const dimmed = new Set(this.spotted);
+    // data-bang-spot carries the fade; it stays on what was dimmed until the fade back has run, then goes.
+    for (const el of before) {
+      if (dimmed.has(el)) continue;
+      el.removeAttribute("data-bang-dim");
+      setTimeout(() => {
+        if (!el.hasAttribute("data-bang-dim")) el.removeAttribute("data-bang-spot");
+      }, SPOT_FADE_MS);
+    }
+    for (const el of this.spotted) {
       el.setAttribute("data-bang-spot", "");
       el.setAttribute("data-bang-dim", "");
-    };
-    for (const f of this.frames) if (f !== entry) dim(f.el);
-    for (let node: Element = target; node !== entry.el && node.parentElement; node = node.parentElement) {
-      node.setAttribute("data-bang-spot", "");
-      for (const sibling of node.parentElement.children) if (sibling !== node) dim(sibling);
     }
   }
 
@@ -1033,13 +1066,24 @@ export class BangRoot extends BangElement {
   }
 }
 
-function groundFor(frames: FrameEntry[]): { rect: Rect; roads: { x1: number; y1: number; x2: number; y2: number }[] } | null {
+interface Road {
+  x1: number;
+  y1: number;
+  x2: number;
+  y2: number;
+}
+
+interface Ground {
+  rect: Rect;
+  roads: Road[];
+}
+
+function groundFor(frames: FrameEntry[]): Ground | null {
   if (frames.length === 0) return null;
-  const b = boundsOf(frames.map((f) => f.rect));
-  const rect = { x: b.x - MAP_MARGIN, y: b.y - MAP_MARGIN, w: b.w + 2 * MAP_MARGIN, h: b.h + 2 * MAP_MARGIN };
+  const rect = inflate(boundsOf(frames.map((f) => f.rect)), MAP_MARGIN);
   const byId = new Map(frames.map((f) => [f.id, f]));
   const seen = new Set<string>();
-  const roads: { x1: number; y1: number; x2: number; y2: number }[] = [];
+  const roads: Road[] = [];
   for (const f of frames) {
     for (const other of (f.el.getAttribute("link") ?? "").split(/\s+/).filter(Boolean)) {
       const to = byId.get(other);

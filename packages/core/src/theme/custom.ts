@@ -225,10 +225,6 @@ export function parseThemeJson(text: string): ParsedTheme {
       const rgb = typeof value === "string" ? parseHex(value) : null;
       if (rgb) definition[key as (typeof THEME_COLOR_KEYS)[number]] = toHex(rgb);
       else warnings.push(`theme: "${key}" must be a #RGB or #RRGGBB color; ignored`);
-    } else if (key === "onSignal") {
-      const rgb = typeof value === "string" ? parseHex(value) : null;
-      if (rgb) definition.onSignal = toHex(rgb);
-      else warnings.push('theme: "onSignal" must be a #RGB or #RRGGBB color; ignored');
     } else if (key === "paperGradient" || key === "coverGradient" || key === "bandGradient") {
       const gradient = parsePaperGradient(value);
       if (gradient) definition[key] = gradient;
@@ -246,10 +242,10 @@ export function parseThemeJson(text: string): ParsedTheme {
     } else if (key === "cardRadius") {
       if (typeof value === "number" && Number.isFinite(value) && value >= 0 && value <= 64) definition.cardRadius = value;
       else warnings.push('theme: "cardRadius" must be a number of px from 0 to 64; ignored');
-    } else if (key === "highlight") {
+    } else if (key === "onSignal" || key === "highlight") {
       const rgb = typeof value === "string" ? parseHex(value) : null;
-      if (rgb) definition.highlight = toHex(rgb);
-      else warnings.push('theme: "highlight" must be a #RGB or #RRGGBB color; ignored');
+      if (rgb) definition[key] = toHex(rgb);
+      else warnings.push(`theme: "${key}" must be a #RGB or #RRGGBB color; ignored`);
     } else if (key === "fontsHref") {
       const request = typeof value === "string" ? parseFontsHref(value) : null;
       if (request) definition.fontsHref = request.href;

@@ -99,7 +99,6 @@ ${unsafeCSS(
         radial-gradient(ellipse at 30% 35%, color-mix(in srgb, var(--bang-color-paper) 70%, white) 0 20%, transparent 55%),
         radial-gradient(ellipse at 75% 70%, color-mix(in srgb, var(--bang-color-paper) 70%, white) 0 25%, transparent 60%),
         color-mix(in srgb, var(--bang-color-paper) 55%, var(--bang-color-line));
-      transition: opacity 400ms;
     }
     :host([data-bang-format="map"]) .frame {
       border-radius: var(--bang-radius-l, 48px);

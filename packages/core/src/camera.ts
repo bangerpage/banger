@@ -75,6 +75,15 @@ export function boundsOf(rects: Rect[]): Rect {
 }
 
 /** Contain fit: the whole rect is visible, centered. */
+/** `rect` grown by `margin` on every side. */
+export function inflate(rect: Rect, margin: number): Rect {
+  return { x: rect.x - margin, y: rect.y - margin, w: rect.w + 2 * margin, h: rect.h + 2 * margin };
+}
+
+export function contains(rect: Rect, point: { x: number; y: number }): boolean {
+  return point.x >= rect.x && point.x <= rect.x + rect.w && point.y >= rect.y && point.y <= rect.y + rect.h;
+}
+
 export function poseFor(rect: Rect, stage: Size): CameraPose {
   return {
     cx: rect.x + rect.w / 2,
@@ -147,9 +156,7 @@ export function pullBackFor(from: CameraPose, to: CameraPose, stage: Size): numb
 
 export function startTween(from: CameraPose, to: CameraPose, now: number, stage: Size): CameraTween {
   const pullBack = pullBackFor(from, to, stage);
-  const duration = pullBack < 0
-    ? Math.min(durationFor(from, to, stage) + 250 * -pullBack, MAX_PULL_BACK_DURATION)
-    : durationFor(from, to, stage);
+  const duration = Math.min(durationFor(from, to, stage) - 250 * pullBack, MAX_PULL_BACK_DURATION);
   return { from, to, start: now, duration, pullBack };
 }
 
@@ -186,16 +193,16 @@ export function clipFor(
   return { top: y, right: x, bottom: y, left: x };
 }
 
-/**
- * `layer: false` gives a 2D transform. A 3D one puts the canvas on its own compositor layer, which moves smoothly but
- * may be drawn from a raster made at the previous zoom, so stills taken from it differ from run to run.
- */
 /** The canvas point under a point on the stage (stage pixels from its top left), for the camera at `pose`. */
 export function stageToCanvas(point: { x: number; y: number }, pose: CameraPose, stage: Size): { x: number; y: number } {
   const { tx, ty, scale } = toTransform(pose, stage);
   return { x: (point.x - tx) / scale, y: (point.y - ty) / scale };
 }
 
+/**
+ * `layer: false` gives a 2D transform. A 3D one puts the canvas on its own compositor layer, which moves smoothly but
+ * may be drawn from a raster made at the previous zoom, so stills taken from it differ from run to run.
+ */
 export function toTransform(
   pose: CameraPose,
   stage: Size,
