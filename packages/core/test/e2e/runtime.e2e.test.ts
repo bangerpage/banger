@@ -196,8 +196,8 @@ describe("runtime", () => {
     const html = `<!doctype html><meta charset="utf-8"><title>t</title><script type="module" src="/dist/index.js"></script>
 <bang-root><bang-frame id="a" at="0,0"><bang-text>a</bang-text></bang-frame><bang-frame id="b" at="1,0"><bang-text>b</bang-text></bang-frame>
 <bang-path><bang-stop frame="a"></bang-stop><bang-stop frame="a" region="0,0,0.5,0.5"></bang-stop><bang-stop frame="b"></bang-stop></bang-path></bang-root>`;
-    const { page } = await openVirtual("overview-click", html);
-    await page.emulateMedia({ reducedMotion: "reduce" });
+    // Reduced motion from the first paint, so the camera jumps and the click lands on settled frames.
+    const { page } = await openVirtual("overview-click", html, { reducedMotion: "reduce" });
     const clickFrame = async (id: string) => {
       const box = await page.evaluate((s) => {
         const r = document.querySelector(s)!.getBoundingClientRect();
