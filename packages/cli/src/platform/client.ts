@@ -61,6 +61,40 @@ export function tokenFor(host: string, env: NodeJS.ProcessEnv = process.env): st
   return readCredentials(env).hosts[host]?.token ?? null;
 }
 
+export const CLIENT_ID = "banger-cli";
+
+/** Trades an authorization code from the browser for a token (OAuth with PKCE; banger-cli is a public client). */
+export async function exchangeCode(
+  host: string,
+  params: { code: string; verifier: string; redirectUri: string },
+  fetchImpl: typeof fetch = fetch,
+): Promise<string> {
+  const body = new URLSearchParams({
+    grant_type: "authorization_code",
+    code: params.code,
+    code_verifier: params.verifier,
+    redirect_uri: params.redirectUri,
+    client_id: CLIENT_ID,
+  });
+  const response = await fetchImpl(`${host}/oauth/token`, { method: "POST", body });
+  const data = (await response.json().catch(() => ({}))) as { access_token?: string; error?: string; error_description?: string };
+  if (!response.ok || !data.access_token) {
+    throw new ApiError(response.status, data.error ?? `http_${response.status}`, data.error_description ?? data.error ?? "the token request failed");
+  }
+  return data.access_token;
+}
+
+/** Revokes a token on the site. The site answers 200 whether or not it knew the token. */
+export async function revokeToken(host: string, token: string, fetchImpl: typeof fetch = fetch): Promise<void> {
+  const response = await fetchImpl(`${host}/oauth/revoke`, { method: "POST", body: new URLSearchParams({ token, client_id: CLIENT_ID }) });
+  if (!response.ok) throw new ApiError(response.status, `http_${response.status}`, `${response.status} ${response.statusText}`.trim());
+}
+
+/** The token stored for `host` by `banger login`, ignoring `BANGER_TOKEN`. */
+export function storedToken(host: string, env: NodeJS.ProcessEnv = process.env): string | null {
+  return readCredentials(env).hosts[host]?.token ?? null;
+}
+
 export class ApiError extends Error {
   constructor(
     readonly status: number,

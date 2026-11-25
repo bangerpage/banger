@@ -51,6 +51,14 @@ function fakeSite(opts: { slugTaken?: boolean; meStatus?: number } = {}) {
     const body = typeof init?.body === "string" ? JSON.parse(init.body) : init?.body;
     calls.push({ method, url, body });
     const path = new URL(url).pathname;
+    if (path === "/oauth/token") {
+      const form = new URLSearchParams(String(init?.body));
+      if (form.get("code") !== "c1" || !form.get("code_verifier") || form.get("client_id") !== "banger-cli") {
+        return json(400, { error: "invalid_grant", error_description: "bad code" });
+      }
+      return json(200, { access_token: "bgr_oauth", token_type: "bearer", scope: "publish read" });
+    }
+    if (path === "/oauth/revoke") return new Response(null, { status: 200 });
     if (path === "/api/v1/me") return opts.meStatus ? json(opts.meStatus, { error: { code: "unauthorized", message: "bad token" } }) : json(200, { username: "sotarok" });
     if (path === "/api/v1/uploads") {
       const files = (body as { files: { path: string; sha256: string }[] }).files;
@@ -104,16 +112,43 @@ describe("limits and slugs", () => {
 describe("login and logout", () => {
   it("checks the token, stores it readable only by the user, and forgets it on logout", async () => {
     const site = fakeSite();
-    expect(await runLogin(["--token", "bgr_x"], site.fetchImpl)).toBe(0);
+    expect(await runLogin(["--token", "bgr_x"], { fetchImpl: site.fetchImpl })).toBe(0);
     const file = credentialsPath();
     expect(JSON.parse(readFileSync(file, "utf8")).hosts["https://example.test"]).toEqual({ token: "bgr_x", username: "sotarok" });
     expect(statSync(file).mode & 0o777).toBe(0o600);
-    expect(await runLogout([])).toBe(0);
+    expect(await runLogout([], { fetchImpl: site.fetchImpl })).toBe(0);
     expect(() => statSync(file)).toThrow();
+    expect(site.calls.at(-1)).toMatchObject({ method: "POST", url: "https://example.test/oauth/revoke" });
+  });
+
+  it("logs in through the browser with PKCE and stores the token the site returns", async () => {
+    const site = fakeSite();
+    let authorize: URL | undefined;
+    const open = (url: string) => {
+      authorize = new URL(url);
+      const back = new URL(authorize.searchParams.get("redirect_uri")!);
+      back.search = new URLSearchParams({ code: "c1", state: authorize.searchParams.get("state")! }).toString();
+      void fetch(back);
+    };
+    expect(await runLogin([], { fetchImpl: site.fetchImpl, open })).toBe(0);
+    expect(authorize!.pathname).toBe("/authorize");
+    expect(authorize!.searchParams.get("code_challenge_method")).toBe("S256");
+    expect(authorize!.searchParams.get("redirect_uri")).toMatch(/^http:\/\/127\.0\.0\.1:\d+\/callback$/);
+    expect(JSON.parse(readFileSync(credentialsPath(), "utf8")).hosts["https://example.test"].token).toBe("bgr_oauth");
+  });
+
+  it("stops when the person does not allow the login in the browser", async () => {
+    const open = (url: string) => {
+      const authorize = new URL(url);
+      const back = new URL(authorize.searchParams.get("redirect_uri")!);
+      back.search = new URLSearchParams({ error: "access_denied", state: authorize.searchParams.get("state")! }).toString();
+      void fetch(back);
+    };
+    await expect(runLogin([], { fetchImpl: fakeSite().fetchImpl, open })).rejects.toThrow(/not allowed/);
   });
 
   it("refuses a token the site does not accept, and stores nothing", async () => {
-    await expect(runLogin(["--token", "bad"], fakeSite({ meStatus: 401 }).fetchImpl)).rejects.toMatchObject({ exitCode: 2 });
+    await expect(runLogin(["--token", "bad"], { fetchImpl: fakeSite({ meStatus: 401 }).fetchImpl })).rejects.toMatchObject({ exitCode: 2 });
     expect(() => statSync(credentialsPath())).toThrow();
   });
 });

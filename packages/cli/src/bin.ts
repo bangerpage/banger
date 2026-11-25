@@ -31,7 +31,8 @@ commands:
   skill install [--project | --dir <path>] [--force]
                                    copy the agent skill to ~/.claude/skills/banger
                                    (--project: ./.claude/skills/banger)
-  login --token <token>            store a banger.page token (made at banger.page/settings)
+  login [--token <token>]          log in to banger.page in the browser (or store a token made
+                                   on the site's settings page)
   logout                           forget the stored token
   publish [dir] [--slug <slug>] [--title <title>] [--visibility public|unlisted] [--strict]
           [--skip-check] [--dry-run]
