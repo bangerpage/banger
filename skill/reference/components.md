@@ -6,8 +6,8 @@ Every element accepts these global attributes: `id` `lang` `dir` `data-step` `ar
 
 ## bang-card
 
-A box that stacks its children. `panel` is a framed surface (with a soft shadow along its inner edge when the custom
-theme sets `cardShadow: "soft"`); `band` has no visible border and is filled with the custom theme's `bandGradient`
+A box that stacks its children. `panel` is a framed surface (the custom theme's `cardShadow` and `cardRadius` change
+its shadow and corners); `band` has no visible border and is filled with the custom theme's `bandGradient`
 (without a `bandGradient` it is a surface with a border).
 
 ```html
@@ -337,7 +337,8 @@ Every key is optional. Keys left out take the value of the base theme. Colors ar
 - `coverGradient`: the same shape, the ground of frames that set `ground="cover"`.
 - `bandGradient`: the same shape, the fill of `<bang-card kind="band">`.
 - `typography`: `weightText`, `weightHeading` (100-900 in steps of 100), `leadingText`, `leadingHeading` (a 0.8-1.6 multiplier of each size's leading), `trackingText`, `trackingHeading` (em, -0.1 to 0.3). Headings are title and stat; text is text and list.
-- `cardShadow`: `"none"` (default) or `"soft"`. A soft shadow inside the edge of `<bang-card>` panels.
+- `cardShadow`: `"none"` (default), `"soft"` or `"lift"`. `soft` shades `<bang-card>` panels inside their edge; `lift` raises them off the ground with a drop shadow and drops their border.
+- `cardRadius`: the corner radius of `<bang-card>` panels in px, 0-64. Defaults to 12.
 - `highlight`: one `#RGB` or `#RRGGBB` color, the highlighter of `<mark>`. Defaults to `signal` at 40% opacity.
 - Fonts (CSS font-family lists): `fontSans`, `fontDisplay`, `fontMono`.
 - `fontsHref`: a Google Fonts `https://fonts.googleapis.com/css2?...` URL that loads the families.

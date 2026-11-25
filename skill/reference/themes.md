@@ -27,7 +27,8 @@
 - `coverGradient`: 表紙用のグラデーション。`paperGradient` と同じ形で、`ground="cover"` を書いたフレームだけの地になる。
 - `bandGradient`: 帯用のグラデーション。同じ形で、`<bang-card kind="band">` の地になる。
 - `typography`: 太さ・行間・字間。次の「組版」を見る。
-- `cardShadow`: `"none"` (既定) か `"soft"`。`soft` のとき `<bang-card>` に影が出る。
+- `cardShadow`: `"none"` (既定)、`"soft"`、`"lift"` のいずれか。`soft` は `<bang-card>` の縁の内側に影、`lift` はカードが地から浮く影を付け、枠線を消す。
+- `cardRadius`: `<bang-card>` の角丸。0〜64 の px の数。既定は 12。
 - `highlight`: `#RGB` / `#RRGGBB` の 1 色。`<mark>` の蛍光ペンの色。書かなければ `signal` の 40% の半透明。次の「マーカー」を見る。
 - フォント: `fontSans` `fontDisplay` `fontMono`。
 - `fontsHref`: Google Fonts の css2 の URL。
@@ -132,6 +133,14 @@
 
 ```json
 { "paper": "#FFC800", "ink": "#141414", "signal": "#141414", "cardShadow": "soft" }
+```
+
+`cardShadow` を `"lift"` にすると、カードの下に影が落ち、地から浮いて見える。枠線は消える。影の色は `soft` と同じく `ink` と `paper` の暗い方から計算される。地が暗いテーマ (`base: "dark"` など) では影がほとんど見えないので、`surface` と `paper` の差でカードを見分けられるようにする。
+
+`cardRadius` でカードの角丸を px で決める。`lift` と合わせるなら 16〜24 が目安。帯 (`kind="band"`) の角丸は変わらない。
+
+```json
+{ "cardShadow": "lift", "cardRadius": 24 }
 ```
 
 ## コントラスト

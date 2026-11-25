@@ -19,6 +19,7 @@ export const THEME_KEYS = [
   "bandGradient",
   "typography",
   "cardShadow",
+  "cardRadius",
   "highlight",
   ...THEME_FONT_KEYS,
   "fontsHref",
@@ -42,8 +43,10 @@ export interface ThemeDefinition {
   bandGradient?: PaperGradient;
   /** Weight, leading scale and tracking for text (text, list) and headings (title, stat). */
   typography?: ThemeTypography;
-  /** `soft` gives `<bang-card>` panels a soft shadow; `none` (default) keeps them flat. */
-  cardShadow?: "none" | "soft";
+  /** `soft` shades `<bang-card>` panels inside their edge; `lift` raises them off the ground with a drop shadow and no border; `none` (default) keeps them flat. */
+  cardShadow?: "none" | "soft" | "lift";
+  /** The corner radius of `<bang-card>` panels in px (0-64). Defaults to 12. */
+  cardRadius?: number;
   /** The colour of `<mark>` (`#RGB` / `#RRGGBB`). Defaults to `signal` at 40% opacity. Body text stays `ink`. */
   highlight?: string;
   fontSans?: string;
@@ -231,8 +234,11 @@ export function parseThemeJson(text: string): ParsedTheme {
       const typography = parseTypography(value, warnings);
       if (typography) definition.typography = typography;
     } else if (key === "cardShadow") {
-      if (value === "none" || value === "soft") definition.cardShadow = value;
-      else warnings.push('theme: "cardShadow" must be "none" or "soft"; ignored');
+      if (value === "none" || value === "soft" || value === "lift") definition.cardShadow = value;
+      else warnings.push('theme: "cardShadow" must be "none", "soft" or "lift"; ignored');
+    } else if (key === "cardRadius") {
+      if (typeof value === "number" && Number.isFinite(value) && value >= 0 && value <= 64) definition.cardRadius = value;
+      else warnings.push('theme: "cardRadius" must be a number of px from 0 to 64; ignored');
     } else if (key === "highlight") {
       const rgb = typeof value === "string" ? parseHex(value) : null;
       if (rgb) definition.highlight = toHex(rgb);
@@ -424,10 +430,16 @@ export function resolveTheme(definition: ThemeDefinition): ResolvedTheme {
       warnings.push(`theme: ink ${ink} on highlight ${highlight} is ${ratioText(ratio)}:1; 4.5:1 or more is needed to read text`);
     }
   }
-  if (definition.cardShadow === "soft") {
+  if (definition.cardShadow === "soft" || definition.cardShadow === "lift") {
     const darker = relativeLuminance(rgbOf(ink)) <= relativeLuminance(rgbOf(paper)) ? rgbOf(ink) : rgbOf(paper);
-    vars["--bang-card-shadow"] = `inset 0 0 36px rgba(${darker.r}, ${darker.g}, ${darker.b}, 0.3)`;
+    const tint = (alpha: number) => `rgba(${darker.r}, ${darker.g}, ${darker.b}, ${alpha})`;
+    if (definition.cardShadow === "soft") vars["--bang-card-shadow"] = `inset 0 0 36px ${tint(0.3)}`;
+    else {
+      vars["--bang-card-shadow"] = `0 4px 10px ${tint(0.08)}, 0 18px 44px ${tint(0.12)}`;
+      vars["--bang-card-border"] = "transparent";
+    }
   }
+  if (definition.cardRadius !== undefined) vars["--bang-card-radius"] = `${definition.cardRadius}px`;
 
   if (fontsRequest && t) {
     for (const [weight, stack, key] of [

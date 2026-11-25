@@ -94,7 +94,7 @@ describe("theme", () => {
   });
 
   it("adds none of the custom-theme properties to the generated css", () => {
-    expect(css).not.toMatch(/--bang-(text-|heading-|cover-ground|band-ground|card-shadow|highlight|band-border)/);
+    expect(css).not.toMatch(/--bang-(text-|heading-|cover-ground|band-ground|card-shadow|card-border|card-radius|highlight|band-border)/);
   });
 
   it("adds no shape, free-box or italic rule to the generated css", () => {

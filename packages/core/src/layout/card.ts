@@ -4,8 +4,8 @@ import { pick } from "../attrs.js";
 import { BangElement, defineOnce } from "../element.js";
 
 /**
- * A box that stacks its children. `panel` is a framed surface (with a soft shadow along its inner edge when the custom
- * theme sets `cardShadow: "soft"`); `band` has no visible border and is filled with the custom theme's `bandGradient`
+ * A box that stacks its children. `panel` is a framed surface (the custom theme's `cardShadow` and `cardRadius` change
+ * its shadow and corners); `band` has no visible border and is filled with the custom theme's `bandGradient`
  * (without a `bandGradient` it is a surface with a border).
  *
  * ```html
@@ -26,8 +26,8 @@ export class BangCard extends BangElement {
       box-sizing: border-box;
       min-height: 0;
       padding: var(--bang-space-12);
-      border: var(--bang-border-hairline) solid var(--bang-color-line);
-      border-radius: var(--bang-radius-s);
+      border: var(--bang-border-hairline) solid var(--bang-card-border, var(--bang-color-line));
+      border-radius: var(--bang-card-radius, var(--bang-radius-m));
       background: var(--bang-color-surface);
       box-shadow: var(--bang-card-shadow, none);
     }

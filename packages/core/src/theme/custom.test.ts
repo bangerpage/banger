@@ -304,7 +304,7 @@ describe("custom theme", () => {
         expect(resolveTheme(def).warnings, name).toEqual([]);
         const parsed = parseThemeJson(serializeTheme(def));
         expect(parsed.warnings, name).toEqual([]);
-        expect(Object.keys(def).sort(), name).toEqual([...THEME_KEYS].filter((k) => !["fontsHref", "paperGradient", "coverGradient", "bandGradient", "typography", "cardShadow", "highlight"].includes(k)).sort());
+        expect(Object.keys(def).sort(), name).toEqual([...THEME_KEYS].filter((k) => !["fontsHref", "paperGradient", "coverGradient", "bandGradient", "typography", "cardShadow", "cardRadius", "highlight"].includes(k)).sort());
         expect(def.fontSans).toBe(themeFontStacks.sans);
       }
     });
@@ -414,6 +414,7 @@ describe("typography", () => {
       "bandGradient",
       "typography",
       "cardShadow",
+      "cardRadius",
       "highlight",
     ]);
     expect(THEME_KEYS.at(-1)).toBe("fontsHref");
@@ -515,11 +516,18 @@ describe("coverGradient and bandGradient", () => {
 });
 
 describe("cardShadow", () => {
-  it("parses none and soft and rejects others", () => {
+  it("parses none, soft and lift and rejects others", () => {
     expect(parseThemeJson('{ "cardShadow": "soft" }').definition?.cardShadow).toBe("soft");
+    expect(parseThemeJson('{ "cardShadow": "lift" }').definition?.cardShadow).toBe("lift");
     const { definition, warnings } = parseThemeJson('{ "cardShadow": "hard" }');
     expect(definition?.cardShadow).toBeUndefined();
-    expect(warnings).toEqual(['theme: "cardShadow" must be "none" or "soft"; ignored']);
+    expect(warnings).toEqual(['theme: "cardShadow" must be "none", "soft" or "lift"; ignored']);
+  });
+
+  it("lift drops a shadow in the darker of ink and paper and hides the border", () => {
+    const { vars } = resolveTheme({ cardShadow: "lift" });
+    expect(vars["--bang-card-shadow"]).toBe("0 4px 10px rgba(20, 20, 20, 0.08), 0 18px 44px rgba(20, 20, 20, 0.12)");
+    expect(vars["--bang-card-border"]).toBe("transparent");
   });
 
   it("uses the darker of ink and paper, and no var for none or unset", () => {
@@ -531,6 +539,18 @@ describe("cardShadow", () => {
     );
     expect(resolveTheme({ cardShadow: "none" }).vars).toEqual({});
     expect(resolveTheme({}).vars).toEqual({});
+  });
+});
+
+describe("cardRadius", () => {
+  it("takes 0-64 px, round-trips, and warns once on anything else", () => {
+    expect(resolveTheme({ cardRadius: 24 }).vars["--bang-card-radius"]).toBe("24px");
+    expect(parseThemeJson(serializeTheme({ cardRadius: 24 })).definition?.cardRadius).toBe(24);
+    for (const bad of ["-1", "65", '"24px"']) {
+      const { definition, warnings } = parseThemeJson(`{ "cardRadius": ${bad} }`);
+      expect(definition?.cardRadius, bad).toBeUndefined();
+      expect(warnings, bad).toEqual(['theme: "cardRadius" must be a number of px from 0 to 64; ignored']);
+    }
   });
 });
 
