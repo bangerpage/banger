@@ -102,6 +102,8 @@ const SWIPE_MAX_MS = 800;
 const FLICK_MIN_PX = 300;
 const FLICK_MAX_MS = 400;
 const CURSOR_WAKE_PX = 60;
+const CURSOR_WAKE_MOVES = 3;
+const CURSOR_WAKE_MS = 500;
 
 function isEditable(target: EventTarget | null): boolean {
   if (!(target instanceof HTMLElement)) return false;
@@ -336,10 +338,19 @@ export class BangRoot extends BangElement {
     setTimeout(() => (this.swiped = false));
     void (forward ? this.next() : this.prev());
   };
-  /** Shows the cursor again once a person moves the mouse; a remote teleports it in one jump with no button down, a hand moves it a little at a time. */
+  private handMoves: number[] = [];
+  /**
+   * Shows the cursor again once a person moves the mouse. A remote sends moves of 0 and one jump of hundreds of pixels
+   * with no button down; a hand sends a run of small non-zero moves.
+   */
   private readonly onPointerMove = (event: PointerEvent) => {
     if (event.pointerType !== "mouse" || event.buttons !== 0 || !this.hasAttribute("data-bang-nocursor")) return;
-    if (Math.hypot(event.movementX, event.movementY) < CURSOR_WAKE_PX) this.removeAttribute("data-bang-nocursor");
+    const step = Math.hypot(event.movementX, event.movementY);
+    if (step === 0 || step >= CURSOR_WAKE_PX) return;
+    this.handMoves = [...this.handMoves.filter((t) => event.timeStamp - t < CURSOR_WAKE_MS), event.timeStamp];
+    if (this.handMoves.length < CURSOR_WAKE_MOVES) return;
+    this.handMoves = [];
+    this.removeAttribute("data-bang-nocursor");
   };
   /** In the overview, a click on a frame goes to it: the current stop when the talk is already there, else the frame's first stop. */
   private readonly onStageClick = (event: MouseEvent) => {

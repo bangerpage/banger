@@ -91,8 +91,13 @@ describe("runtime", () => {
     expect(await cursorHidden()).toBe(true);
     const move = (dx: number) =>
       page.evaluate((dx) => window.dispatchEvent(new PointerEvent("pointermove", { pointerType: "mouse", movementX: dx, movementY: 0, buttons: 0 })), dx);
-    await move(800);
+    await move(0);
+    await move(0);
+    await move(405);
+    await move(0);
+    await move(5);
     expect(await cursorHidden()).toBe(true);
+    await move(5);
     await move(5);
     expect(await cursorHidden()).toBe(false);
     await swipe(1763, 0, "mouse");
