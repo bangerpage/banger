@@ -1,10 +1,12 @@
 import { readFileSync, realpathSync } from "node:fs";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import { BrowserNotFoundError, installHint } from "./browser.js";
+import { runLogin, runLogout } from "./commands/account.js";
 import { runCheck } from "./commands/check.js";
 import { runExport } from "./commands/export.js";
 import { runInit } from "./commands/init.js";
 import { runPreview } from "./commands/preview.js";
+import { runPublish } from "./commands/publish.js";
 import { runSkill } from "./commands/skill.js";
 import { runSnap } from "./commands/snap.js";
 import { runTheme } from "./commands/theme.js";
@@ -29,18 +31,25 @@ commands:
   skill install [--project | --dir <path>] [--force]
                                    copy the agent skill to ~/.claude/skills/banger
                                    (--project: ./.claude/skills/banger)
+  login --token <token>            store a banger.page token (made at banger.page/settings)
+  logout                           forget the stored token
+  publish [dir] [--slug <slug>] [--title <title>] [--visibility public|unlisted] [--strict]
+          [--skip-check] [--dry-run]
+                                   check the deck in dir (default: here) and publish it to banger.page;
+                                   later runs update the same deck
 
   [file] defaults to index.html in the working directory.
 
   In a terminal, banger checks npm for a newer release once a day and prints a notice.
   Set BANGER_NO_UPDATE_CHECK=1 to turn it off; it is also off when CI is set.
+  BANGER_TOKEN gives publish a token without logging in (for CI); BANGER_HOST changes the site.
 
 options:
   --help       show this help
   --version    show the version
 `;
 
-const COMMANDS = new Set(["init", "preview", "snap", "check", "export", "theme", "skill"]);
+const COMMANDS = new Set(["init", "preview", "snap", "check", "export", "theme", "skill", "login", "logout", "publish"]);
 
 function version(): string {
   const manifest = fileURLToPath(new URL("../package.json", import.meta.url));
@@ -74,6 +83,12 @@ async function dispatch(argv: string[]): Promise<number> {
       return runTheme(rest);
     case "skill":
       return runSkill(rest);
+    case "login":
+      return runLogin(rest);
+    case "logout":
+      return runLogout(rest);
+    case "publish":
+      return runPublish(rest);
     default:
       throw new CliError(2, `unknown command: ${command}\n${USAGE}`);
   }

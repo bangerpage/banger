@@ -37,6 +37,7 @@ description: HTML 1 枚で「めくらない」プレゼンテーション (キ�
 - `banger export [file] --pdf [--out path] [--steps last|all]`: 停止点ごとに 1 ページの PDF にする。
 - `banger theme init [file] [--from <preset>] [--force]`: 同梱のひな形 (`signal` `signal-dark` `sunshine` `midnight`) から `theme.json` を作る。
 - `banger theme apply <theme.json> <deck.html>`: `theme.json` を発表に埋め込み、`theme="custom"` にする。何度実行しても結果は同じ。
+- `banger publish [dir] [--slug <slug>]`: 発表を banger.page に公開する。2 回目からは同じ発表の更新になる。公開は外に出す操作なので、人が頼んだときだけ実行する。ログインしていなければ、人に `banger login --token <token>` を頼む (トークンは banger.page の設定画面で作る)。公開の前に `banger export --pdf --out deck.pdf` で PDF を作っておくと、発表ページから PDF を落とせる。
 
 ## エスケープハッチ
 

@@ -157,6 +157,8 @@ skill を入れた AI は、停止点の並びで構成を合意してから `in
 - `banger theme init [file] [--from <preset>] [--force]`: 同梱のプリセット (`signal`、`signal-dark`、`sunshine`、`midnight`) から `theme.json` を書きます。
 - `banger theme apply <theme.json> <deck.html>`: テーマを発表に埋め込み、`theme="custom"` にします。何度実行しても結果は同じです。
 - `banger skill install [--project | --dir <path>] [--force]`: この版の CLI に同梱した skill を `~/.claude/skills/banger` (または `./.claude/skills/banger`、`<path>`) に写します。
+- `banger login --token <token>`: [banger.page](https://banger.page) の設定画面で作ったトークンを、`~/.config/banger/credentials.json` (自分だけが読める) に置きます。`banger logout` で消します。CI では代わりに `BANGER_TOKEN` を設定します。
+- `banger publish [dir] [--slug <slug>] [--title <title>] [--visibility public|unlisted] [--strict] [--skip-check] [--dry-run]`: `dir` (既定は今のディレクトリ) の発表に `banger check` をかけてから、`index.html` と、その隣にある banger.page が受け付けるファイル (画像、フォント、動画、JSON、CSS、JS、`deck.pdf`。ドットファイルと `node_modules` は送らない) を送って公開します。slug の既定はディレクトリ名です。slug と URL は `.banger/deck.json` に残るので、次の実行では同じ発表を更新します。check の警告は、`--strict` を付けない限り公開を止めません。描画に失敗した部品があるときは、必ず止めます。
 
 ターミナルで実行すると、CLI は 1 日に 1 回まで npm で新しい `@bangerpage/cli` を確かめ、次の実行で知らせます。この確認でコマンドが遅くなることはありません。`BANGER_NO_UPDATE_CHECK=1` で止められます (`CI` が設定されているときと、標準エラーがターミナルでないときも止まります)。
 

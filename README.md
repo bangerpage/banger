@@ -157,6 +157,8 @@ To reuse one look across decks, keep a `theme.json` and run `banger theme init` 
 - `banger theme init [file] [--from <preset>] [--force]`: write a `theme.json` from a bundled preset (`signal`, `signal-dark`, `sunshine`, `midnight`).
 - `banger theme apply <theme.json> <deck.html>`: embed the theme in a deck and set `theme="custom"`. Running it again gives the same result.
 - `banger skill install [--project | --dir <path>] [--force]`: copy the agent skill bundled with this CLI version to `~/.claude/skills/banger` (or `./.claude/skills/banger`, or `<path>`).
+- `banger login --token <token>`: store a [banger.page](https://banger.page) token, made on the site's settings page, in `~/.config/banger/credentials.json` (readable only by you). `banger logout` forgets it. In CI, set `BANGER_TOKEN` instead.
+- `banger publish [dir] [--slug <slug>] [--title <title>] [--visibility public|unlisted] [--strict] [--skip-check] [--dry-run]`: run `banger check` on the deck in `dir` (default: the working directory), then send `index.html` and the files next to it that banger.page accepts (images, fonts, video, JSON, CSS, JS and `deck.pdf`; dotfiles and `node_modules` are left out) and publish it. The slug defaults to the directory name. The slug and URL are kept in `.banger/deck.json`, so the next run updates the same deck. Check warnings do not stop a publish unless you pass `--strict`; failed components always do.
 
 In a terminal, the CLI checks npm for a newer `@bangerpage/cli` at most once a day and prints a notice on the next run; the check never delays a command. Set `BANGER_NO_UPDATE_CHECK=1` to turn it off (it is also off when `CI` is set or stderr is not a terminal).
 
