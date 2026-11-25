@@ -74,7 +74,6 @@ export function boundsOf(rects: Rect[]): Rect {
   return { x: left, y: top, w: right - left, h: bottom - top };
 }
 
-/** Contain fit: the whole rect is visible, centered. */
 /** `rect` grown by `margin` on every side. */
 export function inflate(rect: Rect, margin: number): Rect {
   return { x: rect.x - margin, y: rect.y - margin, w: rect.w + 2 * margin, h: rect.h + 2 * margin };
@@ -84,6 +83,7 @@ export function contains(rect: Rect, point: { x: number; y: number }): boolean {
   return point.x >= rect.x && point.x <= rect.x + rect.w && point.y >= rect.y && point.y <= rect.y + rect.h;
 }
 
+/** Contain fit: the whole rect is visible, centered. */
 export function poseFor(rect: Rect, stage: Size): CameraPose {
   return {
     cx: rect.x + rect.w / 2,
@@ -92,7 +92,7 @@ export function poseFor(rect: Rect, stage: Size): CameraPose {
   };
 }
 
-/** A stop that names no known frame (and overview stops) shows every frame. */
+/** A stop that names no known frame (and overview stops) shows every frame. A focus stop shows its whole frame here: its element's box is measured in the page by bang-root. */
 export function targetFor(stop: StopModel, frames: Record<string, Rect>, stage: Size): CameraPose {
   const frame = stop.kind === "overview" || stop.frame === undefined ? undefined : frames[stop.frame];
   if (!frame) return poseFor(boundsOf(Object.values(frames)), stage);

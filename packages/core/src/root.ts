@@ -283,8 +283,6 @@ export class BangRoot extends BangElement {
   @state() private ground: Ground | null = null;
   /** The first stop of each frame, for the fog and for clicks in the overview. */
   private firstStop = new Map<string, number>();
-  /** Whether any frame reads --bang-near (`label` or `show`); without one, moves skip writing it. */
-  private readsNear = false;
   private spotted: Element[] = [];
 
   @state() private stage: Size = FULL_STAGE;
@@ -375,6 +373,10 @@ export class BangRoot extends BangElement {
     const first = this.firstStop.get(hit.id);
     if (first !== undefined) void this.goto(first, 0);
   };
+  /** A remote's first flick may start on an image; a native drag would cancel the pointer and swallow the flick. */
+  private readonly onDragStart = (event: DragEvent) => {
+    if (event.target instanceof HTMLImageElement) event.preventDefault();
+  };
   private readonly onPointerCancel = () => {
     this.swipeStart = null;
   };
@@ -400,6 +402,7 @@ export class BangRoot extends BangElement {
       window.addEventListener("pointerup", this.onPointerUp);
       window.addEventListener("pointercancel", this.onPointerCancel);
       window.addEventListener("pointermove", this.onPointerMove);
+      this.addEventListener("dragstart", this.onDragStart);
       if (typeof BroadcastChannel !== "undefined") {
         this.sync = new PresenterSync();
         this.sync.onRemote((remote) => {
@@ -614,6 +617,8 @@ export class BangRoot extends BangElement {
   }
 
   private buildPath(): void {
+    for (const el of this.spotted) el.removeAttribute("data-bang-dim");
+    this.spotted = [];
     const frameEls = [...this.querySelectorAll<HTMLElement & { currentStep?: number }>("bang-frame")];
     const seen = new Set<string>();
     const entries: { id: string; at: [number, number]; span: [number, number]; el: (typeof frameEls)[number] }[] = [];
@@ -668,7 +673,6 @@ export class BangRoot extends BangElement {
     stops.forEach((stop, i) => {
       if (stop.kind !== "overview" && stop.frame && !this.firstStop.has(stop.frame)) this.firstStop.set(stop.frame, i);
     });
-    this.readsNear = this.frames.some((f) => f.el.hasAttribute("label") || f.el.querySelector("[show]") !== null);
     this.warnShortSteps();
   }
 
@@ -779,7 +783,6 @@ export class BangRoot extends BangElement {
 
   /** Sets --bang-near on every frame from how much of the screen it fills, for `show="near|far"` and frame labels. */
   private applyNearness(pose: CameraPose): void {
-    if (!this.readsNear) return;
     const stage = this.stageNow;
     for (const f of this.frames) {
       const near = nearness(f.rect, pose, stage);
@@ -841,6 +844,7 @@ export class BangRoot extends BangElement {
         this.pose = tween.to;
         this.applyPose(tween.to);
         this.settlePending();
+        this.refreshPose();
       };
       this.tweenTimer = setTimeout(finish, tween.duration + 100);
       const step = () => {
@@ -1091,8 +1095,12 @@ function groundFor(frames: FrameEntry[]): Ground | null {
         warnOnce(`link|${f.id}|${other}`, `[banger] bang-frame "${f.id}" links to "${other}", which is not a bang-frame id; no road is drawn`);
         continue;
       }
+      if (to === f) {
+        warnOnce(`link|${f.id}|${other}`, `[banger] bang-frame "${f.id}" links to itself; no road is drawn`);
+        continue;
+      }
       const key = [f.id, other].sort().join("\0");
-      if (seen.has(key) || to === f) continue;
+      if (seen.has(key)) continue;
       seen.add(key);
       roads.push({
         x1: f.rect.x + f.rect.w / 2,
