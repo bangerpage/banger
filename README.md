@@ -70,6 +70,7 @@ For a fuller deck, open `examples/showcase/index.html` (the one in the pictures 
 | Click a frame in the overview | Go to that frame |
 | `p` | Presenter window with speaker notes, kept in sync with the audience window |
 | `f` | Full screen |
+| `l` | Next language, in a deck with `languages` |
 | `?` | Keyboard shortcuts |
 | Swipe left / right | Next / previous, on a touch screen |
 | Quick long mouse flick up or left / down or right | Next / previous, for page-turner remotes that drag the mouse |
@@ -77,6 +78,30 @@ For a fuller deck, open `examples/showcase/index.html` (the one in the pictures 
 After the first flick from such a remote, the deck stops selecting text and hides the mouse cursor until you move the mouse by hand.
 
 The current position is kept in the URL (`#stop=N&step=M`), so a reload or a shared link lands on the same place.
+
+## Multilingual decks
+
+One deck can carry several languages. List them on `bang-root` (the first is the author's language) and put each language's text next to the other as siblings, using the HTML `lang` attribute. The frames, stops, steps and theme are shared.
+
+```html
+<bang-root languages="ja en">
+  <bang-frame id="hello" at="0,0" crumb="なぜ" crumb-en="Why">
+    <bang-title>
+      <span lang="ja">めくらない発表</span>
+      <span lang="en">Presentations that move</span>
+    </bang-title>
+    <bang-list step="1">
+      <li lang="ja">フレームはキャンバスに並ぶ</li>
+      <li lang="en">Frames sit on a canvas</li>
+    </bang-list>
+  </bang-frame>
+  ...
+</bang-root>
+```
+
+An element with a `lang` is shown only while that language is selected; elements without `lang` are shown in every language. The language comes from `?lang=en` in the URL, then the browser's language settings, then the first language in `languages`. Press `l` while presenting to switch to the next language; the presenter window and the audience window switch together, and `?lang=` follows. Pin the runtime to `@bangerpage/core@0.2.0` or later for such a deck.
+
+`banger check` renders every language and reports translation mistakes, such as a missing `<li>` in one language. `banger snap` and `banger export --pdf` take `--lang <language>|all`.
 
 ## Writing decks with AI
 
@@ -151,9 +176,9 @@ To reuse one look across decks, keep a `theme.json` and run `banger theme init` 
 
 - `banger init [dir] [--force]`: start a deck by writing `index.html` from the starter template into `dir` (default: the working directory).
 - `banger preview [file]`: preview with live reload. Without `[file]`, `preview`, `snap` and `export` use `index.html` in the working directory. The runtime URL in the HTML is served from the bundled core, so it works offline and before publishing.
-- `banger snap [file] [--stop N] [--step M|last] [--steps last|all] [--out path] [--out-dir dir] [--scale 1|2]`: render states as 1920x1080 PNG files. Without `--stop` every stop is written at its last step; `--steps all` also writes every step on the way. The PNG files are not guaranteed to be byte-identical between runs: anti-aliasing of text can differ by a pixel, so compare them with a tolerance.
-- `banger check [file] [--json]`: render every stop without taking pictures and list the problems the runtime finds: content that does not fit inside its frame or runs out of a card, `bang-*` tags that do not exist, frames on the same cell, stops naming a missing frame, invalid attribute values, unreadable colours and failed components. It exits 1 when there is any problem; `--json` prints `{ ok, stops, warnings, failed }`.
-- `banger export [file] --pdf [--out path] [--steps last|all]`: one PDF page per stop, with vector text.
+- `banger snap [file] [--stop N] [--step M|last] [--steps last|all] [--out path] [--out-dir dir] [--scale 1|2] [--lang <language>|all]`: render states as 1920x1080 PNG files. Without `--stop` every stop is written at its last step; `--steps all` also writes every step on the way. In a deck with `languages`, `--lang <language>` renders that language and `--lang all` writes `snap/<language>/` for each one; without it the first language is used (`--lang all` cannot be combined with `--out`). The PNG files are not guaranteed to be byte-identical between runs: anti-aliasing of text can differ by a pixel, so compare them with a tolerance.
+- `banger check [file] [--json]`: render every stop without taking pictures and list the problems the runtime finds: content that does not fit inside its frame or runs out of a card, `bang-*` tags that do not exist, frames on the same cell, stops naming a missing frame, invalid attribute values, unreadable colours and failed components. In a deck with `languages` it renders every language, prefixes each line with the language (`[en] `) and also reports translation mistakes. It exits 1 when there is any problem; `--json` prints `{ ok, stops, warnings, failed }`.
+- `banger export [file] --pdf [--out path] [--steps last|all] [--lang <language>|all]`: one PDF page per stop, with vector text. In a deck with `languages`, `--lang <language>` writes `deck.<language>.pdf` and `--lang all` writes one PDF per language; without it the first language is written to `deck.pdf`. `--lang all` and `--out` cannot be used together.
 - `banger theme init [file] [--from <preset>] [--force]`: write a `theme.json` from a bundled preset (`signal`, `signal-dark`, `sunshine`, `midnight`).
 - `banger theme apply <theme.json> <deck.html>`: embed the theme in a deck and set `theme="custom"`. Running it again gives the same result.
 - `banger skill install [--project | --dir <path>] [--force]`: copy the agent skill bundled with this CLI version to `~/.claude/skills/banger` (or `./.claude/skills/banger`, or `<path>`).

@@ -212,6 +212,37 @@
 </bang-root>
 ```
 
+## 多言語で書く
+
+`bang-root` に `languages` を書き、言語ごとの文を同じ場所の兄弟に並べる。見出しは `bang-title` の中の `<span lang>`、箇条書きは `<li lang>`、画像は `lang` を付けた `bang-image` を `lang` の無い `bang-stack` に包んで並べる。フレームの `crumb` は作者の言語を `crumb`、ほかの言語を `crumb-en` のように書く。notes は `bang-notes lang`。focus 停止点の `id` は `lang` の無い要素 (ここでは `bang-stack`) に付ける。
+
+```html
+<bang-root theme="light" languages="ja en">
+  <bang-frame id="hello" at="0,0" crumb="なぜ" crumb-en="Why">
+    <bang-title>
+      <span lang="ja">めくらない発表</span>
+      <span lang="en">Presentations that move</span>
+    </bang-title>
+    <bang-list step="1">
+      <li lang="ja">フレームはキャンバスに並ぶ</li>
+      <li lang="en">Frames sit on a canvas</li>
+      <li lang="ja">カメラは停止点で止まる</li>
+      <li lang="en">The camera stops at each stop</li>
+    </bang-list>
+    <bang-stack id="chart">
+      <bang-image lang="ja" src="chart-ja.png" alt="売上の推移"></bang-image>
+      <bang-image lang="en" src="chart-en.png" alt="Sales over time"></bang-image>
+    </bang-stack>
+  </bang-frame>
+  <bang-path>
+    <bang-stop frame="hello" focus="chart">
+      <bang-notes lang="ja">図を見せて、推移を話す</bang-notes>
+      <bang-notes lang="en">Show the chart and talk through the trend</bang-notes>
+    </bang-stop>
+  </bang-path>
+</bang-root>
+```
+
 ## 表紙の題名を上に、名前を下に置く
 
 表紙で題名を上端、名前を下端に分けたいときは、フレームに `valign="spread"` を書き、題名のまとまりと名前のまとまりを 2 つの `bang-stack` にする。最初の子が上端、最後の子が下端に付く。`ground="cover"` は `coverGradient` を持つカスタムテーマで効く。

@@ -70,6 +70,7 @@ npx @bangerpage/cli export --pdf  # 停止点ごとに 1 ページの PDF
 | 見渡しでフレームをクリック | そのフレームへ移る |
 | `p` | 発表者ノートのウィンドウ (観客のウィンドウと同期する) |
 | `f` | 全画面 |
+| `l` | 次の言語へ (`languages` のある発表) |
 | `?` | キーボードの操作の一覧 |
 | 左右にスワイプ | 次 / 前へ (タッチスクリーン) |
 | マウスを上か左 / 下か右へすばやく大きく動かす | 次 / 前へ (マウスのドラッグを送るページめくり機) |
@@ -77,6 +78,30 @@ npx @bangerpage/cli export --pdf  # 停止点ごとに 1 ページの PDF
 ページめくり機で一度めくると、それ以降は文字を選択できなくなり、マウスカーソルも隠れます。手でマウスを動かすと元に戻ります。
 
 いまの位置は URL (`#stop=N&step=M`) に入るので、再読み込みしても、共有したリンクを開いても、同じ場所から始まります。
+
+## 多言語の発表
+
+1 つの発表に複数の言語を書けます。`bang-root` に使う言語を並べ (先頭が作者の言語です)、言語ごとの文を HTML の `lang` 属性で同じ場所の兄弟として並べます。フレーム・停止点・段・テーマは共通です。
+
+```html
+<bang-root languages="ja en">
+  <bang-frame id="hello" at="0,0" crumb="なぜ" crumb-en="Why">
+    <bang-title>
+      <span lang="ja">めくらない発表</span>
+      <span lang="en">Presentations that move</span>
+    </bang-title>
+    <bang-list step="1">
+      <li lang="ja">フレームはキャンバスに並ぶ</li>
+      <li lang="en">Frames sit on a canvas</li>
+    </bang-list>
+  </bang-frame>
+  ...
+</bang-root>
+```
+
+`lang` を付けた要素は、その言語を選んでいるときだけ表示されます。`lang` の無い要素はどの言語でも表示されます。言語は URL の `?lang=en`、ブラウザの言語設定、`languages` の先頭の順で決まります。発表中に `l` キーを押すと次の言語に切り替わり、発表者の窓と観客の窓が一緒に変わって、`?lang=` も更新されます。この書き方の発表は、ランタイムを `@bangerpage/core@0.2.0` 以降に固定してください。
+
+`banger check` はすべての言語を描き、ある言語だけ `<li>` が足りないといった訳し忘れも知らせます。`banger snap` と `banger export --pdf` には `--lang <言語>|all` があります。
 
 ## AI と書く
 
@@ -151,9 +176,9 @@ skill を入れた AI は、停止点の並びで構成を合意してから `in
 
 - `banger init [dir] [--force]`: ひな形から `index.html` を `dir` (既定は今のディレクトリ) に書いて、発表を始めます。
 - `banger preview [file]`: 自動で再読み込みするプレビュー。`[file]` を省くと、`preview`・`snap`・`export` は今のディレクトリの `index.html` を使います。HTML の中のランタイムの URL は同梱の core から配るので、オフラインでも、公開前の版でも動きます。
-- `banger snap [file] [--stop N] [--step M|last] [--steps last|all] [--out path] [--out-dir dir] [--scale 1|2]`: 状態を 1920x1080 の PNG に描きます。`--stop` を省くと、すべての停止点を最後の段で書きます。`--steps all` を付けると、途中の段もすべて書きます。PNG は実行ごとにバイト単位で同じになるとは限りません。文字のアンチエイリアスが 1 ピクセルずれることがあるので、比べるときは許容幅を持たせてください。
-- `banger check [file] [--json]`: 画像を撮らずにすべての停止点を描画し、ランタイムが見つけた問題を一覧にします。フレームやカードからはみ出した中身、存在しない `bang-*` タグ、同じ格子に置いたフレーム、存在しないフレームを指す停止点、不正な属性の値、読みにくい色、描画に失敗した部品が対象です。問題があれば終了コード 1 で終わります。`--json` は `{ ok, stops, warnings, failed }` を出します。
-- `banger export [file] --pdf [--out path] [--steps last|all]`: 停止点ごとに 1 ページの PDF を、ベクターの文字で書きます。
+- `banger snap [file] [--stop N] [--step M|last] [--steps last|all] [--out path] [--out-dir dir] [--scale 1|2] [--lang <言語>|all]`: 状態を 1920x1080 の PNG に描きます。`--stop` を省くと、すべての停止点を最後の段で書きます。`--steps all` を付けると、途中の段もすべて書きます。`languages` のある発表では、`--lang <言語>` でその言語を、`--lang all` で言語ごとに `snap/<言語>/` へ書きます (省くと先頭の言語です。`--lang all` と `--out` は同時に使えません)。PNG は実行ごとにバイト単位で同じになるとは限りません。文字のアンチエイリアスが 1 ピクセルずれることがあるので、比べるときは許容幅を持たせてください。
+- `banger check [file] [--json]`: 画像を撮らずにすべての停止点を描画し、ランタイムが見つけた問題を一覧にします。フレームやカードからはみ出した中身、存在しない `bang-*` タグ、同じ格子に置いたフレーム、存在しないフレームを指す停止点、不正な属性の値、読みにくい色、描画に失敗した部品が対象です。`languages` のある発表ではすべての言語を描き、行の先頭に `[en] ` のように言語を付け、訳し忘れも知らせます。問題があれば終了コード 1 で終わります。`--json` は `{ ok, stops, warnings, failed }` を出します。
+- `banger export [file] --pdf [--out path] [--steps last|all] [--lang <言語>|all]`: 停止点ごとに 1 ページの PDF を、ベクターの文字で書きます。`languages` のある発表では、`--lang <言語>` が `deck.<言語>.pdf`、`--lang all` が言語ごとの PDF を書きます (省くと先頭の言語を `deck.pdf` に書きます。`--lang all` と `--out` は同時に使えません)。
 - `banger theme init [file] [--from <preset>] [--force]`: 同梱のプリセット (`signal`、`signal-dark`、`sunshine`、`midnight`) から `theme.json` を書きます。
 - `banger theme apply <theme.json> <deck.html>`: テーマを発表に埋め込み、`theme="custom"` にします。何度実行しても結果は同じです。
 - `banger skill install [--project | --dir <path>] [--force]`: この版の CLI に同梱した skill を `~/.claude/skills/banger` (または `./.claude/skills/banger`、`<path>`) に写します。

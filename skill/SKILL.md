@@ -20,7 +20,7 @@ description: HTML 1 枚で「めくらない」プレゼンテーション (キ�
 
 - 値は属性のトークンから選ぶ (`size="l"` `tone="accent"` `gap="m"` など)。属性に無い値は書かない。
 - `style` 属性を書かない (`bang-free` の中だけは、配置の px のために書いてよい)。色コードも発表本文には書かない。色コードを書いてよいのはテーマ定義 (`bang-theme` の JSON と `theme.json`) だけ。色は利用者が指定しなくても提案してよいが、出発点は同梱のひな形 (`reference/themes.md`) から選ぶ。
-- 文中の強調は `<b>` (太字)、`<mark>` (マーカー)、意図した改行は `<br>`、引用や出典の原文の斜体は `<i>` だけを使う。`strong` `em` `span` は使わず、属性も付けない。`<br>` で折り返しを調整しない。
+- 文中の強調は `<b>` (太字)、`<mark>` (マーカー)、意図した改行は `<br>`、引用や出典の原文の斜体は `<i>` だけを使う。`strong` `em` は使わず、`span` は多言語の発表で言語を切り替える `<span lang>` のときだけ使う。それ以外の属性は付けない。`<br>` で折り返しを調整しない。
 - 流れの中の矢印と ○ ✖ の記号は `bang-shape` を使う。文字の ↑ ↓ ✖ ○ で代わりにしない (字形がフォントで変わる)。
 - 内容はフレームの外へ出さない。入りきらないときはフレームを分けるか、文を減らす。
 - フレームの中身は上下の中央に置かれる。先頭が `bang-title` なら、タイトルは上に残り、残りがその下の中央に来る。タイトルもまとめて中央に置きたいとき (表紙や締めの一言) は、`bang-stack` で包む。
@@ -29,12 +29,25 @@ description: HTML 1 枚で「めくらない」プレゼンテーション (キ�
 - 発表者ノートは停止点の中の `bang-notes` に書く。
 - `theme.json` があれば `banger theme apply` で発表に入れる。色を発表に直接書かない。
 
+## 多言語の発表
+
+1 つの deck に複数の言語を、同じ場所の兄弟として書く。構成 (フレーム・停止点・段・テーマ) は 1 つで、見る人と発表者が言語を切り替える。`bang-root` の `languages="ja en"` に言語を空白区切りで並べ、先頭が作者の言語になる。フレームの中の要素と `bang-notes` に `lang` を付けると、その言語のときだけ表示する。`lang` の無い要素は全言語で表示する。言語は URL の `?lang=`、ブラウザの言語設定、先頭の順で決まり、発表中は `l` キーで切り替わる。
+
+0. `languages` を足すときは、runtime の URL を `@bangerpage/core@0.2.0` 以降に固定する。古い runtime は `lang` を見ないので全言語が重なって出る (`banger check` が警告する)。
+1. 1 つの言語で deck を書き上げて、その言語を `languages` の先頭にする。
+2. 次の言語を、同じ場所に兄弟として足す。見出しは `bang-title` の中に `<span lang>` を並べる。箇条書きは `<li lang>`。画像・図・グラフは `lang` を付けた要素を、`lang` の無い `bang-stack` に包んで並べる (フレーム直下に並べない)。`bang-columns` の直接の子には `lang` を付けず、列の中の要素に付ける。notes は `bang-notes lang`。
+3. `lang` を付けられるのはフレームの中の要素と `bang-notes` だけで、`bang-frame` と `bang-stop` には付けない。focus 停止点の `id` は `lang` の無い要素に付ける。引用の言語を示したいだけの `lang` は付けない (`languages` に無い `lang` は警告になる)。`bang-frame` の `crumb` / `label` は、作者の言語を `crumb` に、ほかの言語を `crumb-<言語>` (例: `crumb-en`) に書く。欠けていれば `banger check` が警告する。
+4. 訳は直訳でなく、その言語の発表として自然な言い回しにする。文の長さが変わるので、`banger check` でどの言語もはみ出さないことを確かめる (ランタイムは文字を縮めない)。
+5. `banger check` は言語ごとに描き、訳し忘れ (対の個数が違う) と段の数の違いを警告する。`banger snap --lang <言語>` か `--lang all` で見た目を目で確かめる。
+
+書き方の完全な断片は `reference/patterns.md` の「多言語で書く」にある。
+
 ## コマンド
 
 - `banger preview [file]`: プレビューとライブリロード。`[file]` を省くと、今いるディレクトリの `index.html` を使う (`snap` と `export` も同じ)。
-- `banger check [file] [--json]`: 全停止点を最後の段で描き、問題を 1 行ずつ出す。フレームの余白の内側に収まらない中身、カードからはみ出す中身、存在しない `bang-*` の部品名、同じセルに置いたフレーム、無いフレームを指す停止点、使えない属性の値、読めない色、描けなかった部品が出る。問題があれば終了コード 1。`--json` で `{ ok, stops, warnings, failed }` を出す。
-- `banger snap [file] [--stop N] [--step M|last] [--steps last|all] [--out path] [--out-dir dir] [--scale 1|2]`: 状態を 1920x1080 の PNG にする。停止点を省くと全停止点を最後の段で出す。`--steps all` を付けると、順に出す途中の段もすべて出す。自分で見て直すために使う。
-- `banger export [file] --pdf [--out path] [--steps last|all]`: 停止点ごとに 1 ページの PDF にする。
+- `banger check [file] [--json]`: 全停止点を最後の段で描き、問題を 1 行ずつ出す。フレームの余白の内側に収まらない中身、カードからはみ出す中身、存在しない `bang-*` の部品名、同じセルに置いたフレーム、無いフレームを指す停止点、使えない属性の値、読めない色、描けなかった部品が出る。`languages` のある deck は言語ごとに全停止点を描き、警告の行に `[ja] ` のように言語を付ける。訳し忘れと言語ごとの段の数の違いも出る。問題があれば終了コード 1。`--json` で `{ ok, stops, warnings, failed }` を出す。
+- `banger snap [file] [--stop N] [--step M|last] [--steps last|all] [--out path] [--out-dir dir] [--scale 1|2] [--lang <言語>|all]`: 状態を 1920x1080 の PNG にする。停止点を省くと全停止点を最後の段で出す。`--steps all` を付けると、順に出す途中の段もすべて出す。自分で見て直すために使う。`--lang <言語>` でその言語で撮り、`--lang all` で言語ごとに `snap/<言語>/` へ撮る (省くと先頭の言語。`--lang all` と `--out` は同時に使えない)。
+- `banger export [file] --pdf [--out path] [--steps last|all] [--lang <言語>|all]`: 停止点ごとに 1 ページの PDF にする。`--lang <言語>` は `deck.<言語>.pdf`、`--lang all` は言語ごとの PDF を書く (省くと先頭の言語の `deck.pdf`。`--lang all` と `--out` は同時に使えない)。
 - `banger theme init [file] [--from <preset>] [--force]`: 同梱のひな形 (`signal` `signal-dark` `sunshine` `midnight`) から `theme.json` を作る。
 - `banger theme apply <theme.json> <deck.html>`: `theme.json` を発表に埋め込み、`theme="custom"` にする。何度実行しても結果は同じ。
 - `banger publish [dir] [--slug <slug>]`: 発表を banger.page に公開する。2 回目からは同じ発表の更新になる。公開は外に出す操作なので、人が頼んだときだけ実行する。ログインしていなければ、人に `banger login` を頼む (ブラウザでログインして許可する)。公開の前に `banger export --pdf --out deck.pdf` で PDF を作っておくと、発表ページから PDF を落とせる。
