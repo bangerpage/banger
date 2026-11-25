@@ -312,4 +312,69 @@ describe("languages", () => {
       });
     expect(await texts()).toEqual({ crumb: "なぜ", label: "地図" });
   });
+
+  const warnings = (p: Page) =>
+    p.evaluate(async () => (await (document.querySelector("bang-root") as any).ready()).warnings as string[]);
+
+  it("AC-I18N-9 translation mistakes are reported once, in the first language's pass", async () => {
+    const deck = `<bang-root languages="ja en">
+      <bang-frame id="a" lang="en"><bang-title>t</bang-title>
+        <bang-list><li lang="ja">1</li><li lang="en">1</li><li lang="ja">2</li></bang-list>
+        <bang-text lang="fr">fr</bang-text>
+        <bang-columns><bang-text lang="ja">a</bang-text><bang-text lang="en">a</bang-text></bang-columns>
+        <bang-text lang="ja">last</bang-text>
+      </bang-frame>
+      <bang-path><bang-stop frame="a" lang="en"></bang-stop></bang-path>
+    </bang-root>`;
+    const { page: ja } = await page(deck, { query: "lang=ja" });
+    const first = await warnings(ja);
+    const has = (needle: string) => first.some((w) => w.includes(needle));
+    expect(has("<li> differs by language (ja: 2, en: 1)")).toBe(true);
+    expect(has('lang="fr" is not in languages (ja en)')).toBe(true);
+    expect(has("<bang-columns> makes a column of every child")).toBe(true);
+    expect(has("the title or the last child of this frame carries lang")).toBe(true);
+    expect(has("lang is ignored on <bang-frame>")).toBe(true);
+    expect(has("lang is ignored on <bang-stop>")).toBe(true);
+    const { page: en } = await page(deck, { query: "lang=en" });
+    const second = await warnings(en);
+    for (const needle of ["differs by language", "lang is ignored", "is not in languages", "makes a column", "carries lang"]) {
+      expect(second.some((w) => w.includes(needle)), needle).toBe(false);
+    }
+  });
+
+  it("AC-I18N-9 a pair of overlays at the end of a frame is not misplaced in either language", async () => {
+    const deck = `<bang-root languages="ja en"><bang-frame id="a"><bang-text>x</bang-text>
+      <bang-free overlay lang="ja"><div>ja</div></bang-free><bang-free overlay lang="en"><div>en</div></bang-free></bang-frame>
+      <bang-path><bang-stop frame="a"></bang-stop></bang-path></bang-root>`;
+    for (const q of ["lang=ja", "lang=en"]) {
+      const { page: p } = await page(deck, { query: q });
+      expect((await warnings(p)).filter((w) => w.includes("overlay"))).toEqual([]);
+    }
+  });
+
+  it("AC-I18N-13 warns when focus points into lang content", async () => {
+    const deck = (inner: string) => `<bang-root languages="ja en"><bang-frame id="a">${inner}</bang-frame>
+      <bang-path><bang-stop frame="a" focus="t"></bang-stop></bang-path></bang-root>`;
+    const { page: bad } = await page(deck('<bang-text lang="ja"><span id="t">x</span></bang-text><bang-text lang="en">y</bang-text>'), { query: "lang=ja" });
+    expect((await warnings(bad)).some((w) => w.includes('focus="t" points into lang="ja" content'))).toBe(true);
+    const { page: ok } = await page(deck('<bang-stack id="t"><bang-text lang="ja">x</bang-text><bang-text lang="en">y</bang-text></bang-stack>'), { query: "lang=ja" });
+    expect((await warnings(ok)).some((w) => w.includes("points into lang"))).toBe(false);
+  });
+
+  it("AC-I18N-19 warns about crumb and label without a translation, once, in the first language", async () => {
+    const deck = `<bang-root languages="ja en"><bang-frame id="a" crumb="なぜ" label="地図"><bang-text>x</bang-text></bang-frame>
+      <bang-path><bang-stop frame="a"></bang-stop></bang-path></bang-root>`;
+    const { page: ja } = await page(deck, { query: "lang=ja" });
+    const first = await warnings(ja);
+    expect(first.filter((w) => w.includes("crumb has no crumb-en"))).toHaveLength(1);
+    expect(first.filter((w) => w.includes("label has no label-en"))).toHaveLength(1);
+    const { page: en } = await page(deck, { query: "lang=en" });
+    const second = await warnings(en);
+    expect(second.some((w) => w.includes("has no crumb-en"))).toBe(false);
+    expect(second.some((w) => w.includes("has no label-en"))).toBe(false);
+    const { page: plain } = await page(
+      `<bang-root><bang-frame id="a" crumb="なぜ"><bang-text>x</bang-text></bang-frame><bang-path><bang-stop frame="a"></bang-stop></bang-path></bang-root>`,
+    );
+    expect((await warnings(plain)).some((w) => w.includes("crumb"))).toBe(false);
+  });
 });

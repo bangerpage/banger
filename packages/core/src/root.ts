@@ -2,7 +2,7 @@ import { version } from "./version.js";
 import { css, html, nothing, svg, unsafeCSS, type PropertyValues } from "lit";
 import { property, state } from "lit/decorators.js";
 import { pick, warnOnce } from "./attrs.js";
-import { frameOverflowWarnings, overlapWarnings, unknownTagWarnings } from "./deck-check.js";
+import { frameOverflowWarnings, overlapWarnings, translationWarnings, unknownTagWarnings } from "./deck-check.js";
 import {
   boundsOf,
   clipFor,
@@ -685,6 +685,12 @@ export class BangRoot extends BangElement {
     report(warnings);
   }
 
+  /** Translation mistakes are the same in every language, so only the first language's pass reports them. */
+  private languageWarnings(): string[] {
+    if (this.languageList.length === 0 || this.currentLanguage !== this.languageList[0]) return [];
+    return translationWarnings(this, this.languageList);
+  }
+
   /** Warnings that depend on the elements in the deck; rebuilt on every call so frames added later are covered. */
   private deckWarnings(): string[] {
     const out: string[] = [];
@@ -1136,7 +1142,7 @@ export class BangRoot extends BangElement {
   async ready(opts?: { timeoutMs?: number; fontsTimeoutMs?: number }): Promise<ReadyReport> {
     const report = await collectReady(this, {
       ...opts,
-      extraWarnings: [...this.themeWarnings, ...this.deckWarnings(), ...unknownTagWarnings(this), ...overlapWarnings(this.frames)],
+      extraWarnings: [...this.themeWarnings, ...this.deckWarnings(), ...unknownTagWarnings(this), ...overlapWarnings(this.frames), ...this.languageWarnings()],
     });
     this.refreshPose();
     const warnings = new Set([...report.warnings, ...frameOverflowWarnings(this.frames)]);
