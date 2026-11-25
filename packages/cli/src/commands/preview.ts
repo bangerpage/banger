@@ -19,9 +19,11 @@ export async function runPreview(argv: string[]): Promise<number> {
   const warning = runtimeVersionWarning(readInput(file), CORE_PACKAGE, coreVersion());
   if (warning) process.stderr.write(`warning: ${warning.message}\n`);
 
+  // Listen before printing the URL: a caller may send SIGINT as soon as it reads it.
+  const stopped = new Promise<void>((resolveStop) => process.once("SIGINT", resolveStop));
   const server = await startServer({ file, watch: true, port });
   process.stdout.write(`${server.url}\n`);
-  await new Promise<void>((resolveStop) => process.once("SIGINT", resolveStop));
+  await stopped;
   await server.close();
   return 0;
 }
