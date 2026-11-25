@@ -321,6 +321,7 @@ export class BangRoot extends BangElement {
       if (ms > FLICK_MAX_MS || Math.abs(along) < FLICK_MIN_PX || Math.abs(along) < Math.abs(across) * 1.5) return;
       forward = along < 0;
       window.getSelection()?.removeAllRanges();
+      document.documentElement.setAttribute("data-bang-remote", "");
     } else {
       if (ms > SWIPE_MAX_MS || Math.abs(dx) < SWIPE_MIN_PX || Math.abs(dx) < Math.abs(dy) * 1.5) return;
       forward = dx < 0;

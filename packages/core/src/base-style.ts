@@ -18,6 +18,9 @@ const baseCss = `
 html, body { margin: 0; overflow: hidden; background: var(--bang-color-paper, #F6F5F1); }
 [data-step], bang-list > li, bang-list > bang-list { transition: opacity var(--bang-duration-fast, 200ms); }
 [data-bang-hidden] { opacity: 0; pointer-events: none; }
+/* Set after the first mouse flick: a page-turner remote is driving the deck, and its drags would otherwise select text or drag images on every press. */
+html[data-bang-remote] { -webkit-user-select: none; user-select: none; }
+html[data-bang-remote] img { -webkit-user-drag: none; }
 /* --bang-near is 1 when the frame fills the screen and 0 when the camera is far from it; bang-root sets it on every move. */
 bang-frame [show="near"] { opacity: var(--bang-near, 1); }
 bang-frame [show="far"] { opacity: calc(1 - var(--bang-near, 1)); }

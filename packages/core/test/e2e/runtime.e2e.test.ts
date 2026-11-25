@@ -76,6 +76,7 @@ describe("runtime", () => {
     expect(await state(page)).toEqual({ stop: 1, step: 0 });
     await swipe(200, -10);
     expect(await state(page)).toEqual({ stop: 0, step: 0 });
+    expect(await page.evaluate(() => document.documentElement.hasAttribute("data-bang-remote"))).toBe(false);
     await swipe(0, -810, "mouse");
     expect(await state(page)).toEqual({ stop: 1, step: 0 });
     await swipe(0, -150, "mouse");
@@ -85,6 +86,7 @@ describe("runtime", () => {
     expect(await state(page)).toEqual({ stop: 0, step: 0 });
     await swipe(-1889, 0, "mouse");
     expect(await state(page)).toEqual({ stop: 1, step: 0 });
+    expect(await page.evaluate(() => getComputedStyle(document.documentElement).userSelect)).toBe("none");
     await swipe(1763, 0, "mouse");
     expect(await state(page)).toEqual({ stop: 0, step: 0 });
   });
