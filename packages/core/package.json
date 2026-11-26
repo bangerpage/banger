@@ -1,6 +1,6 @@
 {
   "name": "@bangerpage/core",
-  "version": "0.2.0-rc.1",
+  "version": "0.2.0",
   "description": "Runtime for Banger: presentations written as one HTML file, with frames on a canvas and a camera that stops at each point.",
   "keywords": [
     "presentation",
