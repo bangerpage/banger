@@ -223,6 +223,8 @@ Pushing a `v<version>` tag publishes both packages from CI (`.github/workflows/r
 2. Push the commit and wait for `ci` to pass.
 3. Tag the commit `v<version>` and push the tag. The release workflow checks that the tag matches both versions, runs every check again, publishes core before cli with npm trusted publishing (no npm token in the repository) and creates the GitHub release.
 
+A version with a prerelease part (`0.2.0-rc.1`) is published under the npm dist-tag `next` and marked as a prerelease on GitHub, so `npm install @bangerpage/cli` keeps installing the last release. Try it with `npx @bangerpage/cli@next` or by pinning `@bangerpage/core@0.2.0-rc.1` in a deck.
+
 Trusted publishing is set up once per package on npmjs.com: in the package's settings, add a trusted publisher for the GitHub repository `bangerpage/banger` and the workflow `release.yml`.
 
 ## License

@@ -223,6 +223,8 @@ CLI と examples は `packages/*/dist` を読み込むので、pull した後は
 2. その commit を push し、`ci` が通るのを待ちます。
 3. その commit に `v<version>` の tag を付けて push します。リリースの workflow は、tag と 2 つの版が一致するかを確かめ、すべての確認をもう一度実行してから、npm の trusted publishing で core、cli の順に公開し (リポジトリに npm の token は置かない)、GitHub の release を作ります。
 
+版に prerelease の部分がある版 (`0.2.0-rc.1`) は、npm の dist-tag `next` で公開し、GitHub でも prerelease の印を付けます。`npm install @bangerpage/cli` は最後の正式版を入れたままです。試すときは `npx @bangerpage/cli@next` を使うか、deck のランタイムを `@bangerpage/core@0.2.0-rc.1` に固定します。
+
 trusted publishing は、パッケージごとに npmjs.com で一度だけ設定します。パッケージの設定で、GitHub のリポジトリ `bangerpage/banger` と workflow `release.yml` を trusted publisher として登録します。
 
 ## ライセンス
