@@ -68,13 +68,24 @@ export function nextLanguage(languages: readonly string[], current: string): str
   return languages[(i + 1) % languages.length];
 }
 
-/** One rule per language hiding the other languages' elements inside frames; "" for fewer than two languages. */
+/**
+ * Per language, a rule hiding the other languages' elements inside frames, and one removing the group space from the
+ * first shown item of a grouped list (the list's own `:first-child` rule would pick a hidden item); "" for fewer than
+ * two languages.
+ */
 export function languageCss(languages: readonly string[]): string {
   if (languages.length < 2) return "";
   return languages
     .map((c) => {
-      const others = languages.filter((l) => l !== c).map((o) => `[lang="${o}" i]`);
-      return `bang-root[lang="${c}" i] bang-frame :is(${others.join(", ")}) { display: none !important; }`;
+      const others = `:is(${languages
+        .filter((l) => l !== c)
+        .map((o) => `[lang="${o}" i]`)
+        .join(", ")})`;
+      const root = `bang-root[lang="${c}" i]`;
+      return (
+        `${root} bang-frame ${others} { display: none !important; }\n` +
+        `${root} bang-list[data-bang-grouped] > li:not(li:not(${others}) ~ li) { margin-top: 0; }`
+      );
     })
     .join("\n");
 }

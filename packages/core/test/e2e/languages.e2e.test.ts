@@ -355,6 +355,21 @@ describe("languages", () => {
     }
   });
 
+  it("a grouped list puts no group space above its first item in either language", async () => {
+    const deck = `<bang-root languages="ja en"><bang-frame id="a"><bang-list id="g">
+      <li lang="ja">いち</li><li lang="en">one</li><bang-list><li>x</li></bang-list>
+      <li lang="ja">に</li><li lang="en">two</li></bang-list></bang-frame>
+      <bang-path><bang-stop frame="a"></bang-stop></bang-path></bang-root>`;
+    for (const c of ["ja", "en"]) {
+      const { page: p } = await page(deck, { query: `lang=${c}` });
+      const margins = await p.evaluate((l) =>
+        [...document.querySelectorAll(`#g > li[lang="${l}"]`)].map((li) => getComputedStyle(li).marginTop),
+      c);
+      expect(margins[0]).toBe("0px");
+      expect(margins[1]).not.toBe("0px");
+    }
+  });
+
   it("AC-I18N-13 warns when focus points into lang content", async () => {
     const deck = (inner: string) => `<bang-root languages="ja en"><bang-frame id="a">${inner}</bang-frame>
       <bang-path><bang-stop frame="a" focus="t"></bang-stop></bang-path></bang-root>`;

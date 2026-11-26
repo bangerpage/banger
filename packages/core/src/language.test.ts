@@ -53,7 +53,9 @@ describe("language", () => {
     expect(languageCss(["ja"])).toBe("");
     expect(languageCss(["ja", "en"])).toBe(
       'bang-root[lang="ja" i] bang-frame :is([lang="en" i]) { display: none !important; }\n' +
-        'bang-root[lang="en" i] bang-frame :is([lang="ja" i]) { display: none !important; }',
+        'bang-root[lang="ja" i] bang-list[data-bang-grouped] > li:not(li:not(:is([lang="en" i])) ~ li) { margin-top: 0; }\n' +
+        'bang-root[lang="en" i] bang-frame :is([lang="ja" i]) { display: none !important; }\n' +
+        'bang-root[lang="en" i] bang-list[data-bang-grouped] > li:not(li:not(:is([lang="ja" i])) ~ li) { margin-top: 0; }',
     );
     expect(languageCss(["ja", "en", "fr"])).toContain(':is([lang="en" i], [lang="fr" i])');
   });
