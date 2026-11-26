@@ -57,6 +57,18 @@ export function runSkill(argv: string[]): number {
       ? resolve(".claude", "skills", "banger")
       : join(homedir(), ".claude", "skills", "banger");
   const outcome = installSkill({ source: bundledSkill(), dest, version: cliVersion(), force: values.force });
-  process.stdout.write(`${outcome}: ${dest}\n`);
+  process.stdout.write(`${outcome}: ${dest}\n\n${NEXT_STEPS}`);
   return 0;
 }
+
+export const NEXT_STEPS = `With the skill, your AI agent can:
+  - plan the flow of stops with you and write the talk as one HTML file
+  - show it on your machine, find problems and fix them
+  - export it to PDF and pick a theme
+
+Start by asking, for example:
+  "Make a 10-minute talk about <topic> with Banger. Let's agree on the flow of stops first."
+
+To see the talk, run \`banger preview\` in the talk's folder.
+More: https://banger.page/start
+`;

@@ -3,7 +3,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { CliError } from "../errors.js";
-import { MARKER, installSkill } from "./skill.js";
+import { MARKER, NEXT_STEPS, installSkill } from "./skill.js";
 
 let dir: string;
 let source: string;
@@ -50,5 +50,15 @@ describe("installSkill", () => {
     } catch (error) {
       expect((error as CliError).exitCode).toBe(2);
     }
+  });
+});
+
+describe("NEXT_STEPS", () => {
+  it("names what the skill does, a first request, how to preview and where to read more", () => {
+    expect(NEXT_STEPS).toMatch(/flow of stops/);
+    expect(NEXT_STEPS).toMatch(/PDF/);
+    expect(NEXT_STEPS).toMatch(/"Make a 10-minute talk/);
+    expect(NEXT_STEPS).toContain("`banger preview`");
+    expect(NEXT_STEPS).toContain("https://banger.page/start");
   });
 });
