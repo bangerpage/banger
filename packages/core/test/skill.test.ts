@@ -36,6 +36,13 @@ describe("skill", () => {
     expect(stampText(starter, corePkg.name, corePkg.version)).toBe(starter);
   });
 
+  it("stamps the version into both runtime files and keeps which file a URL names", () => {
+    const text = "https://cdn.jsdelivr.net/npm/@bangerpage/core@0.1.0/dist/index.js https://cdn.jsdelivr.net/npm/@bangerpage/core@0.1.0/dist/standalone.js";
+    expect(stampText(text, "@bangerpage/core", "9.9.9")).toBe(
+      "https://cdn.jsdelivr.net/npm/@bangerpage/core@9.9.9/dist/index.js https://cdn.jsdelivr.net/npm/@bangerpage/core@9.9.9/dist/standalone.js",
+    );
+  });
+
   it("AC-SKILL-2 components.md has a section and a full attribute table for every tag", () => {
     const md = read("skill/reference/components.md");
     const headings = [...md.matchAll(/^## (.+)$/gm)].map((m) => m[1]);

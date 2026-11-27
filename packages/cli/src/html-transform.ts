@@ -18,7 +18,7 @@ function escapeRegExp(value: string): string {
 
 export function runtimeUrlPattern(corePackage: string): RegExp {
   const hosts = CDN_HOSTS.map(escapeRegExp).join("|");
-  return new RegExp(`^https?://(${hosts})/${escapeRegExp(corePackage)}(@[^/]+)?/dist/index\\.js$`);
+  return new RegExp(`^https?://(${hosts})/${escapeRegExp(corePackage)}(@[^/]+)?/dist/(?:index|standalone)\\.js$`);
 }
 
 interface ModuleScript {

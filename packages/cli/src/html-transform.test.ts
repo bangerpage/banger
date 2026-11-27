@@ -27,6 +27,12 @@ describe("html-transform", () => {
     expect(findRuntimeScript(page(jsdelivr("")), CORE_PACKAGE)?.version).toBeNull();
   });
 
+  it("finds the standalone runtime as the runtime script", () => {
+    const standalone = jsdelivr("@0.1.0").replace("/dist/index.js", "/dist/standalone.js");
+    expect(findRuntimeScript(page(standalone), CORE_PACKAGE)?.version).toBe("0.1.0");
+    expect(findRuntimeScript(page(standalone.replace("standalone", "other")), CORE_PACKAGE)).toBeNull();
+  });
+
   it("injects before </body> or appends", () => {
     expect(injectBeforeBodyEnd("<body>a</body>", "X")).toBe("<body>aX</body>");
     expect(injectBeforeBodyEnd("<p>a</p>", "X")).toBe("<p>a</p>X");

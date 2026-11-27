@@ -15,22 +15,28 @@ export function generateManifest() {
 
 export async function buildEntry() {
   rmSync(join(pkgRoot, "dist"), { recursive: true, force: true });
-  const result = await build({
+  const common = {
     absWorkingDir: pkgRoot,
-    entryPoints: ["src/index.ts", "src/theme/index.ts"],
     bundle: true,
     format: "esm",
-    splitting: true,
-    outdir: "dist",
-    chunkNames: "chunks/[name]-[hash]",
     target: "es2022",
     minify: true,
     sourcemap: true,
     legalComments: "external",
-    metafile: true,
     tsconfig: "tsconfig.json",
     define: { __BANGER_VERSION__: JSON.stringify(pkgVersion) },
+  };
+  const result = await build({
+    ...common,
+    entryPoints: ["src/index.ts", "src/theme/index.ts"],
+    splitting: true,
+    outdir: "dist",
+    chunkNames: "chunks/[name]-[hash]",
+    metafile: true,
   });
+  // The same runtime with every lazy chunk inlined, for a deck that cannot fetch chunks by relative path:
+  // one that inlines the runtime into its own HTML, or a copy of the runtime next to a deck opened offline.
+  await build({ ...common, entryPoints: ["src/index.ts"], outfile: "dist/standalone.js" });
   mkdirSync(join(pkgRoot, ".build"), { recursive: true });
   writeFileSync(join(pkgRoot, ".build/meta.json"), JSON.stringify(result.metafile));
   writeThirdPartyLicenses(result.metafile, {

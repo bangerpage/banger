@@ -150,6 +150,7 @@ Every attribute and its values are in `skill/reference/components.md`.
 ### Versions and network access
 
 - Pin the exact runtime version in the URL (`@bangerpage/core@0.1.0`), not a range such as `@0` or `@0.1`. The runtime loads its chunks by relative path, so a range that moves to a new version can break a page that has the old entry cached. While the version is `0.x`, a minor release may rename elements, attributes or theme keys; a pinned deck keeps working on the version it names. The running version is `customElements.get("bang-root").version`.
+- `dist/standalone.js` is the same runtime in one file (about 700 KB) with the lazy parts, such as the chart library, inlined. Use it where the runtime cannot load its other files by relative path: a deck that inlines the runtime into its own HTML, or a copy of the runtime saved next to a deck that is opened offline. Otherwise use `dist/index.js`, which loads less up front. Write `dist/index.js` in a deck published to banger.page.
 - The CLI renders every deck with the core it bundles and prints a warning when the deck pins another version. Check a deck with the CLI version that matches its pin.
 - Opening a deck loads the runtime from the CDN and the fonts from Google Fonts (`fonts.googleapis.com` and `fonts.gstatic.com`), so it needs network access, and each viewer's browser contacts those hosts. A custom theme can change the font families (`fontsHref`), but the default families are still requested.
 

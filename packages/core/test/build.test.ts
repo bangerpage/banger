@@ -40,6 +40,12 @@ describe("build", () => {
     }
   });
 
+  it("emits a standalone runtime that imports nothing", () => {
+    const source = readFileSync(join(dist, "standalone.js"), "utf8");
+    expect([...source.matchAll(BARE_IMPORT)].map((m) => m[1])).toEqual([]);
+    expect(source).toContain("bang-root");
+  });
+
   it("AC-PKG-1 keeps echarts out of the entry and inside chunks", () => {
     const inputsOf = (output: string) => Object.keys(meta.outputs[output]?.inputs ?? {});
     expect(inputsOf("dist/index.js").length).toBeGreaterThan(0);

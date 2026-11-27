@@ -6,7 +6,7 @@ const repoRoot = join(dirname(fileURLToPath(import.meta.url)), "..");
 const coreRoot = join(repoRoot, "packages/core");
 
 const GLOBAL_ATTRS = ["id", "lang", "dir", "data-step", "aria-*", "role"];
-const RUNTIME_URL = /https:\/\/cdn\.jsdelivr\.net\/npm\/(?:@bangerpage\/core|banger-core)@[^/\s"']+\/dist\/index\.js/g;
+const RUNTIME_URL = /https:\/\/cdn\.jsdelivr\.net\/npm\/(?:@bangerpage\/core|banger-core)@[^/\s"']+\/dist\/(index|standalone)\.js/g;
 
 /** `'a' | 'b' | undefined` -> `["a", "b"]`; null when the type is not a union of string literals. */
 export function parseUnion(text) {
@@ -92,7 +92,7 @@ export function renderComponentsMd(manifest) {
 
 /** Rewrites the runtime URL's `<name>@<version>` to match the core package. Returns the new text. */
 export function stampText(text, name, version) {
-  return text.replace(RUNTIME_URL, `https://cdn.jsdelivr.net/npm/${name}@${version}/dist/index.js`);
+  return text.replace(RUNTIME_URL, (_url, file) => `https://cdn.jsdelivr.net/npm/${name}@${version}/dist/${file}.js`);
 }
 
 function filesToStamp() {

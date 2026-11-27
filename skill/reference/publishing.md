@@ -7,7 +7,7 @@ banger.page は、公開した発表を枠のページの中の iframe で見せ
 ## 表示のされ方
 
 - 発表は banger.page の枠の中の iframe で表示される。配信ドメインの URL を直接開いても、枠のページへ移る。トップレベルで開かれる前提で書かない。
-- ランタイムの `<script>` (`cdn.jsdelivr.net/npm/@bangerpage/core@<版>/dist/index.js`) は、そのまま書いてよい。banger.page が配信のときに自分の写しへ差し替える。
+- ランタイムの `<script>` (`cdn.jsdelivr.net/npm/@bangerpage/core@<版>/dist/index.js`) は、そのまま書いてよい。banger.page が配信のときに自分の写しへ差し替える。1 つにまとめたランタイム (`dist/standalone.js`) ではなく、`dist/index.js` を書く。
 - 検査は、ランタイムの `bang-root` の API で準備を待ち、場面の一覧を最大 20 まで、1 つ 2 秒以内で巡る。`bang-root` を使い、場面の移動に時間のかかる仕掛けを足さない。`bang-root` の無い発表は検査できず、「未検査」になる。
 
 ## 読み込めるもの

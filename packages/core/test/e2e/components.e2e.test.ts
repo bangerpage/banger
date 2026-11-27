@@ -177,6 +177,23 @@ describe("components", () => {
       expect(state).toEqual({ svgs: 1, visible: 2 });
     });
 
+    it("the standalone runtime draws a chart without fetching any other runtime file", async () => {
+      const html = readFileSync(join(dirname(fileURLToPath(import.meta.url)), "../fixtures/chart.html"), "utf8");
+      server.virtual.set("chart-standalone", html.replace("/dist/index.js", "/dist/standalone.js"));
+      const requested: string[] = [];
+      const { page } = await open("virtual/chart-standalone.html", {
+        routes: (p) =>
+          p.route("**/dist/**", (route) => {
+            const path = new URL(route.request().url()).pathname;
+            requested.push(path);
+            return path === "/dist/standalone.js" ? route.continue() : route.abort();
+          }),
+      });
+      await go(page, 0, 2);
+      expect(await chartState(page, "#bars")).toMatchObject({ svgs: 1, visible: 2 });
+      expect(requested).toEqual(["/dist/standalone.js"]);
+    });
+
     it("AC-CMP-6 fails with a fixed reason that does not echo the JSON", async () => {
       const { page } = await open("chart.html", { query: "mode=export" });
       const report = await ready(page);

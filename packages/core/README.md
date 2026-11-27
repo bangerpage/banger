@@ -14,6 +14,8 @@ Load it from a CDN with the exact version, then write the deck with `bang-*` ele
 </bang-root>
 ```
 
+`dist/standalone.js` is the same runtime in one file, with the lazy chunks inlined, for a deck that inlines the runtime or opens a saved copy offline.
+
 The elements and their attributes are listed in `custom-elements.json` and in the repository's `skill/reference/components.md`. Opening a deck loads fonts from Google Fonts. Versions, themes and the CLI (`@bangerpage/cli`) are described in the repository README.
 
 License: MIT. The package bundles Lit and Apache ECharts; see `THIRD-PARTY-LICENSES.txt` and `NOTICE`.
