@@ -233,8 +233,10 @@ describe("card", () => {
     const soft = await deck(FULL, panel);
     await ready(soft.page);
     const softShadow = await shadow(soft.page);
-    expect(softShadow).toContain("rgba(20, 20, 20, 0.3) 0px 0px 36px");
+    expect(softShadow).toContain("rgba(20, 20, 20,");
     expect(softShadow).toContain("inset");
+    // Unblurred layers only: Chromium prints a blurred shadow to PDF as a box that some viewers fill solid.
+    for (const layer of softShadow.split(/,\s*(?=rgba)/)) expect(layer).toMatch(/ 0px 0px 0px [\d.]+px inset$/);
     for (const [json, theme] of [['{ "cardShadow": "none" }', "custom"], ["{}", "custom"], ["{}", "light"], ["{}", "dark"]] as const) {
       const d = await deck(json, panel, theme);
       await ready(d.page);

@@ -59,6 +59,7 @@ description: HTML 1 枚で「めくらない」プレゼンテーション (キ�
 - 中身は `bang-free` の直下にルート要素を 1 つ置き、規則は直下の `<style>` に書く。規則はその `bang-free` の中だけに効く。 ルート要素は箱の高さいっぱいに伸びる。コードの箱のように内容の高さにしたいものは、`<div>` で包んでその中に置く。
 - 色はテーマの変数だけで書く。文字や線は `var(--bang-color-*)` と `color-mix(in srgb, var(--bang-color-ink) 60%, transparent)`、帯と同じ塗りは `var(--bang-band-ground)`、表紙の塗りは `var(--bang-cover-ground)`。色コードは書かない。
 - `style` 属性は配置の px のためだけに、`bang-free` の中で書いてよい。`<script>` は書かない。
+- ぼかした影 (`box-shadow` のぼかし、`filter: blur()`・`drop-shadow()`) は書かない。PDF に書き出すと、Mac のプレビューなどで灰色の四角い板になる。影が要るときはテーマの `cardShadow` を使う。
 - 位置は grid と、1 つのセルへの重ね (`grid-area: 1 / 1`) を先に考え、絶対座標は最後に使う。座標は `banger snap` の画像を見て直す。
 - 他の内容の上に注記や矢印を重ねるときは、フレームの最後の子に `overlay` つきの `bang-free` を 1 つ置く。座標はフレームの左上が原点の px (1920×1080)。先頭の子にしない。
 - 箱の中の図を座標で組むときは、箱の大きさに頼らない。SVG に `viewBox` (元の図の座標) を書いて `width: 100%; height: 100%` で箱に合わせる。縦横比を保つなら `preserveAspectRatio` は既定のまま、箱いっぱいに伸ばすなら `none`。図をフレームの px で置きたいときは `overlay` を使う。

@@ -324,6 +324,42 @@ export function serializeTheme(definition: ThemeDefinition): string {
 
 const ratioText = (ratio: number) => (Math.floor(ratio * 100) / 100).toFixed(2);
 
+const SHADOW_LAYERS = 20;
+
+/** Standard normal CDF (Abramowitz-Stegun 7.1.26), accurate to about 1e-7. */
+function normalCdf(x: number): number {
+  const z = Math.abs(x) / Math.SQRT2;
+  const t = 1 / (1 + 0.3275911 * z);
+  const erf = 1 - ((((1.061405429 * t - 1.453152027) * t + 1.421413741) * t - 0.284496736) * t + 0.254829592) * t * Math.exp(-z * z);
+  return x >= 0 ? (1 + erf) / 2 : (1 - erf) / 2;
+}
+
+/**
+ * A blurred card shadow drawn as unblurred layers of growing spread whose alphas follow the blur's Gaussian falloff
+ * (sigma = blur / 2, over two sigmas each way). Chromium prints a blurred shadow to PDF as an image with a soft mask,
+ * which macOS Preview and other viewers fill as a solid grey box; unblurred shadows print as plain shapes.
+ */
+export function layeredShadow(
+  shadow: { y?: number; blur: number; alpha: number; inset?: boolean },
+  color: (alpha: number) => string,
+): string {
+  const { y = 0, blur, alpha, inset = false } = shadow;
+  const sigma = blur / 2;
+  const layers: string[] = [];
+  for (let i = 0; i < SHADOW_LAYERS; i++) {
+    const near = blur * ((2 * i) / SHADOW_LAYERS - 1);
+    const far = blur * ((2 * (i + 1)) / SHADOW_LAYERS - 1);
+    // An inset shadow only shades inside the edge, so the layers that would sit outside it are dropped.
+    if (inset && far <= 0) continue;
+    const weight = normalCdf(far / sigma) - normalCdf(near / sigma);
+    // A layer with spread `far` covers every point within `far` of the edge, so a point at distance d gets the
+    // weights of all layers from d outward: the Gaussian's tail beyond d, which is what the blur gives it.
+    const spread = Math.round(far * 10) / 10;
+    layers.push(`${inset ? "inset " : ""}0 ${y}px 0 ${spread}px ${color(Math.round(alpha * weight * 10000) / 10000)}`);
+  }
+  return layers.join(", ");
+}
+
 export function resolveTheme(definition: ThemeDefinition): ResolvedTheme {
   const B = themeColorTokens[definition.base === "dark" ? "dark" : "light"];
   const given = (value: string | undefined): string | undefined => {
@@ -444,9 +480,12 @@ export function resolveTheme(definition: ThemeDefinition): ResolvedTheme {
   if (definition.cardShadow === "soft" || definition.cardShadow === "lift") {
     const darker = relativeLuminance(rgbOf(ink)) <= relativeLuminance(rgbOf(paper)) ? rgbOf(ink) : rgbOf(paper);
     const tint = (alpha: number) => `rgba(${darker.r}, ${darker.g}, ${darker.b}, ${alpha})`;
-    if (definition.cardShadow === "soft") vars["--bang-card-shadow"] = `inset 0 0 36px ${tint(0.3)}`;
+    if (definition.cardShadow === "soft") vars["--bang-card-shadow"] = layeredShadow({ blur: 36, alpha: 0.3, inset: true }, tint);
     else {
-      vars["--bang-card-shadow"] = `0 4px 10px ${tint(0.08)}, 0 18px 44px ${tint(0.12)}`;
+      vars["--bang-card-shadow"] = [
+        layeredShadow({ y: 4, blur: 10, alpha: 0.08 }, tint),
+        layeredShadow({ y: 18, blur: 44, alpha: 0.12 }, tint),
+      ].join(", ");
       vars["--bang-card-border"] = "transparent";
     }
   }

@@ -3,6 +3,7 @@ import { contrastRatio, mix, parseHex, toHex, type Rgb } from "./color.js";
 import {
   frameToneColors,
   isFontStack,
+  layeredShadow,
   parseFontsHref,
   parseThemeJson,
   resolveTheme,
@@ -526,16 +527,19 @@ describe("cardShadow", () => {
 
   it("lift drops a shadow in the darker of ink and paper and hides the border", () => {
     const { vars } = resolveTheme({ cardShadow: "lift" });
-    expect(vars["--bang-card-shadow"]).toBe("0 4px 10px rgba(20, 20, 20, 0.08), 0 18px 44px rgba(20, 20, 20, 0.12)");
+    const color = (a: number) => `rgba(20, 20, 20, ${a})`;
+    expect(vars["--bang-card-shadow"]).toBe(
+      `${layeredShadow({ y: 4, blur: 10, alpha: 0.08 }, color)}, ${layeredShadow({ y: 18, blur: 44, alpha: 0.12 }, color)}`,
+    );
     expect(vars["--bang-card-border"]).toBe("transparent");
   });
 
   it("uses the darker of ink and paper, and no var for none or unset", () => {
     expect(resolveTheme({ paper: "#FFC800", ink: "#141414", cardShadow: "soft" }).vars["--bang-card-shadow"]).toBe(
-      "inset 0 0 36px rgba(20, 20, 20, 0.3)",
+      layeredShadow({ blur: 36, alpha: 0.3, inset: true }, (a) => `rgba(20, 20, 20, ${a})`),
     );
-    expect(resolveTheme({ paper: "#0A0A0A", ink: "#F0F0F0", cardShadow: "soft" }).vars["--bang-card-shadow"]).toBe(
-      "inset 0 0 36px rgba(10, 10, 10, 0.3)",
+    expect(resolveTheme({ paper: "#0A0A0A", ink: "#F0F0F0", cardShadow: "soft" }).vars["--bang-card-shadow"]).toContain(
+      "rgba(10, 10, 10,",
     );
     expect(resolveTheme({ cardShadow: "none" }).vars).toEqual({});
     expect(resolveTheme({}).vars).toEqual({});
@@ -602,5 +606,30 @@ describe("highlight", () => {
     const text = serializeTheme(definition);
     expect(Object.keys(JSON.parse(text))).toEqual(["cardShadow", "highlight"]);
     expect(parseThemeJson(text).definition).toEqual(definition);
+  });
+});
+
+describe("layeredShadow", () => {
+  const layers = (css: string) =>
+    css.split(", ").map((layer) => {
+      const m = /^(inset )?0 (-?[\d.]+)px 0 (-?[\d.]+)px a\(([\d.]+)\)$/.exec(layer);
+      if (!m) throw new Error(`unexpected layer: ${layer}`);
+      return { inset: !!m[1], y: Number(m[2]), spread: Number(m[3]), alpha: Number(m[4]) };
+    });
+
+  it("draws a blurred shadow as unblurred layers that spread two sigmas each way and add up to its alpha", () => {
+    const drop = layers(layeredShadow({ y: 18, blur: 44, alpha: 0.12 }, (a) => `a(${a})`));
+    expect(drop.every((l) => !l.inset && l.y === 18)).toBe(true);
+    expect(Math.min(...drop.map((l) => l.spread))).toBeGreaterThan(-44);
+    expect(Math.max(...drop.map((l) => l.spread))).toBe(44);
+    expect(drop.reduce((sum, l) => sum + l.alpha, 0)).toBeCloseTo(0.12 * 0.954, 2);
+    const near = drop.find((l) => l.spread > 0)!.alpha;
+    expect(near).toBeGreaterThan(drop.at(-1)!.alpha);
+  });
+
+  it("keeps only the layers inside the edge for an inset shadow", () => {
+    const inset = layers(layeredShadow({ blur: 36, alpha: 0.3, inset: true }, (a) => `a(${a})`));
+    expect(inset.every((l) => l.inset && l.spread > 0)).toBe(true);
+    expect(inset.reduce((sum, l) => sum + l.alpha, 0)).toBeCloseTo(0.3 * 0.477, 2);
   });
 });
