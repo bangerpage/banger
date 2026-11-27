@@ -126,6 +126,15 @@ export function stampRuntimeUrls() {
   return changed;
 }
 
+/** Sets the Claude Code plugin's version to the CLI's, so installed plugins update when a release ships. */
+export function stampPluginVersion() {
+  const file = join(repoRoot, ".claude-plugin/plugin.json");
+  const { version } = JSON.parse(readFileSync(join(repoRoot, "packages/cli/package.json"), "utf8"));
+  const before = readFileSync(file, "utf8");
+  const after = `${JSON.stringify({ ...JSON.parse(before), version }, null, 2)}\n`;
+  if (after !== before) writeFileSync(file, after);
+}
+
 function write(file, text) {
   mkdirSync(dirname(file), { recursive: true });
   writeFileSync(file, text);
@@ -146,6 +155,7 @@ function main(argv) {
   }
   write(join(repoRoot, "skill/reference/components.md"), components);
   stampRuntimeUrls();
+  stampPluginVersion();
 }
 
 if (process.argv[1] && fileURLToPath(import.meta.url) === process.argv[1]) main(process.argv.slice(2));

@@ -31,6 +31,8 @@ commands:
   skill install [--project | --dir <path>] [--force]
                                    copy the agent skill to ~/.claude/skills/banger
                                    (--project: ./.claude/skills/banger)
+  skill pack [--out <file>]        write the skill as a zip to upload in the Claude app
+                                   (default: ./banger-skill.zip)
   login [--token <token>]          log in to banger.page in the browser (or store a token made
                                    on the site's settings page)
   logout                           forget the stored token

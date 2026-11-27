@@ -107,15 +107,24 @@ npx @bangerpage/cli export --pdf  # 停止点ごとに 1 ページの PDF
 
 `skill/` は AI のための skill です。`SKILL.md` に手順と決まり、`reference/` にすべての要素・属性・型の例、`templates/starter.html` にひな形があります。skill の本文は日本語、要素の一覧は英語です。
 
-CLI は、その版に合った skill を同梱しています。Claude Code で使うときは、skill を入れてから発表を頼みます。
+Claude Code では、plugin として入れます。plugin は、リリースした版に合わせて更新されます。
 
 ```
-npm install -g @bangerpage/cli
+/plugin marketplace add bangerpage/banger
+/plugin install banger@bangerpage
+```
+
+skill は、発表を手元で見る・確かめる・書き出すのに CLI を使います。CLI も入れてください: `npm install -g @bangerpage/cli`。
+
+CLI は、その版に合った skill を同梱しています。plugin の代わりに、CLI から skill を書き出すこともできます。
+
+```
 banger skill install             # ~/.claude/skills/banger に書く
 banger skill install --project   # このプロジェクトだけなら ./.claude/skills/banger
+banger skill pack                # banger-skill.zip に書く
 ```
 
-CLI を更新した後にもう一度実行すると、skill も置き換わります。`banger` が書いていないディレクトリは、`--force` を付けない限り触りません。ほかの AI で使うときは、`--dir <path>` でその AI が skill を読む場所に書けます。
+CLI を更新した後に `banger skill install` をもう一度実行すると、skill も置き換わります。`banger` が書いていないディレクトリは、`--force` を付けない限り触りません。ほかの AI で使うときは、`--dir <path>` でその AI が skill を読む場所に書けます。`banger skill pack` は、Claude のアプリ (claude.ai か Claude Desktop) で使う zip を書きます。アプリの Skills の設定から、この zip をアップロードします。アプリの中では、AI は HTML を書けますが、CLI を動かせないことがあります。
 
 skill を入れた AI は、停止点の並びで構成を合意してから `index.html` を書きます。書いたら `banger check` と `banger snap` で停止点をすべて確かめ、CLI の警告 (はみ出し、存在しないタグ、読みにくい色、描画に失敗した部品) を直します。
 
@@ -183,6 +192,7 @@ skill を入れた AI は、停止点の並びで構成を合意してから `in
 - `banger theme init [file] [--from <preset>] [--force]`: 同梱のプリセット (`signal`、`signal-dark`、`sunshine`、`midnight`) から `theme.json` を書きます。
 - `banger theme apply <theme.json> <deck.html>`: テーマを発表に埋め込み、`theme="custom"` にします。何度実行しても結果は同じです。
 - `banger skill install [--project | --dir <path>] [--force]`: この版の CLI に同梱した skill を `~/.claude/skills/banger` (または `./.claude/skills/banger`、`<path>`) に写します。
+- `banger skill pack [--out <file>]`: 同梱した skill を zip に書きます (既定は `banger-skill.zip`)。zip の直下に `banger/` のフォルダを 1 つ置く、Claude のアプリにアップロードできる形です。
 - `banger login [--token <token>]`: [banger.page](https://banger.page) にログインします。ブラウザが開くので、ログインして CLI を許可すると、トークンが `~/.config/banger/credentials.json` (自分だけが読める) に置かれます。ブラウザが無い環境では、サイトの設定画面で作ったトークンを `--token` で渡します。`banger logout` はトークンを取り消して消します。CI では代わりに `BANGER_TOKEN` を設定します。
 - `banger publish [dir] [--slug <slug>] [--title <title>] [--visibility public|unlisted] [--strict] [--skip-check] [--dry-run]`: `dir` (既定は今のディレクトリ) の発表に `banger check` をかけてから、`index.html` と、その隣にある banger.page が受け付けるファイル (画像、フォント、動画、JSON、CSS、JS、`deck.pdf`。ドットファイルと `node_modules` は送らない) を送って公開します。slug の既定はディレクトリ名です。slug と URL は `.banger/deck.json` に残るので、次の実行では同じ発表を更新します。check の警告は、`--strict` を付けない限り公開を止めません。描画に失敗した部品があるときは、必ず止めます。 banger.page は発表を sandbox の iframe で見せます。発表が読めるのは自分のファイル (と Google Fonts) だけで、iframe の埋め込みとフォームの送信はできません。自分から画面を開いたり移ったりしてはいけません。一覧は `skill/reference/publishing.md` にあります。
 

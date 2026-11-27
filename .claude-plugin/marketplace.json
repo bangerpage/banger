@@ -1,0 +1,16 @@
+{
+  "name": "bangerpage",
+  "owner": {
+    "name": "bangerpage"
+  },
+  "metadata": {
+    "description": "The Banger agent skill for writing presentations as one HTML file."
+  },
+  "plugins": [
+    {
+      "name": "banger",
+      "source": "./",
+      "description": "Write Banger presentations: one HTML file with frames on a canvas and a camera that stops at each point."
+    }
+  ]
+}

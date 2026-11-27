@@ -4,8 +4,9 @@ import { join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { parseArgsStrict } from "../args.js";
 import { CliError } from "../errors.js";
+import { createZip, directoryEntries } from "../zip.js";
 
-const USAGE = "usage: banger skill install [--project | --dir <path>] [--force]";
+const USAGE = "usage: banger skill install [--project | --dir <path>] [--force]\n       banger skill pack [--out <file>]";
 /** Marks a directory written by `banger skill install`, so a later install may replace it. Holds the CLI version. */
 export const MARKER = ".banger-skill";
 
@@ -42,8 +43,24 @@ function cliVersion(): string {
   return (JSON.parse(readFileSync(manifest, "utf8")) as { version: string }).version;
 }
 
+/** Writes the skill as a zip with one top-level `banger/` folder, the layout the Claude apps accept for upload. */
+export function packSkill(source: string, out: string): void {
+  if (!existsSync(join(source, "SKILL.md"))) throw new CliError(2, `the bundled skill is missing: ${source}`);
+  writeFileSync(out, createZip(directoryEntries(source, "banger")));
+}
+
+function runPack(rest: string[]): number {
+  const { values, positionals } = parseArgsStrict(rest, { out: { type: "string" } });
+  if (positionals.length > 0) throw new CliError(2, USAGE);
+  const out = resolve(values.out ?? "banger-skill.zip");
+  packSkill(bundledSkill(), out);
+  process.stdout.write(`packed: ${out}\n\n${PACK_NEXT_STEPS}\n${NEXT_STEPS}`);
+  return 0;
+}
+
 export function runSkill(argv: string[]): number {
   const [sub, ...rest] = argv;
+  if (sub === "pack") return runPack(rest);
   if (sub !== "install") throw new CliError(2, USAGE);
   const { values, positionals } = parseArgsStrict(rest, {
     project: { type: "boolean" },
@@ -71,4 +88,8 @@ Start by asking, for example:
 
 To see the talk, run \`banger preview\` in the talk's folder.
 More: https://banger.page/start
+`;
+
+export const PACK_NEXT_STEPS = `To use the skill in the Claude app (claude.ai or Claude Desktop), upload this file
+from the app's Skills settings. Code execution must be on.
 `;

@@ -3,7 +3,8 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { CliError } from "../errors.js";
-import { MARKER, NEXT_STEPS, installSkill } from "./skill.js";
+import { MARKER, NEXT_STEPS, installSkill, packSkill } from "./skill.js";
+import { inflateRawSync } from "node:zlib";
 
 let dir: string;
 let source: string;
@@ -60,5 +61,46 @@ describe("NEXT_STEPS", () => {
     expect(NEXT_STEPS).toMatch(/"Make a 10-minute talk/);
     expect(NEXT_STEPS).toContain("`banger preview`");
     expect(NEXT_STEPS).toContain("https://banger.page/start");
+  });
+});
+
+/** Reads the entries of an archive written by `createZip` through its central directory. */
+function readZip(zip: Buffer): Record<string, string> {
+  const end = zip.length - 22;
+  expect(zip.readUInt32LE(end)).toBe(0x06054b50);
+  const count = zip.readUInt16LE(end + 10);
+  let at = zip.readUInt32LE(end + 16);
+  const files: Record<string, string> = {};
+  for (let i = 0; i < count; i++) {
+    const size = zip.readUInt32LE(at + 20);
+    const nameLength = zip.readUInt16LE(at + 28);
+    const local = zip.readUInt32LE(at + 42);
+    const name = zip.subarray(at + 46, at + 46 + nameLength).toString("utf8");
+    const data = local + 30 + zip.readUInt16LE(local + 26);
+    files[name] = inflateRawSync(zip.subarray(data, data + size)).toString("utf8");
+    at += 46 + nameLength;
+  }
+  return files;
+}
+
+describe("packSkill", () => {
+  it("writes the skill under one top-level banger folder", () => {
+    const out = join(dir, "banger-skill.zip");
+    packSkill(source, out);
+    expect(readZip(readFileSync(out))).toEqual({
+      "banger/SKILL.md": "skill",
+      "banger/reference/components.md": "components",
+    });
+  });
+
+  it("makes the same archive from the same files", () => {
+    packSkill(source, join(dir, "a.zip"));
+    packSkill(source, join(dir, "b.zip"));
+    expect(readFileSync(join(dir, "a.zip")).equals(readFileSync(join(dir, "b.zip")))).toBe(true);
+  });
+
+  it("refuses a source without SKILL.md", () => {
+    rmSync(join(source, "SKILL.md"));
+    expect(() => packSkill(source, join(dir, "x.zip"))).toThrow(CliError);
   });
 });

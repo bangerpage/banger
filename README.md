@@ -107,15 +107,24 @@ An element with a `lang` is shown only while that language is selected; elements
 
 `skill/` is an agent skill: `SKILL.md` describes the workflow and the rules, `reference/` lists every element, attribute and pattern, and `templates/starter.html` is the starting point. The skill text is in Japanese; the element reference is in English.
 
-The CLI carries the skill that matches its version. To use it with Claude Code, install it and ask for a talk:
+In Claude Code, install it as a plugin. The plugin updates when a new version is released:
 
 ```
-npm install -g @bangerpage/cli
+/plugin marketplace add bangerpage/banger
+/plugin install banger@bangerpage
+```
+
+The skill also needs the CLI, which previews, checks and exports the deck: `npm install -g @bangerpage/cli`.
+
+The CLI carries the skill that matches its version, and can write it out instead of the plugin:
+
+```
 banger skill install             # writes ~/.claude/skills/banger
 banger skill install --project   # or ./.claude/skills/banger for this project only
+banger skill pack                # writes banger-skill.zip
 ```
 
-Running it again after updating the CLI replaces the copy; a directory that `banger` did not write is left alone unless you pass `--force`. For another agent, `--dir <path>` writes the skill wherever that agent reads skills from.
+Running `banger skill install` again after updating the CLI replaces the copy; a directory that `banger` did not write is left alone unless you pass `--force`. For another agent, `--dir <path>` writes the skill wherever that agent reads skills from. `banger skill pack` writes a zip for the Claude app (claude.ai or Claude Desktop): upload it from the app's Skills settings. In the app the agent writes the HTML, but it may not be able to run the CLI.
 
 With the skill, the agent agrees on the outline as a list of stops, writes `index.html`, runs `banger check` and `banger snap` to look at every stop, and fixes what the CLI warns about (overflow, unknown tags, unreadable colours, failed components).
 
@@ -183,6 +192,7 @@ To reuse one look across decks, keep a `theme.json` and run `banger theme init` 
 - `banger theme init [file] [--from <preset>] [--force]`: write a `theme.json` from a bundled preset (`signal`, `signal-dark`, `sunshine`, `midnight`).
 - `banger theme apply <theme.json> <deck.html>`: embed the theme in a deck and set `theme="custom"`. Running it again gives the same result.
 - `banger skill install [--project | --dir <path>] [--force]`: copy the agent skill bundled with this CLI version to `~/.claude/skills/banger` (or `./.claude/skills/banger`, or `<path>`).
+- `banger skill pack [--out <file>]`: write the bundled skill as a zip (default `banger-skill.zip`) with one top-level `banger/` folder, the layout the Claude app accepts for upload.
 - `banger login [--token <token>]`: log in to [banger.page](https://banger.page). It opens the browser, where you log in and allow the CLI, and keeps the token in `~/.config/banger/credentials.json` (readable only by you). Without a browser, pass a token made on the site's settings page with `--token`. `banger logout` revokes the token and forgets it. In CI, set `BANGER_TOKEN` instead.
 - `banger publish [dir] [--slug <slug>] [--title <title>] [--visibility public|unlisted] [--strict] [--skip-check] [--dry-run]`: run `banger check` on the deck in `dir` (default: the working directory), then send `index.html` and the files next to it that banger.page accepts (images, fonts, video, JSON, CSS, JS and `deck.pdf`; dotfiles and `node_modules` are left out) and publish it. The slug defaults to the directory name. The slug and URL are kept in `.banger/deck.json`, so the next run updates the same deck. Check warnings do not stop a publish unless you pass `--strict`; failed components always do. banger.page shows the deck in a sandboxed iframe, so a deck can load only its own files (and Google Fonts), cannot embed iframes or submit forms, and must not open windows or navigate by itself; the full list is in `skill/reference/publishing.md`.
 
