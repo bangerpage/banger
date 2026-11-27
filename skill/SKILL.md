@@ -5,7 +5,7 @@ description: HTML 1 枚で「めくらない」プレゼンテーション (キ�
 
 # Banger でプレゼンを作る
 
-発表を 1 つの HTML にする。フレーム (`bang-frame`) をキャンバスに並べ、カメラが止まる停止点 (`bang-stop`) の列で見せる順を決める。部品とその属性は `reference/components.md`、定番の組み立ては `reference/patterns.md`、色とフォントを決めるカスタムテーマは `reference/themes.md`、最小の動く HTML は `templates/starter.html` にある。
+発表を 1 つの HTML にする。フレーム (`bang-frame`) をキャンバスに並べ、カメラが止まる停止点 (`bang-stop`) の列で見せる順を決める。部品とその属性は `reference/components.md`、定番の組み立ては `reference/patterns.md`、色とフォントを決めるカスタムテーマは `reference/themes.md`、banger.page に公開する発表で守ることは `reference/publishing.md`、最小の動く HTML は `templates/starter.html` にある。
 
 ## 作業の流れ
 
@@ -50,7 +50,7 @@ description: HTML 1 枚で「めくらない」プレゼンテーション (キ�
 - `banger export [file] --pdf [--out path] [--steps last|all] [--lang <言語>|all]`: 停止点ごとに 1 ページの PDF にする。`--lang <言語>` は `deck.<言語>.pdf`、`--lang all` は言語ごとの PDF を書く (省くと先頭の言語の `deck.pdf`。`--lang all` と `--out` は同時に使えない)。
 - `banger theme init [file] [--from <preset>] [--force]`: 同梱のひな形 (`signal` `signal-dark` `sunshine` `midnight`) から `theme.json` を作る。
 - `banger theme apply <theme.json> <deck.html>`: `theme.json` を発表に埋め込み、`theme="custom"` にする。何度実行しても結果は同じ。
-- `banger publish [dir] [--slug <slug>]`: 発表を banger.page に公開する。2 回目からは同じ発表の更新になる。公開は外に出す操作なので、人が頼んだときだけ実行する。ログインしていなければ、人に `banger login` を頼む (ブラウザでログインして許可する)。公開の前に `banger export --pdf --out deck.pdf` で PDF を作っておくと、発表ページから PDF を落とせる。
+- `banger publish [dir] [--slug <slug>]`: 発表を banger.page に公開する。2 回目からは同じ発表の更新になる。公開は外に出す操作なので、人が頼んだときだけ実行する。ログインしていなければ、人に `banger login` を頼む (ブラウザでログインして許可する)。公開の前に `banger export --pdf --out deck.pdf` で PDF を作っておくと、発表ページから PDF を落とせる。 banger.page は発表を sandbox の iframe で見せるので、`bang-free` に script や外部の資源を書いた発表は、公開の前に `reference/publishing.md` の制約を守っているか確かめる。
 
 ## エスケープハッチ
 
