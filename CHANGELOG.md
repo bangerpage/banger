@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.2.2
+
+### Runtime (`@bangerpage/core`)
+
+- Card shadows (`cardShadow: "soft"` and `"lift"`) are drawn without blur, so they print correctly in exported PDFs. Before, macOS Preview and some other viewers showed them as solid grey boxes around the cards.
+
+### Skill
+
+- The skill tells the agent not to write blurred shadows in `bang-free`, since they print as grey boxes in PDFs.
+
 ## 0.2.1
 
 ### Runtime (`@bangerpage/core`)
