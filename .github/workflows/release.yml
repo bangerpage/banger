@@ -31,6 +31,16 @@ jobs:
               exit 1
             fi
           done
+      # The release notes are the version's section of CHANGELOG.md (a prerelease uses its release's section).
+      - name: Release notes
+        run: |
+          version="${GITHUB_REF_NAME#v}"
+          section="${version%%-*}"
+          awk -v h="## $section" '$0 == h { on = 1; next } on && /^## / { exit } on' CHANGELOG.md > "$RUNNER_TEMP/notes.md"
+          if ! grep -q '[^[:space:]]' "$RUNNER_TEMP/notes.md"; then
+            echo "::error::CHANGELOG.md has no section for $section"
+            exit 1
+          fi
       - run: pnpm gen:check
       - run: pnpm typecheck
       - run: pnpm build
@@ -62,4 +72,4 @@ jobs:
         run: |
           prerelease=()
           case "$GITHUB_REF_NAME" in *-*) prerelease=(--prerelease) ;; esac
-          gh release create "$GITHUB_REF_NAME" --verify-tag --generate-notes "${prerelease[@]}"
+          gh release create "$GITHUB_REF_NAME" --verify-tag --notes-file "$RUNNER_TEMP/notes.md" --generate-notes "${prerelease[@]}"

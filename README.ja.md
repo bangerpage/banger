@@ -230,7 +230,7 @@ CLI と examples は `packages/*/dist` を読み込むので、pull した後は
 
 `v<version>` の tag を push すると、CI (`.github/workflows/release.yml`) が 2 つのパッケージを公開します。
 
-1. `packages/core/package.json` と `packages/cli/package.json` に同じ `version` を書き、`pnpm gen` (ひな形・例・README・テストの中のランタイムの URL を更新する) を実行して commit します。
+1. `CHANGELOG.md` に `## <version>` の節を足します。この節が GitHub の release の本文になります (`0.2.0-rc.1` のようなプレリリースは `## 0.2.0` の節を使います)。`packages/core/package.json` と `packages/cli/package.json` に同じ `version` を書き、`pnpm gen` (ひな形・例・README・テストの中のランタイムの URL を更新する) を実行して commit します。
 2. その commit を push し、`ci` が通るのを待ちます。
 3. その commit に `v<version>` の tag を付けて push します。リリースの workflow は、tag と 2 つの版が一致するかを確かめ、すべての確認をもう一度実行してから、npm の trusted publishing で core、cli の順に公開し (リポジトリに npm の token は置かない)、GitHub の release を作ります。
 

@@ -230,7 +230,7 @@ Generated files (`skill/reference/components.md`, the runtime URL in the starter
 
 Pushing a `v<version>` tag publishes both packages from CI (`.github/workflows/release.yml`).
 
-1. Set the same `version` in `packages/core/package.json` and `packages/cli/package.json`, run `pnpm gen` (it updates the runtime URL in the starter, the examples, the READMEs and the fixtures) and commit.
+1. Add a `## <version>` section to `CHANGELOG.md`; it becomes the GitHub release notes (a prerelease such as `0.2.0-rc.1` uses the `## 0.2.0` section). Set the same `version` in `packages/core/package.json` and `packages/cli/package.json`, run `pnpm gen` (it updates the runtime URL in the starter, the examples, the READMEs and the fixtures) and commit.
 2. Push the commit and wait for `ci` to pass.
 3. Tag the commit `v<version>` and push the tag. The release workflow checks that the tag matches both versions, runs every check again, publishes core before cli with npm trusted publishing (no npm token in the repository) and creates the GitHub release.
 
