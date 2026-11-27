@@ -27,7 +27,7 @@ Banger は、フレームをキャンバスの上に並べ、その間をカメ�
 <!doctype html>
 <meta charset="utf-8">
 <title>My talk</title>
-<script type="module" src="https://cdn.jsdelivr.net/npm/@bangerpage/core@0.2.0/dist/index.js"></script>
+<script type="module" src="https://cdn.jsdelivr.net/npm/@bangerpage/core@0.2.1/dist/index.js"></script>
 <bang-root theme="light">
   <bang-frame id="hello" at="0,0">
     <bang-title>Hello</bang-title>
