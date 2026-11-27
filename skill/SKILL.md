@@ -45,7 +45,7 @@ description: HTML 1 枚で「めくらない」プレゼンテーション (キ�
 ## コマンド
 
 - `banger preview [file]`: プレビューとライブリロード。`[file]` を省くと、今いるディレクトリの `index.html` を使う (`snap` と `export` も同じ)。
-- `banger check [file] [--json]`: 全停止点を最後の段で描き、問題を 1 行ずつ出す。フレームの余白の内側に収まらない中身、カードからはみ出す中身、存在しない `bang-*` の部品名、同じセルに置いたフレーム、無いフレームを指す停止点、使えない属性の値、読めない色、描けなかった部品が出る。`languages` のある deck は言語ごとに全停止点を描き、警告の行に `[ja] ` のように言語を付ける。訳し忘れと言語ごとの段の数の違いも出る。問題があれば終了コード 1。`--json` で `{ ok, stops, warnings, failed }` を出す。
+- `banger check [file] [--json]`: 全停止点を最後の段で描き、問題を 1 行ずつ出す。フレームの余白の内側に収まらない中身、カードからはみ出す中身、存在しない `bang-*` の部品名、同じセルに置いたフレーム、無いフレームを指す停止点、使えない属性の値、読めない色、描けなかった部品が出る。`languages` のある deck は言語ごとに全停止点を描き、警告の行に `[ja] ` のように言語を付ける。訳し忘れと言語ごとの段の数の違いも出る。問題があれば終了コード 1。`--json` で `{ ok, stops, warnings, failed, notes }` を出す。読み込めなかった Web フォントは `note:` の行に出し、問題に数えない (そのときのはみ出しは代わりのフォントで測っているので、本番のフォントでは変わることがある)。
 - `banger snap [file] [--stop N] [--step M|last] [--steps last|all] [--out path] [--out-dir dir] [--scale 1|2] [--lang <言語>|all]`: 状態を 1920x1080 の PNG にする。停止点を省くと全停止点を最後の段で出す。`--steps all` を付けると、順に出す途中の段もすべて出す。自分で見て直すために使う。`--lang <言語>` でその言語で撮り、`--lang all` で言語ごとに `snap/<言語>/` へ撮る (省くと先頭の言語。`--lang all` と `--out` は同時に使えない)。
 - `banger export [file] --pdf [--out path] [--steps last|all] [--lang <言語>|all]`: 停止点ごとに 1 ページの PDF にする。`--lang <言語>` は `deck.<言語>.pdf`、`--lang all` は言語ごとの PDF を書く (省くと先頭の言語の `deck.pdf`。`--lang all` と `--out` は同時に使えない)。
 - `banger theme init [file] [--from <preset>] [--force]`: 同梱のひな形 (`signal` `signal-dark` `sunshine` `midnight`) から `theme.json` を作る。

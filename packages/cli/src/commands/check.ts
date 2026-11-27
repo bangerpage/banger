@@ -12,7 +12,12 @@ export interface CheckResult {
   stops: number;
   warnings: string[];
   failed: string[];
+  /** Web fonts that did not load. The layout was measured with fallback fonts; these do not make the check fail. */
+  notes: string[];
 }
+
+/** The runtime's font messages (`fontsSettled` and `loadFonts` in core's base-style.ts). */
+const FONT_MESSAGE = /^(theme )?fonts? (stylesheet|timed out|load failed)/;
 
 function hasLanguages(html: string): boolean {
   const visit = (node: DefaultTreeAdapterMap["parentNode"]): boolean => {
@@ -41,6 +46,7 @@ function oldRuntimeWarning(html: string): string | null {
 export async function checkDeck(file: string): Promise<CheckResult> {
   const warnings: string[] = [];
   const failed = new Set<string>();
+  const notes = new Set<string>();
   const html = readInput(file);
   // A deck pinned to another runtime version is not a problem with the deck: say so, but do not count it.
   const pinned = runtimeVersionWarning(html, CORE_PACKAGE, coreVersion())?.message;
@@ -50,7 +56,8 @@ export async function checkDeck(file: string): Promise<CheckResult> {
     if (message === pinned) {
       if (oldRuntime) warnings.push(oldRuntime);
       else process.stderr.write(`note: ${message}\n`);
-    } else warnings.push(`${tag}${message}`);
+    } else if (FONT_MESSAGE.test(message)) notes.add(message);
+    else warnings.push(`${tag}${message}`);
   };
   let firstSteps: number[] = [];
   let firstLanguage = "";
@@ -73,7 +80,7 @@ export async function checkDeck(file: string): Promise<CheckResult> {
     }
     return session.path.length;
   });
-  return { ok: warnings.length === 0 && failed.size === 0, stops: stops[0], warnings, failed: [...failed] };
+  return { ok: warnings.length === 0 && failed.size === 0, stops: stops[0], warnings, failed: [...failed], notes: [...notes] };
 }
 
 export async function runCheck(argv: string[]): Promise<number> {
@@ -88,6 +95,7 @@ export async function runCheck(argv: string[]): Promise<number> {
   } else {
     for (const line of result.failed) process.stdout.write(`${line}\n`);
     for (const line of result.warnings) process.stdout.write(`warning: ${line}\n`);
+    for (const line of result.notes) process.stdout.write(`note: ${line} (layout checked with fallback fonts)\n`);
     const problems = result.failed.length + result.warnings.length;
     process.stdout.write(
       problems === 0 ? `ok: ${result.stops} stops, no problems\n` : `${problems} problem${problems === 1 ? "" : "s"} in ${result.stops} stops\n`,

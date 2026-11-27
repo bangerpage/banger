@@ -36,7 +36,7 @@ describe("languages", () => {
     expect(check.code, check.stderr).toBe(0);
     expect(check.stdout).toBe("ok: 5 stops, no problems\n");
     const json = JSON.parse((await runBin(["check", fixture("basic.html"), "--json"])).stdout);
-    expect(Object.keys(json)).toEqual(["ok", "stops", "warnings", "failed"]);
+    expect(Object.keys(json)).toEqual(["ok", "stops", "warnings", "failed", "notes"]);
 
     const deck = await deckCopy("plain", "basic.html");
     const outDir = join(work, "plain-snap");
@@ -63,7 +63,7 @@ describe("languages", () => {
     expect(out.some((l) => l.startsWith("warning: [en] ") && l.includes("does not fit"))).toBe(true);
     expect(out.some((l) => l.includes("[ja] "))).toBe(false);
     const json = JSON.parse((await runBin(["check", deck, "--json"])).stdout);
-    expect(Object.keys(json)).toEqual(["ok", "stops", "warnings", "failed"]);
+    expect(Object.keys(json)).toEqual(["ok", "stops", "warnings", "failed", "notes"]);
     expect(json.ok).toBe(false);
   });
 

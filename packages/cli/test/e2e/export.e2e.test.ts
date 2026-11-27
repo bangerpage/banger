@@ -362,6 +362,19 @@ describe("check", () => {
     }
   });
 
+  it("reports fonts that did not load as notes and still passes", async () => {
+    const env = { NODE_OPTIONS: `--import ${preload}` };
+    const text = await runBin(["check", fixture("basic.html")], { env });
+    expect(text.code, text.stdout + text.stderr).toBe(0);
+    expect(text.stdout).toMatch(/^note: font load failed: /m);
+    expect(text.stdout).toMatch(/ok: \d+ stops, no problems\n$/);
+    const json = await runBin(["check", fixture("basic.html"), "--json"], { env });
+    const result = JSON.parse(json.stdout) as { ok: boolean; warnings: string[]; notes: string[] };
+    expect(result.ok).toBe(true);
+    expect(result.warnings).toEqual([]);
+    expect(result.notes.length).toBeGreaterThan(0);
+  });
+
   it("lists the problems and exits 1; --json gives the same as data (AC-WARN-2)", async () => {
     const file = await deckCopy("check-typo", (html) => html.replace("<bang-title>", "<bang-titel>Typo</bang-titel><bang-title>"));
     const text = await runBin(["check", file]);
