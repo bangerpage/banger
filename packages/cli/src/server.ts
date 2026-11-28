@@ -1,7 +1,7 @@
 import { createReadStream, readFileSync, realpathSync, statSync, watch, type FSWatcher } from "node:fs";
 import { createServer, type ServerResponse } from "node:http";
 import type { AddressInfo } from "node:net";
-import { basename, dirname, extname, join, normalize, resolve, sep } from "node:path";
+import { basename, dirname, extname, join, normalize, relative, resolve, sep } from "node:path";
 import { CORE_PACKAGE, coreDistDir } from "./core-package.js";
 import { CliError, readInput } from "./errors.js";
 import type { PresenterStatus } from "./platform/status.js";
@@ -64,12 +64,42 @@ export function servableFile(root: string, target: string): string | null {
   }
 }
 
+const LOOPBACK_NAMES = new Set(["127.0.0.1", "localhost", "[::1]"]);
+
+/**
+ * Whether a request's Host header names this server. A page on another site can make its own name resolve to
+ * 127.0.0.1 (DNS rebinding) and then read the preview as same-origin; its Host header still carries that name.
+ * `allowHosts` adds names a proxy forwards under (a tailnet name, for example), with any port.
+ */
+export function hostAllowed(host: string | undefined, port: number, allowHosts: readonly string[] = []): boolean {
+  const value = (host ?? "").toLowerCase();
+  const match = /^(\[[0-9a-f:.]+\]|[^:]+)(?::(\d+))?$/.exec(value);
+  if (!match) return false;
+  const [, name, hostPort] = match as unknown as [string, string, string | undefined];
+  if (LOOPBACK_NAMES.has(name)) return hostPort === String(port);
+  return allowHosts.some((allowed) => allowed.toLowerCase() === name);
+}
+
+/** A path under the deck's folder that `banger publish` would not send either: a dotfile or folder, or node_modules. */
+function privatePath(root: string, target: string): boolean {
+  return relative(root, target)
+    .split(sep)
+    .some((part) => part.startsWith(".") || part === "node_modules");
+}
+
 const RELOAD_SNIPPET = `<script>new EventSource("/__banger/events").addEventListener("reload",()=>location.reload())</script>`;
 const EVENTS_PATH = "/__banger/events";
 const STATUS_PATH = "/__banger/status";
 const CORE_PREFIX = "/__banger/core/";
 
-export async function startServer(opts: { file: string; watch: boolean; port?: number; status?: () => Promise<PresenterStatus> }): Promise<DeckServer> {
+export async function startServer(opts: {
+  file: string;
+  watch: boolean;
+  port?: number;
+  status?: () => Promise<PresenterStatus>;
+  /** Host names besides 127.0.0.1 and localhost that may reach the server, such as a tailnet name behind a proxy. */
+  allowHosts?: readonly string[];
+}): Promise<DeckServer> {
   readInput(opts.file);
   const file = resolve(opts.file);
   const root = dirname(file);
@@ -83,6 +113,7 @@ export async function startServer(opts: { file: string; watch: boolean; port?: n
   };
 
   const server = createServer((req, res) => {
+    if (!hostAllowed(req.headers.host, listenPort, opts.allowHosts)) return send(res, 403, "forbidden");
     if (req.method !== "GET" && req.method !== "HEAD") return send(res, 405, "method not allowed");
     const urlPath = (req.url ?? "/").split("?")[0] ?? "/";
 
@@ -95,9 +126,8 @@ export async function startServer(opts: { file: string; watch: boolean; port?: n
     }
 
     if (urlPath === STATUS_PATH && opts.status) {
-      // A page on another site can reach 127.0.0.1 (DNS rebinding); only our own host names may read the account.
-      const host = (req.headers.host ?? "").toLowerCase();
-      if (host !== `127.0.0.1:${listenPort}` && host !== `localhost:${listenPort}`) return send(res, 403, "forbidden");
+      // The account is for this machine only, not for the names `allowHosts` adds.
+      if (!hostAllowed(req.headers.host, listenPort)) return send(res, 403, "forbidden");
       if (req.method === "HEAD") return send(res, 200, "", "application/json; charset=utf-8");
       opts.status().then(
         (status) => send(res, 200, JSON.stringify(status), "application/json; charset=utf-8"),
@@ -110,7 +140,7 @@ export async function startServer(opts: { file: string; watch: boolean; port?: n
     const base = isCore ? coreDistDir() : root;
     const target = resolveWithin(base, isCore ? urlPath.slice(CORE_PREFIX.length) : urlPath === "/" ? basename(file) : urlPath);
     const real = target ? servableFile(base, target) : null;
-    if (!target || !real) return send(res, 404, "not found");
+    if (!target || !real || (!isCore && privatePath(root, target))) return send(res, 404, "not found");
 
     if (!isCore) served.add(target);
     const type = contentType(target);

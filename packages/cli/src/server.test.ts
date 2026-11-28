@@ -6,13 +6,14 @@ import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { CORE_PACKAGE } from "./core-package.js";
 import { CliError } from "./errors.js";
 import type { PresenterStatus } from "./platform/status.js";
-import { resolveWithin, startServer, type DeckServer } from "./server.js";
+import { hostAllowed, resolveWithin, startServer, type DeckServer } from "./server.js";
 
 const CDN = `https://cdn.jsdelivr.net/npm/${CORE_PACKAGE}@0.1.0/dist/index.js`;
 const deck = `<html><body>\n<script type="module" src="${CDN}"></script>\n<p>hi</p>\n</body></html>\n`;
 
 let dir = "";
 let server: DeckServer | undefined;
+let server2: DeckServer | undefined;
 
 beforeEach(async () => {
   dir = await mkdtemp(join(tmpdir(), "banger-server-"));
@@ -21,7 +22,8 @@ beforeEach(async () => {
 });
 afterEach(async () => {
   await server?.close();
-  server = undefined;
+  await server2?.close();
+  server = server2 = undefined;
   await rm(dir, { recursive: true, force: true });
 });
 
@@ -145,6 +147,53 @@ describe("server", () => {
     expect(resolveWithin("/root", "/%E0%A4%A")).toBeNull();
   });
 
+  describe("host names", () => {
+    const get = (port: number, path: string, host: string) =>
+      new Promise<number>((resolve, reject) => {
+        const req = request({ host: "127.0.0.1", port, path, headers: { host } }, (res) => {
+          res.resume();
+          res.on("end", () => resolve(res.statusCode ?? 0));
+        });
+        req.on("error", reject);
+        req.end();
+      });
+
+    it("answers only to its own names and the ones allowed, on every path", async () => {
+      server = await startServer({ file: join(dir, "deck.html"), watch: false, port: 0, allowHosts: ["mac.tail1234.ts.net"] });
+      const port = Number(new URL(server.url).port);
+      for (const path of ["/", "/asset.txt", "/__banger/core/index.js"]) {
+        expect(await get(port, path, `127.0.0.1:${port}`), path).toBe(200);
+        expect(await get(port, path, `localhost:${port}`), path).toBe(200);
+        expect(await get(port, path, "mac.tail1234.ts.net"), path).toBe(200);
+        expect(await get(port, path, "Mac.Tail1234.ts.net:4443"), path).toBe(200);
+        expect(await get(port, path, `evil.test:${port}`), path).toBe(403);
+        expect(await get(port, path, `127.0.0.1:${port + 1}`), path).toBe(403);
+      }
+    });
+
+    it("hostAllowed", () => {
+      expect(hostAllowed("127.0.0.1:80", 80)).toBe(true);
+      expect(hostAllowed("[::1]:80", 80)).toBe(true);
+      expect(hostAllowed("localhost", 80)).toBe(false);
+      expect(hostAllowed(undefined, 80)).toBe(false);
+      expect(hostAllowed("a.ts.net", 80, ["a.ts.net"])).toBe(true);
+      expect(hostAllowed("b.a.ts.net", 80, ["a.ts.net"])).toBe(false);
+    });
+  });
+
+  it("does not serve dotfiles or node_modules from the deck's folder", async () => {
+    await mkdir(join(dir, ".banger"));
+    await writeFile(join(dir, ".banger", "deck.json"), "{}");
+    await writeFile(join(dir, ".env"), "SECRET=1");
+    await mkdir(join(dir, "node_modules"));
+    await writeFile(join(dir, "node_modules", "x.js"), "");
+    server = await startServer({ file: join(dir, "deck.html"), watch: false, port: 0 });
+    const base = origin(server);
+    for (const path of ["/.banger/deck.json", "/.env", "/node_modules/x.js", "/%2eenv"]) {
+      expect((await fetch(base + path)).status, path).toBe(404);
+    }
+  });
+
   describe("/__banger/status", () => {
     const status: PresenterStatus = { account: { state: "logged_in", username: "alice" }, deck: { state: "none" } };
     const get = (port: number, host: string | undefined, method = "GET") =>
@@ -178,6 +227,9 @@ describe("server", () => {
         expect(res.headers["access-control-allow-origin"]).toBeUndefined();
       }
       expect((await get(port, "evil.test")).status).toBe(403);
+      server2 = await startServer({ file: join(dir, "deck.html"), watch: false, port: 0, allowHosts: ["mac.ts.net"], status: async () => status });
+      const port2 = Number(new URL(server2.url).port);
+      expect((await get(port2, "mac.ts.net")).status).toBe(403);
       expect((await get(port, `127.0.0.1:${port + 1}`)).status).toBe(403);
       expect(calls).toBe(2);
       expect((await get(port, `127.0.0.1:${port}`, "POST")).status).toBe(405);

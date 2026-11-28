@@ -18,7 +18,8 @@ export const USAGE = `usage: banger <command> [options]
 
 commands:
   init [dir] [--force]             start a deck: write index.html from the starter
-  preview [file] [--port N]        preview with live reload
+  preview [file] [--port N] [--allow-host <name>]
+                                   preview with live reload
   snap [file] [--stop N] [--step M|last] [--steps last|all] [--out path] [--out-dir dir] [--scale 1|2]
        [--lang <language>|all]     render states as 1920x1080 PNGs
   check [file] [--json]            render every stop and list the problems the runtime finds;
