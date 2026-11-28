@@ -95,6 +95,9 @@ export function storedToken(host: string, env: NodeJS.ProcessEnv = process.env):
   return readCredentials(env).hosts[host]?.token ?? null;
 }
 
+/** A dead network would otherwise leave publish, login and the presenter status waiting forever. */
+const API_TIMEOUT_MS = 60_000;
+
 export class ApiError extends Error {
   constructor(
     readonly status: number,
@@ -187,12 +190,17 @@ export class PlatformClient {
           ...(body === undefined ? {} : { "content-type": "application/json" }),
         },
         ...(body === undefined ? {} : { body: JSON.stringify(body) }),
+        signal: AbortSignal.timeout(API_TIMEOUT_MS),
       });
     } catch (error) {
       throw new ApiError(0, "network", `could not reach ${this.host}: ${(error as Error).message}`);
     }
     if (!response.ok) throw await apiError(response);
-    return (await response.json()) as T;
+    try {
+      return (await response.json()) as T;
+    } catch (error) {
+      throw new ApiError(response.status, "invalid_response", `${this.host} sent a response that is not JSON: ${(error as Error).message}`);
+    }
   }
 }
 

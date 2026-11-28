@@ -106,7 +106,10 @@ export async function startServer(opts: { file: string; watch: boolean; port?: n
     }
     res.writeHead(200, { "content-type": type, "cache-control": "no-store" });
     if (req.method === "HEAD") return res.end();
-    createReadStream(target).pipe(res);
+    // The file can disappear between the stat above and the open; an unhandled stream error would end the preview.
+    createReadStream(target)
+      .on("error", () => res.destroy())
+      .pipe(res);
   });
 
   await new Promise<void>((resolveListen, rejectListen) => {
