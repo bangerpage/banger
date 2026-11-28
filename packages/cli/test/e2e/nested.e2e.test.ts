@@ -51,9 +51,16 @@ describe("nested frames cli", () => {
   }
 
   it("AC-17 check warns, and exits 1, when a child is outside its parent", async () => {
-    const deck = await deckCopy("outside", (html) => html.replace('id="b" at="2,1"', 'id="b" at="4,1"'));
+    const deck = await deckCopy("outside", (html) => html.replace('id="b" at="2,2"', 'id="b" at="4,2"'));
     const result = await runBin(["check", deck]);
     expect(result.code).toBe(1);
     expect(result.stdout + result.stderr).toContain('frame "b": its at/span put it outside its parent frame "whole"');
+  });
+
+  it("check warns when the parent's own content is under a child frame", async () => {
+    const deck = await deckCopy("covered", (html) => html.replace('id="a" at="0,2"', 'id="a" at="0,1"'));
+    const result = await runBin(["check", deck]);
+    expect(result.code).toBe(1);
+    expect(result.stdout + result.stderr).toContain('bang-text#verdict: it is under the child frame frame "a"');
   });
 });

@@ -114,6 +114,23 @@ function reachPast(container: Element, limit: Edges, scale: number): Reach {
   return reach;
 }
 
+/**
+ * Where an element's content actually is: block elements span the whole row, so a short line would otherwise count as
+ * covering everything beside it. Text uses its line boxes; an element without text (an image, a chart) its own box.
+ */
+function inkBox(el: Element): DOMRect | null {
+  const range = el.ownerDocument.createRange();
+  range.selectNodeContents(el);
+  const text = range.getBoundingClientRect();
+  range.detach();
+  const box = text.width > 0 && text.height > 0 ? text : el.getBoundingClientRect();
+  return box.width === 0 && box.height === 0 ? null : box;
+}
+
+/** The smaller side of the intersection of two boxes, in page pixels (0 when they do not meet). */
+const overlapPx = (a: DOMRect, b: DOMRect): number =>
+  Math.max(0, Math.min(Math.min(a.right, b.right) - Math.max(a.left, b.left), Math.min(a.bottom, b.bottom) - Math.max(a.top, b.top)));
+
 const furthest = (reach: Reach) => (reach.worst ? ` (furthest: ${selectorOf(reach.worst)})` : "");
 
 const amount = (x: number, y: number): string[] =>
@@ -149,6 +166,23 @@ export function frameOverflowWarnings(frames: readonly CheckedFrame[]): string[]
       out.push(
         `${frameName(el)}: the content does not fit inside the frame margins by ${parts.join(", ")}${furthest(reach)}; what passes the frame edge is cut off, so shorten it or use smaller sizes`,
       );
+    }
+    const childFrames = [...el.children].filter((c) => c.localName === "bang-frame");
+    if (childFrames.length > 0) {
+      // A child frame is drawn over its parent, so parent content in the child's cells is hidden behind it.
+      const boxes = childFrames.map((c) => ({ el: c, r: c.getBoundingClientRect() }));
+      for (const own of el.children) {
+        if (own.localName === "bang-frame" || own.localName === "bang-path") continue;
+        if (own.localName === "bang-free" && own.hasAttribute("overlay")) continue;
+        const r = inkBox(own);
+        if (!r) continue;
+        const hit = boxes.find(({ r: c }) => overlapPx(r, c) > OVERFLOW_TOLERANCE_PX * scale);
+        if (hit) {
+          out.push(
+            `${selectorOf(own)}: it is under the child frame ${frameName(hit.el)}, which is drawn over it; keep the parent's own content out of the cells its child frames use`,
+          );
+        }
+      }
     }
     for (const card of el.querySelectorAll("bang-card")) {
       if (card.closest("bang-frame") !== el) continue;
