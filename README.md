@@ -238,6 +238,12 @@ A version with a prerelease part (`0.2.0-rc.1`) is published under the npm dist-
 
 Trusted publishing is set up once per package on npmjs.com: in the package's settings, add a trusted publisher for the GitHub repository `bangerpage/banger` and the workflow `release.yml`.
 
+## Sponsors
+
+Banger is developed and maintained independently. If it helps you, please consider supporting its development via [GitHub Sponsors](https://github.com/sponsors/sotarok).
+
+[![Sponsor](https://img.shields.io/badge/Sponsor-Banger-ea4aaa?logo=githubsponsors&logoColor=white)](https://github.com/sponsors/sotarok)
+
 ## License
 
 MIT. The name "Banger" and the Banger logos (such as `examples/minimal/assets/banger-mark.svg`) are not covered by the license: you may not use them to suggest that your project is Banger or is endorsed by it.

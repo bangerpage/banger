@@ -17,6 +17,10 @@
     "directory": "packages/core"
   },
   "homepage": "https://github.com/bangerpage/banger/tree/main/packages/core#readme",
+  "funding": {
+    "type": "github",
+    "url": "https://github.com/sponsors/sotarok"
+  },
   "bugs": {
     "url": "https://github.com/bangerpage/banger/issues"
   },

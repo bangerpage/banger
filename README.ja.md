@@ -238,6 +238,12 @@ CLI と examples は `packages/*/dist` を読み込むので、pull した後は
 
 trusted publishing は、パッケージごとに npmjs.com で一度だけ設定します。パッケージの設定で、GitHub のリポジトリ `bangerpage/banger` と workflow `release.yml` を trusted publisher として登録します。
 
+## スポンサー
+
+Banger は個人で開発・メンテナンスしています。役に立ったら、[GitHub Sponsors](https://github.com/sponsors/sotarok) での支援をご検討ください。いただいたご支援はメンテナンスと開発に使わせていただきます。
+
+[![Sponsor](https://img.shields.io/badge/Sponsor-Banger-ea4aaa?logo=githubsponsors&logoColor=white)](https://github.com/sponsors/sotarok)
+
 ## ライセンス
 
 MIT。「Banger」という名前と Banger のロゴ (`examples/minimal/assets/banger-mark.svg` など) はライセンスの対象外です。あなたのプロジェクトが Banger である、または Banger に認められている、と思わせる使い方はできません。
