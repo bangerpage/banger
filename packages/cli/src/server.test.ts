@@ -1,9 +1,11 @@
+import { request } from "node:http";
 import { mkdir, mkdtemp, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { CORE_PACKAGE } from "./core-package.js";
 import { CliError } from "./errors.js";
+import type { PresenterStatus } from "./platform/status.js";
 import { resolveWithin, startServer, type DeckServer } from "./server.js";
 
 const CDN = `https://cdn.jsdelivr.net/npm/${CORE_PACKAGE}@0.1.0/dist/index.js`;
@@ -122,5 +124,60 @@ describe("server", () => {
     expect(resolveWithin("/root", "/..%2fx")).toBeNull();
     expect(resolveWithin("/root", "/a%00b")).toBeNull();
     expect(resolveWithin("/root", "/%E0%A4%A")).toBeNull();
+  });
+
+  describe("/__banger/status", () => {
+    const status: PresenterStatus = { account: { state: "logged_in", username: "alice" }, deck: { state: "none" } };
+    const get = (port: number, host: string | undefined, method = "GET") =>
+      new Promise<{ status: number; headers: Record<string, unknown>; body: string }>((resolve, reject) => {
+        const req = request({ host: "127.0.0.1", port, path: "/__banger/status", method, headers: host === undefined ? {} : { host } }, (res) => {
+          let body = "";
+          res.on("data", (c) => (body += c));
+          res.on("end", () => resolve({ status: res.statusCode ?? 0, headers: res.headers, body }));
+        });
+        req.on("error", reject);
+        req.end();
+      });
+
+    it("answers on the server's own host names only, without CORS headers", async () => {
+      let calls = 0;
+      server = await startServer({
+        file: join(dir, "deck.html"),
+        watch: false,
+        port: 0,
+        status: async () => {
+          calls += 1;
+          return status;
+        },
+      });
+      const port = Number(new URL(server.url).port);
+      for (const host of [`127.0.0.1:${port}`, `localhost:${port}`]) {
+        const res = await get(port, host);
+        expect(res.status).toBe(200);
+        expect(JSON.parse(res.body)).toEqual(status);
+        expect(res.headers["content-type"]).toBe("application/json; charset=utf-8");
+        expect(res.headers["access-control-allow-origin"]).toBeUndefined();
+      }
+      expect((await get(port, "evil.test")).status).toBe(403);
+      expect((await get(port, `127.0.0.1:${port + 1}`)).status).toBe(403);
+      expect(calls).toBe(2);
+      expect((await get(port, `127.0.0.1:${port}`, "POST")).status).toBe(405);
+      const head = await get(port, `127.0.0.1:${port}`, "HEAD");
+      expect(head.status).toBe(200);
+      expect(calls).toBe(2);
+    });
+
+    it("answers 500 with a fixed message when the provider throws", async () => {
+      server = await startServer({ file: join(dir, "deck.html"), watch: false, port: 0, status: () => Promise.reject(new Error("secret")) });
+      const port = Number(new URL(server.url).port);
+      const res = await get(port, `127.0.0.1:${port}`);
+      expect(res.status).toBe(500);
+      expect(res.body).toBe("status unavailable");
+    });
+
+    it("is a 404 without a status option", async () => {
+      server = await startServer({ file: join(dir, "deck.html"), watch: false, port: 0 });
+      expect((await fetch(`${origin(server)}/__banger/status`)).status).toBe(404);
+    });
   });
 });

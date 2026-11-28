@@ -84,11 +84,11 @@ interface DeckState {
   decks: Record<string, { slug: string; url: string }>;
 }
 
-function statePath(dir: string): string {
+export function statePath(dir: string): string {
   return join(resolve(dir), ".banger", "deck.json");
 }
 
-function readState(dir: string): DeckState {
+export function readState(dir: string): DeckState {
   const file = statePath(dir);
   if (!existsSync(file)) return { decks: {} };
   try {

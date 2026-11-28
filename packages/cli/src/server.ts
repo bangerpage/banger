@@ -4,6 +4,7 @@ import type { AddressInfo } from "node:net";
 import { basename, dirname, extname, join, normalize, resolve, sep } from "node:path";
 import { CORE_PACKAGE, coreDistDir } from "./core-package.js";
 import { CliError, readInput } from "./errors.js";
+import type { PresenterStatus } from "./platform/status.js";
 import { injectBeforeBodyEnd, rewriteRuntimeScript } from "./html-transform.js";
 
 export interface DeckServer {
@@ -50,14 +51,16 @@ export function resolveWithin(root: string, urlPath: string): string | null {
 
 const RELOAD_SNIPPET = `<script>new EventSource("/__banger/events").addEventListener("reload",()=>location.reload())</script>`;
 const EVENTS_PATH = "/__banger/events";
+const STATUS_PATH = "/__banger/status";
 const CORE_PREFIX = "/__banger/core/";
 
-export async function startServer(opts: { file: string; watch: boolean; port?: number }): Promise<DeckServer> {
+export async function startServer(opts: { file: string; watch: boolean; port?: number; status?: () => Promise<PresenterStatus> }): Promise<DeckServer> {
   readInput(opts.file);
   const file = resolve(opts.file);
   const root = dirname(file);
   const served = new Set<string>();
   const clients = new Set<ServerResponse>();
+  let listenPort = 0;
 
   const send = (res: ServerResponse, status: number, body: string, type = "text/plain; charset=utf-8") => {
     res.writeHead(status, { "content-type": type, "cache-control": "no-store" });
@@ -73,6 +76,18 @@ export async function startServer(opts: { file: string; watch: boolean; port?: n
       res.write(": connected\n\n");
       clients.add(res);
       req.on("close", () => clients.delete(res));
+      return;
+    }
+
+    if (urlPath === STATUS_PATH && opts.status) {
+      // A page on another site can reach 127.0.0.1 (DNS rebinding); only our own host names may read the account.
+      const host = (req.headers.host ?? "").toLowerCase();
+      if (host !== `127.0.0.1:${listenPort}` && host !== `localhost:${listenPort}`) return send(res, 403, "forbidden");
+      if (req.method === "HEAD") return send(res, 200, "", "application/json; charset=utf-8");
+      opts.status().then(
+        (status) => send(res, 200, JSON.stringify(status), "application/json; charset=utf-8"),
+        () => send(res, 500, "status unavailable"),
+      );
       return;
     }
 
@@ -104,6 +119,8 @@ export async function startServer(opts: { file: string; watch: boolean; port?: n
     });
     server.listen(opts.port ?? 0, "127.0.0.1", resolveListen);
   });
+
+  listenPort = (server.address() as AddressInfo).port;
 
   let watcher: FSWatcher | undefined;
   let timer: ReturnType<typeof setTimeout> | undefined;

@@ -131,6 +131,16 @@ export interface Me {
   username: string;
   display_name?: string;
   plan?: string;
+  avatar_url?: string | null;
+}
+
+export interface DeckInfo {
+  slug: string;
+  url: string;
+  visibility: string;
+  status: string;
+  version?: number;
+  current_version?: number | null;
 }
 
 /** The banger.page HTTP API (`/api/v1`). Its shape is defined by the platform; this is only the caller. */
@@ -143,6 +153,10 @@ export class PlatformClient {
 
   me(): Promise<Me> {
     return this.call<Me>("GET", "/api/v1/me");
+  }
+
+  deck(slug: string): Promise<DeckInfo> {
+    return this.call<DeckInfo>("GET", `/api/v1/decks/${encodeURIComponent(slug)}`);
   }
 
   beginUpload(files: UploadFile[]): Promise<UploadPlan> {
