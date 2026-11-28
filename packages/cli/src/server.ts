@@ -1,4 +1,4 @@
-import { createReadStream, existsSync, readFileSync, statSync, watch, type FSWatcher } from "node:fs";
+import { createReadStream, readFileSync, realpathSync, statSync, watch, type FSWatcher } from "node:fs";
 import { createServer, type ServerResponse } from "node:http";
 import type { AddressInfo } from "node:net";
 import { basename, dirname, extname, join, normalize, resolve, sep } from "node:path";
@@ -49,6 +49,21 @@ export function resolveWithin(root: string, urlPath: string): string | null {
   return full === base || full.startsWith(base + sep) ? full : null;
 }
 
+/**
+ * The real path of `target` when it is a regular file whose real path is still under the real `root`; null otherwise.
+ * `resolveWithin` only checks the spelling of the path, and a symbolic link inside a deck could point anywhere on disk.
+ */
+export function servableFile(root: string, target: string): string | null {
+  try {
+    const real = realpathSync(target);
+    const realRoot = realpathSync(root);
+    if (!real.startsWith(realRoot + sep) || !statSync(real).isFile()) return null;
+    return real;
+  } catch {
+    return null;
+  }
+}
+
 const RELOAD_SNIPPET = `<script>new EventSource("/__banger/events").addEventListener("reload",()=>location.reload())</script>`;
 const EVENTS_PATH = "/__banger/events";
 const STATUS_PATH = "/__banger/status";
@@ -92,22 +107,22 @@ export async function startServer(opts: { file: string; watch: boolean; port?: n
     }
 
     const isCore = urlPath.startsWith(CORE_PREFIX);
-    const target = isCore
-      ? resolveWithin(coreDistDir(), urlPath.slice(CORE_PREFIX.length))
-      : resolveWithin(root, urlPath === "/" ? basename(file) : urlPath);
-    if (!target || !existsSync(target) || !statSync(target).isFile()) return send(res, 404, "not found");
+    const base = isCore ? coreDistDir() : root;
+    const target = resolveWithin(base, isCore ? urlPath.slice(CORE_PREFIX.length) : urlPath === "/" ? basename(file) : urlPath);
+    const real = target ? servableFile(base, target) : null;
+    if (!target || !real) return send(res, 404, "not found");
 
     if (!isCore) served.add(target);
     const type = contentType(target);
     if (!isCore && extname(target).toLowerCase() === ".html") {
-      let html = rewriteRuntimeScript(readFileSync(target, "utf8"), CORE_PACKAGE, `${CORE_PREFIX}index.js`);
+      let html = rewriteRuntimeScript(readFileSync(real, "utf8"), CORE_PACKAGE, `${CORE_PREFIX}index.js`);
       if (opts.watch) html = injectBeforeBodyEnd(html, RELOAD_SNIPPET);
       return send(res, 200, req.method === "HEAD" ? "" : html, type);
     }
     res.writeHead(200, { "content-type": type, "cache-control": "no-store" });
     if (req.method === "HEAD") return res.end();
     // The file can disappear between the stat above and the open; an unhandled stream error would end the preview.
-    createReadStream(target)
+    createReadStream(real)
       .on("error", () => res.destroy())
       .pipe(res);
   });

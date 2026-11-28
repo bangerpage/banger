@@ -1,5 +1,5 @@
 import { request } from "node:http";
-import { mkdir, mkdtemp, rm, writeFile } from "node:fs/promises";
+import { mkdir, mkdtemp, rm, symlink, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
@@ -108,6 +108,25 @@ describe("server", () => {
       expect((await fetch(base + path)).status, path).toBe(404);
     }
     expect((await fetch(base, { method: "POST" })).status).toBe(405);
+  });
+
+  it("does not follow a symbolic link out of the deck's folder", async () => {
+    const outside = await mkdtemp(join(tmpdir(), "banger-outside-"));
+    try {
+      await writeFile(join(outside, "secret.txt"), "secret");
+      await symlink(join(outside, "secret.txt"), join(dir, "leak.txt"));
+      await symlink(outside, join(dir, "out"));
+      await symlink(join(dir, "asset.txt"), join(dir, "inside.txt"));
+      server = await startServer({ file: join(dir, "deck.html"), watch: false, port: 0 });
+      const base = origin(server);
+      expect((await fetch(`${base}/leak.txt`)).status).toBe(404);
+      expect((await fetch(`${base}/out/secret.txt`)).status).toBe(404);
+      const inside = await fetch(`${base}/inside.txt`);
+      expect(inside.status).toBe(200);
+      expect(await inside.text()).toBe("asset");
+    } finally {
+      await rm(outside, { recursive: true, force: true });
+    }
   });
 
   it("reports a port in use as CliError(2)", async () => {

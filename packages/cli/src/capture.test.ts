@@ -2,11 +2,33 @@ import { mkdir, mkdtemp, readdir, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
-import { clearStopFiles, expandStates, pageQuery, stopFileName } from "./capture.js";
+import { checkPageReport, clearStopFiles, expandStates, pageQuery, stopFileName } from "./capture.js";
+import { CliError } from "./errors.js";
 
 const path = [{ steps: 0 }, { steps: 2 }];
 
 describe("capture", () => {
+  it("checkPageReport passes what the runtime reports", () => {
+    const report = { path: [{ steps: 0 }, { steps: 3 }], languages: ["ja", "en-US"], language: "ja" };
+    expect(checkPageReport(report)).toEqual(report);
+    expect(checkPageReport({ path: [], languages: [], language: "" }).language).toBe("");
+  });
+
+  it("checkPageReport rejects languages that would leave the output folder, and unbounded step counts", () => {
+    const ok = { path: [{ steps: 0 }], languages: ["en"], language: "en" };
+    for (const bad of [
+      { ...ok, languages: ["en", "x/../../../tmp/report"] },
+      { ...ok, language: "../evil" },
+      { ...ok, languages: "en" },
+      { ...ok, path: [{ steps: 1e9 }] },
+      { ...ok, path: [{ steps: -1 }] },
+      { ...ok, path: [{ steps: 1.5 }] },
+      { ...ok, path: null },
+    ]) {
+      expect(() => checkPageReport(bad), JSON.stringify(bad)).toThrow(CliError);
+    }
+  });
+
   it("expandStates", () => {
     expect(expandStates(path, "last")).toEqual([
       { stop: 0, step: 0 },
