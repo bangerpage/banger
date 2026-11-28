@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.3.0
+
+### Runtime (`@bangerpage/core`)
+
+- A `bang-frame` can sit inside another `bang-frame`. The child's `at` and `span` count the cells of the parent's `span`, it stays 16:9, and it works as an ordinary frame for stops, steps, `region`, `focus` and `show`. Children of the same parent slide at the same size instead of pulling back. A deck with nested frames needs runtime 0.3.0 or later.
+- `banger check` warns when a child frame is outside its parent, when an element sits between a child and its parent, and when the parent's own content is under a child frame, where it would be hidden.
+
+### Skill
+
+- The skill describes when and how to nest frames, with a full example in `reference/patterns.md`.
+
 ## 0.2.4
 
 ### Runtime (`@bangerpage/core`)
