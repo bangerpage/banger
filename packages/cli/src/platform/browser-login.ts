@@ -14,10 +14,19 @@ export function pkcePair(): { verifier: string; challenge: string } {
   return { verifier, challenge: base64url(createHash("sha256").update(verifier).digest()) };
 }
 
+/**
+ * The command that opens `url` in the default browser. On Windows cmd.exe reads an unquoted `&` as the end of the
+ * command, so it is escaped as `^&`; otherwise the URL would be cut at its first query separator.
+ */
+export function browserCommand(url: string, platform: NodeJS.Platform = process.platform): [string, string[]] {
+  if (platform === "darwin") return ["open", [url]];
+  if (platform === "win32") return ["cmd", ["/c", "start", "", url.replace(/&/g, "^&")]];
+  return ["xdg-open", [url]];
+}
+
 /** Opens `url` in the default browser. Failing to open it is not an error: the URL is also printed. */
 export function openInBrowser(url: string): void {
-  const [command, args] =
-    process.platform === "darwin" ? ["open", [url]] : process.platform === "win32" ? ["cmd", ["/c", "start", "", url]] : ["xdg-open", [url]];
+  const [command, args] = browserCommand(url);
   try {
     const child = spawn(command, args, { stdio: "ignore", detached: true });
     child.on("error", () => undefined);

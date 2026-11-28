@@ -33,12 +33,12 @@ export function installSkill(opts: InstallSkillOptions): "installed" | "updated"
   return outcome;
 }
 
-function bundledSkill(): string {
+export function bundledSkill(): string {
   // bin.js is bundled into dist/, and the build copies the skill to dist/skill.
   return fileURLToPath(new URL("./skill", import.meta.url));
 }
 
-function cliVersion(): string {
+export function cliVersion(): string {
   const manifest = fileURLToPath(new URL("../package.json", import.meta.url));
   return (JSON.parse(readFileSync(manifest, "utf8")) as { version: string }).version;
 }

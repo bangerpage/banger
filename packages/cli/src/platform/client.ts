@@ -95,6 +95,11 @@ export function storedToken(host: string, env: NodeJS.ProcessEnv = process.env):
   return readCredentials(env).hosts[host]?.token ?? null;
 }
 
+/** The banger.page username stored for `host` by `banger login`, ignoring `BANGER_TOKEN`. */
+export function storedUsername(host: string, env: NodeJS.ProcessEnv = process.env): string | null {
+  return readCredentials(env).hosts[host]?.username ?? null;
+}
+
 /** A dead network would otherwise leave publish, login and the presenter status waiting forever. */
 const API_TIMEOUT_MS = 60_000;
 

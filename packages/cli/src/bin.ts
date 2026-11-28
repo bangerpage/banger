@@ -4,6 +4,7 @@ import { BrowserNotFoundError, installHint } from "./browser.js";
 import { runLogin, runLogout } from "./commands/account.js";
 import { runCheck } from "./commands/check.js";
 import { runExport } from "./commands/export.js";
+import { runFeedback } from "./commands/feedback.js";
 import { runInit } from "./commands/init.js";
 import { runPreview } from "./commands/preview.js";
 import { runPublish } from "./commands/publish.js";
@@ -40,6 +41,13 @@ commands:
           [--skip-check] [--dry-run]
                                    check the deck in dir (default: here) and publish it to banger.page;
                                    later runs update the same deck
+  feedback new                     write a draft of your experience with banger in a temp directory
+  feedback send <file> [--via gh|web|inbox] [--yes] [--dry-run]
+                                   show the final text, then send it as a GitHub issue (gh or by hand)
+                                   or to the banger.page feedback inbox
+
+  banger feedback sends what you learned from a finished deck to Banger. It shows the exact text first,
+  and stops when the draft holds a token, an absolute path or an email address.
 
   [file] defaults to index.html in the working directory.
   --lang picks one of the deck's languages (default: the first); all writes every language
@@ -54,7 +62,7 @@ options:
   --version    show the version
 `;
 
-const COMMANDS = new Set(["init", "preview", "snap", "check", "export", "theme", "skill", "login", "logout", "publish"]);
+const COMMANDS = new Set(["init", "preview", "snap", "check", "export", "theme", "skill", "login", "logout", "publish", "feedback"]);
 
 function version(): string {
   const manifest = fileURLToPath(new URL("../package.json", import.meta.url));
@@ -94,6 +102,8 @@ async function dispatch(argv: string[]): Promise<number> {
       return runLogout(rest);
     case "publish":
       return runPublish(rest);
+    case "feedback":
+      return runFeedback(rest);
     default:
       throw new CliError(2, `unknown command: ${command}\n${USAGE}`);
   }

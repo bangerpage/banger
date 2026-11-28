@@ -47,9 +47,17 @@ describe("bin", () => {
     ["theme apply without files", ["theme", "apply"]],
     ["theme init with an unknown preset", ["theme", "init", "--from", "nope"]],
     ["unknown option", ["snap", "deck.html", "--nope"]],
+    ["feedback without a subcommand", ["feedback"]],
+    ["feedback with an unknown subcommand", ["feedback", "frob"]],
+    ["feedback send without a file", ["feedback", "send"]],
   ])("%s exits 2 with a banger: message", async (_name, argv) => {
     expect(await main(argv)).toBe(2);
     expect(stderr.startsWith("banger: ")).toBe(true);
+  });
+
+  it("feedback --help exits 0 with a usage", async () => {
+    expect(await main(["feedback", "--help"])).toBe(0);
+    expect(stdout).toContain("feedback send");
   });
 
   it("--help and --version exit 0", async () => {
@@ -57,6 +65,7 @@ describe("bin", () => {
     expect(stdout).toContain("usage: banger");
     expect(stdout).toContain("theme init");
     expect(stdout).toContain("theme apply");
+    expect(stdout).toContain("feedback send");
     stdout = "";
     expect(await main(["--version"])).toBe(0);
     expect(stdout.trim()).toMatch(/^\d+\.\d+\.\d+/);
