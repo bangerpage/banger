@@ -1,6 +1,6 @@
 {
   "name": "@bangerpage/cli",
-  "version": "0.2.3",
+  "version": "0.2.4",
   "description": "The banger command: preview, snap and export Banger presentations to PNG and PDF.",
   "keywords": [
     "presentation",
