@@ -26,6 +26,14 @@ export interface CameraTween {
   duration: number;
   /** How far (in log zoom) the move pulls back at its midpoint, beyond the straight zoom change. 0 or less. */
   pullBack: number;
+  /** `swift` makes `sample` use ease-out. Left off for `smooth`. */
+  curve?: CameraMotion;
+}
+
+export type CameraMotion = "smooth" | "swift";
+
+export interface TweenOptions {
+  motion?: CameraMotion;
 }
 
 export const FRAME_WIDTH = 1920;
@@ -33,6 +41,9 @@ export const FRAME_HEIGHT = 1080;
 const MIN_DURATION = 400;
 const MAX_DURATION = 800;
 const MAX_PULL_BACK_DURATION = 1300;
+const SWIFT_MIN_DURATION = 180;
+const SWIFT_MAX_DURATION = 280;
+const SWIFT_MS_PER_SCORE = 25;
 /** A move pulls back once its distance is this many times the wider of the two views. Neighbouring grid frames stay below it. */
 const PULL_BACK_DISTANCE = 1.5;
 
@@ -126,10 +137,14 @@ export function stageSize(viewport: Size): Size {
   return { w: FRAME_WIDTH * s0, h: FRAME_HEIGHT * s0 };
 }
 
-export function durationFor(from: CameraPose, to: CameraPose, stage: Size): number {
+function moveScore(from: CameraPose, to: CameraPose, stage: Size): number {
   const distance = Math.hypot(to.cx - from.cx, to.cy - from.cy);
   const meanZoom = (from.zoom + to.zoom) / 2;
-  const score = (distance * meanZoom) / stage.w + Math.abs(Math.log(to.zoom / from.zoom));
+  return (distance * meanZoom) / stage.w + Math.abs(Math.log(to.zoom / from.zoom));
+}
+
+export function durationFor(from: CameraPose, to: CameraPose, stage: Size): number {
+  const score = moveScore(from, to, stage);
   return Math.min(Math.max(MIN_DURATION + 100 * score, MIN_DURATION), MAX_DURATION);
 }
 
@@ -137,6 +152,12 @@ export function durationFor(from: CameraPose, to: CameraPose, stage: Size): numb
 export function ease(t: number): number {
   const x = clamp01(t);
   return x < 0.5 ? 4 * x * x * x : 1 - Math.pow(-2 * x + 2, 3) / 2;
+}
+
+/** Quartic ease-out: fast at the start, settling at the end. */
+export function easeOut(t: number): number {
+  const x = clamp01(t);
+  return 1 - Math.pow(1 - x, 4);
 }
 
 /**
@@ -154,7 +175,17 @@ export function pullBackFor(from: CameraPose, to: CameraPose, stage: Size): numb
   return Math.min(0, Math.log(both) - straight);
 }
 
-export function startTween(from: CameraPose, to: CameraPose, now: number, stage: Size): CameraTween {
+export function startTween(
+  from: CameraPose,
+  to: CameraPose,
+  now: number,
+  stage: Size,
+  opts?: TweenOptions,
+): CameraTween {
+  if (opts?.motion === "swift") {
+    const duration = Math.min(SWIFT_MIN_DURATION + SWIFT_MS_PER_SCORE * moveScore(from, to, stage), SWIFT_MAX_DURATION);
+    return { from, to, start: now, duration, pullBack: 0, curve: "swift" };
+  }
   const pullBack = pullBackFor(from, to, stage);
   const duration = Math.min(durationFor(from, to, stage) - 250 * pullBack, MAX_PULL_BACK_DURATION);
   return { from, to, start: now, duration, pullBack };
@@ -164,7 +195,7 @@ export function sample(tween: CameraTween, now: number): CameraPose {
   const t = clamp01((now - tween.start) / tween.duration);
   if (t <= 0) return { ...tween.from };
   if (t >= 1) return { ...tween.to };
-  const e = ease(t);
+  const e = (tween.curve === "swift" ? easeOut : ease)(t);
   const { from, to } = tween;
   return {
     cx: from.cx + (to.cx - from.cx) * e,
@@ -174,8 +205,14 @@ export function sample(tween: CameraTween, now: number): CameraPose {
 }
 
 /** Starts a new tween from the current pose so an interrupted move does not jump. */
-export function retarget(current: CameraPose, to: CameraPose, now: number, stage: Size): CameraTween {
-  return startTween(current, to, now, stage);
+export function retarget(
+  current: CameraPose,
+  to: CameraPose,
+  now: number,
+  stage: Size,
+  opts?: TweenOptions,
+): CameraTween {
+  return startTween(current, to, now, stage, opts);
 }
 
 /** The margin (stage px) around the box the target rect occupies at `pose.zoom`, centered in the stage. */

@@ -42,6 +42,16 @@ const call = (page: Page, expr: string) =>
 const canvasTransform = (page: Page) =>
   page.evaluate(() => getComputedStyle(document.querySelector("bang-root")!.shadowRoot!.querySelector(".canvas")!).transform);
 
+const withMotion = (value: string) => deckHtml.replace('<bang-root theme="light">', `<bang-root theme="light" motion="${value}">`);
+const timeGoto = (page: Page, index: number) =>
+  call(page, `(async () => { const t = performance.now(); await root.goto(${index}); return performance.now() - t; })()`) as Promise<number>;
+const rootVar = (page: Page, name: string) =>
+  page.evaluate((n) => (document.querySelector("bang-root") as HTMLElement).style.getPropertyValue(n), name);
+const stepDuration = (page: Page) =>
+  page.evaluate(() => getComputedStyle(document.getElementById("s1")!).transitionDuration);
+const ARRIVE_1 = "matrix(1, 0, 0, 1, -2160, 0)";
+const BOGUS = '<bang-root motion="bogus"> is not one of: smooth, swift, none; using "smooth"';
+
 describe("runtime", () => {
   afterAll(async () => {
     await Promise.all(opened.map((d) => d.context.close()));
@@ -485,5 +495,115 @@ describe("runtime", () => {
     expect(short.warnings.filter((w) => w.includes('frame "b" needs 3 steps'))).toHaveLength(1);
     const ok = await openVirtual("ok", deckHtml);
     expect(ok.warnings.filter((w) => w.includes("needs"))).toEqual([]);
+  });
+
+  it("AC-MOT-5 swift is quick, none is instant, smooth and no motion keep the old pace", async () => {
+    const timed: Record<string, number> = {};
+    for (const [name, html] of [["none-attr", deckHtml], ["smooth", withMotion("smooth")], ["swift", withMotion("swift")], ["none", withMotion("none")]] as const) {
+      const { page } = await openVirtual(`mot5-${name}`, html);
+      timed[name] = await timeGoto(page, 1);
+      expect(await canvasTransform(page)).toBe(ARRIVE_1);
+    }
+    expect(timed["none-attr"]).toBeGreaterThanOrEqual(390);
+    expect(timed.smooth).toBeGreaterThanOrEqual(390);
+    expect(timed.swift).toBeGreaterThanOrEqual(150);
+    expect(timed.swift).toBeLessThan(390);
+    expect(timed.none).toBeLessThan(100);
+  });
+
+  it("AC-MOT-6 reduced motion wins over swift and none", async () => {
+    for (const value of ["swift", "none"]) {
+      const { page } = await openVirtual(`mot6-${value}`, withMotion(value), { reducedMotion: "reduce" });
+      expect(await timeGoto(page, 1)).toBeLessThan(100);
+      expect(await canvasTransform(page)).toBe(ARRIVE_1);
+    }
+  });
+
+  it("AC-MOT-7 none stops the css fades and the attribute can change at run time", async () => {
+    const none = await openVirtual("mot7-none", withMotion("none"));
+    expect(await rootVar(none.page, "--bang-duration-fast")).toBe("0s");
+    expect(await rootVar(none.page, "--bang-duration-slow")).toBe("0s");
+    expect(await stepDuration(none.page)).toBe("0s");
+    for (const value of ["smooth", "swift"]) {
+      const { page } = await openVirtual(`mot7-${value}`, withMotion(value));
+      expect(await rootVar(page, "--bang-duration-slow")).toBe("");
+      expect(await stepDuration(page)).not.toBe("0s");
+    }
+    const reduced = await openVirtual("mot7-reduced", withMotion("smooth"), { reducedMotion: "reduce" });
+    expect(await rootVar(reduced.page, "--bang-duration-fast")).toBe("0s");
+    expect(await rootVar(reduced.page, "--bang-duration-slow")).toBe("");
+
+    const live = await openVirtual("mot7-live", withMotion("smooth"));
+    const setMotion = async (value: string) => {
+      await live.page.evaluate(async (v) => {
+        const root = document.querySelector("bang-root") as any;
+        root.setAttribute("motion", v);
+        await root.updateComplete;
+      }, value);
+    };
+    await setMotion("none");
+    expect(await rootVar(live.page, "--bang-duration-slow")).toBe("0s");
+    expect(await timeGoto(live.page, 1)).toBeLessThan(100);
+    await setMotion("smooth");
+    expect(await rootVar(live.page, "--bang-duration-slow")).toBe("");
+    expect(await rootVar(live.page, "--bang-duration-fast")).toBe("");
+    expect(await timeGoto(live.page, 0)).toBeGreaterThanOrEqual(390);
+  });
+
+  it("AC-MOT-8 an unknown motion warns once and moves like smooth", async () => {
+    const bogus = await openVirtual("mot8-bogus", withMotion("bogus"));
+    expect(await timeGoto(bogus.page, 1)).toBeGreaterThanOrEqual(390);
+    expect(bogus.warnings.filter((w) => w.includes(`[banger] ${BOGUS}`))).toHaveLength(1);
+    const report = (await bogus.page.evaluate(() => (document.querySelector("bang-root") as any).ready())) as { warnings: string[] };
+    expect(report.warnings).toContain(BOGUS);
+    for (const [name, html] of [["none-attr", deckHtml], ["swift", withMotion("swift")], ["none", withMotion("none")]] as const) {
+      const { page, warnings } = await openVirtual(`mot8-${name}`, html);
+      const ok = (await page.evaluate(() => (document.querySelector("bang-root") as any).ready())) as { warnings: string[] };
+      expect(ok.warnings.filter((w) => w.includes("motion"))).toEqual([]);
+      expect(warnings.filter((w) => w.includes("motion"))).toEqual([]);
+    }
+  });
+
+  it("AC-MOT-9 export and presenter never animate and do not write the slow fade", async () => {
+    const smooth = await openVirtual("mot9-smooth", withMotion("smooth"), { query: "mode=export" });
+    await timeGoto(smooth.page, 4);
+    const expected = await canvasTransform(smooth.page);
+    for (const value of ["none", "swift"]) {
+      const { page } = await openVirtual(`mot9-${value}`, withMotion(value), { query: "mode=export" });
+      expect(await timeGoto(page, 4)).toBeLessThan(100);
+      expect(await rootVar(page, "--bang-duration-fast")).toBe("0s");
+      expect(await rootVar(page, "--bang-duration-slow")).toBe("");
+      expect(await canvasTransform(page)).toBe(expected);
+    }
+    const presenter = await openVirtual("mot9-presenter", withMotion("swift"), { query: "mode=presenter" });
+    expect(await timeGoto(presenter.page, 1)).toBeLessThan(100);
+    expect(await rootVar(presenter.page, "--bang-duration-slow")).toBe("");
+    expect(presenter.errors).toEqual([]);
+  });
+
+  it("AC-MOT-10 an interrupted swift move is not overwritten by stale callbacks", async () => {
+    const expected = await (async () => {
+      const { page } = await openVirtual("mot10-ref", withMotion("swift"), { reducedMotion: "reduce" });
+      await call(page, "root.goto(2)");
+      return canvasTransform(page);
+    })();
+    const { page } = await openVirtual("mot10", withMotion("swift"));
+    const result = await page.evaluate(async () => {
+      const root = document.querySelector("bang-root") as any;
+      const t0 = performance.now();
+      let first = 0;
+      const p1 = root.goto(1).then(() => (first = performance.now()));
+      await new Promise((r) => setTimeout(r, 100));
+      const t2 = performance.now();
+      const p2 = root.goto(2);
+      await p1;
+      await p2;
+      return { interrupt: first - t2, t0 };
+    });
+    expect(result.interrupt).toBeLessThan(50);
+    const arrived = await canvasTransform(page);
+    expect(arrived).toBe(expected);
+    await page.waitForTimeout(500);
+    expect(await canvasTransform(page)).toBe(arrived);
   });
 });

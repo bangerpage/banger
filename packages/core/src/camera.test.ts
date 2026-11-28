@@ -5,6 +5,8 @@ import {
   boundsOf,
   clipFor,
   durationFor,
+  ease,
+  easeOut,
   frameRect,
   layoutFrames,
   poseFor,
@@ -159,5 +161,83 @@ describe("camera", () => {
     const pose = { cx: 3000, cy: 1000, zoom: 0.25 };
     expect(stageToCanvas({ x: 960, y: 540 }, pose, stage)).toEqual({ x: 3000, y: 1000 });
     expect(stageToCanvas({ x: 1160, y: 540 }, pose, stage)).toEqual({ x: 3800, y: 1000 });
+  });
+
+  describe("motion", () => {
+    const home = poseFor(frame, stage);
+    const neighbour = poseFor(frameRect([1, 0], [1, 1], 240), stage);
+    const far = poseFor(frameRect([4, 0], [1, 1], 240), stage);
+    const close = poseFor(regionRect(frameRect([1, 0], [1, 1], 240), { x: 0, y: 0, w: 0.25, h: 0.25 }), stage);
+    const moves: [CameraPose, CameraPose][] = [
+      [home, neighbour],
+      [home, far],
+      [{ cx: 960, cy: 540, zoom: 0.3 }, close],
+    ];
+
+    it("smooth and no motion give the same tween as before", () => {
+      for (const [a, b] of moves) {
+        const base = startTween(a, b, 5, stage);
+        expect(startTween(a, b, 5, stage, {})).toEqual(base);
+        expect(startTween(a, b, 5, stage, { motion: "smooth" })).toEqual(base);
+        expect(retarget(a, b, 5, stage, { motion: "smooth" })).toEqual(base);
+        expect("curve" in base).toBe(false);
+        expect(base.duration).toBe(Math.min(durationFor(a, b, stage) - 250 * pullBackFor(a, b, stage), 1300));
+        expect(base.pullBack).toBe(pullBackFor(a, b, stage));
+      }
+    });
+
+    it("swift is 180-280ms, never pulls back and stays at or above the smaller zoom", () => {
+      for (const [a, b] of moves) {
+        const tween = startTween(a, b, 0, stage, { motion: "swift" });
+        expect(tween.duration).toBeGreaterThanOrEqual(180);
+        expect(tween.duration).toBeLessThanOrEqual(280);
+        expect(tween.pullBack).toBe(0);
+        expect(tween.curve).toBe("swift");
+        const floor = Math.min(a.zoom, b.zoom);
+        for (let i = 0; i <= 200; i++) {
+          expect(sample(tween, (tween.duration * i) / 200).zoom).toBeGreaterThanOrEqual(floor - 1e-9);
+        }
+      }
+      expect(durationFor(home, far, stage)).toBeGreaterThanOrEqual(400);
+      expect(durationFor(home, far, stage)).toBeLessThanOrEqual(800);
+    });
+
+    it("easeOut clamps, is monotonic and leaves ease unchanged", () => {
+      expect(easeOut(0)).toBe(0);
+      expect(easeOut(1)).toBe(1);
+      expect(easeOut(-1)).toBe(0);
+      expect(easeOut(2)).toBe(1);
+      let prev = 0;
+      for (let i = 1; i <= 100; i++) {
+        const v = easeOut(i / 100);
+        expect(v).toBeGreaterThanOrEqual(prev);
+        prev = v;
+      }
+      expect(ease(0.25)).toBeCloseTo(4 * 0.25 ** 3);
+      expect(ease(0.75)).toBeCloseTo(1 - 0.5 ** 3 / 2);
+    });
+
+    it("swift sample runs from the start to the end and covers 60% by 30% of the time", () => {
+      const tween = startTween(home, neighbour, 100, stage, { motion: "swift" });
+      expect(sample(tween, 100)).toEqual(home);
+      expect(sample(tween, 100 + tween.duration)).toEqual(neighbour);
+      let prev = home.cx;
+      for (let i = 1; i <= 50; i++) {
+        const { cx } = sample(tween, 100 + (tween.duration * i) / 50);
+        expect(cx).toBeGreaterThanOrEqual(prev);
+        prev = cx;
+      }
+      const at = sample(tween, 100 + 0.3 * tween.duration);
+      expect((at.cx - home.cx) / (neighbour.cx - home.cx)).toBeGreaterThanOrEqual(0.6);
+    });
+
+    it("a swift retarget from a mid-move pose does not jump", () => {
+      const old = startTween(home, far, 100, stage, { motion: "swift" });
+      const t = 100 + old.duration / 2;
+      const current = sample(old, t);
+      const fresh = retarget(current, close, t, stage, { motion: "swift" });
+      expect(sample(fresh, t)).toEqual(current);
+      expect(sample(fresh, t + fresh.duration)).toEqual(close);
+    });
   });
 });

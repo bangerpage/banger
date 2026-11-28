@@ -90,6 +90,17 @@ describe("skill", () => {
     expect(root).toContain("| `languages` |");
   });
 
+  it("AC-MOT-11 the skill documents the motion attribute", () => {
+    const root = read("skill/reference/components.md").split(/^## /m).find((s) => s.startsWith("bang-root\n")) ?? "";
+    const row = root.split("\n").find((l) => l.startsWith("| `motion` |")) ?? "";
+    expect(row).not.toBe("");
+    for (const value of ["smooth", "swift", "none"]) expect(row).toContain(value);
+    expect(row).toMatch(/`"smooth"`|`smooth`/);
+    const skill = read("skill/SKILL.md").split(/^## /m).find((s) => s.startsWith("原則\n")) ?? "";
+    expect(skill).toContain('motion="swift"');
+    expect(skill).toContain('motion="none"');
+  });
+
   it("AC-SKILL-5 enum attributes are inline unions and runtime URLs match the core package", () => {
     for (const decl of tagged) {
       for (const attr of decl.attributes ?? []) {

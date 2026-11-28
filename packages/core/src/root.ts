@@ -20,10 +20,12 @@ import {
   sample,
   stageSize,
   toTransform,
+  type CameraMotion,
   type CameraPose,
   type CameraTween,
   type Rect,
   type Size,
+  type TweenOptions,
 } from "./camera.js";
 import { ensureBaseStyle, ensureLanguageStyle, ensureThemeFonts } from "./base-style.js";
 import { BangElement, defineOnce, selectorOf, type StepAware } from "./element.js";
@@ -83,6 +85,7 @@ interface FrameEntry {
   rect: Rect;
 }
 
+const MOTIONS = ["smooth", "swift", "none"] as const;
 const FRAME_GAP = 240;
 const MAP_GAP = 720;
 /** How far the map ground reaches past the outermost frames. */
@@ -339,6 +342,11 @@ export class BangRoot extends BangElement {
   @property({ reflect: true }) format: "slides" | "map" = "slides";
 
   /**
+   * How the camera moves between stops. `smooth` (the default) eases in and out over 0.4 to 0.8 seconds and pulls back on a long move. `swift` is a quick move of 0.18 to 0.28 seconds that starts fast and settles, and never pulls back. `none` jumps straight to the next stop and also stops the fade of revealed steps and of the focus spotlight. It applies to the whole deck and cannot be set per stop. Write it only when the author asks for a faster or a motionless deck. A viewer whose system asks for reduced motion always gets `none`, and export, snap, check, PDF and the presenter window never animate, whatever the value.
+   */
+  @property({ reflect: true }) motion: "smooth" | "swift" | "none" = "smooth";
+
+  /**
    * The languages of the deck as BCP 47 tags separated by spaces, for example `ja en`; the first is the author's language.
    * An element inside a frame (and a `bang-notes`) with a `lang` of one of them shows only while that language is selected;
    * elements without `lang` show in every language. The language comes from `?lang=`, then the browser's languages, then the first.
@@ -569,6 +577,7 @@ export class BangRoot extends BangElement {
 
   protected willUpdate(changed: PropertyValues): void {
     if (changed.has("theme")) this.applyTheme();
+    if (changed.has("motion")) this.applyMotionPreference();
     if (changed.has("format") && this.initialized) {
       this.buildPath();
       this.current = clamp(this.current, this.path);
@@ -593,6 +602,7 @@ export class BangRoot extends BangElement {
   render() {
     pick(this, "theme", ["light", "dark", "custom"] as const, "light");
     pick(this, "format", ["slides", "map"] as const, "slides");
+    pick(this, "motion", MOTIONS, "smooth");
     if (this.mode === "presenter") {
       const info = this.path.stops[this.current.stop];
       return html`${renderPresenter({
@@ -744,8 +754,20 @@ export class BangRoot extends BangElement {
 
   private applyMotionPreference(): void {
     this.reducedMotion = this.motionQuery?.matches ?? false;
-    if (this.mode === "export" || this.reducedMotion) this.style.setProperty("--bang-duration-fast", "0s");
+    const authorNone = this.mode === "live" && this.authoredMotion() === "none";
+    if (this.mode === "export" || this.reducedMotion || authorNone) this.style.setProperty("--bang-duration-fast", "0s");
     else this.style.removeProperty("--bang-duration-fast");
+    if (authorNone) this.style.setProperty("--bang-duration-slow", "0s");
+    else if (this.style.getPropertyValue("--bang-duration-slow") === "0s") this.style.removeProperty("--bang-duration-slow");
+  }
+
+  /** The `motion` attribute as written; an unknown value counts as `smooth` (render() warns about it). */
+  private authoredMotion(): CameraMotion | "none" {
+    return (MOTIONS as readonly string[]).includes(this.motion) ? this.motion : "smooth";
+  }
+
+  private effectiveMotion(): CameraMotion | "none" {
+    return this.mode !== "live" || this.reducedMotion ? "none" : this.authoredMotion();
   }
 
   private onResize(): void {
@@ -977,16 +999,24 @@ export class BangRoot extends BangElement {
     resolve?.();
   }
 
-  private moveCamera(target: CameraPose, animate: boolean): Promise<void> {
+  private moveCamera(
+    target: CameraPose,
+    animate: boolean,
+    opts?: Omit<TweenOptions, "motion">,
+  ): Promise<void> {
+    const motion = this.effectiveMotion();
     const from = this.currentPose();
     this.stopTween();
     this.settlePending();
-    if (!animate || this.mode !== "live" || this.reducedMotion || !this.canvasEl()) {
+    if (!animate || motion === "none" || !this.canvasEl()) {
       this.pose = target;
       this.applyPose(target);
       return Promise.resolve();
     }
-    const tween = retarget(from, target, performance.now(), this.stageNow);
+    const tween = retarget(from, target, performance.now(), this.stageNow, {
+      ...opts,
+      motion,
+    });
     this.tween = tween;
     this.canvasEl()!.style.willChange = "transform";
     return new Promise<void>((resolve) => {
