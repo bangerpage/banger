@@ -3,7 +3,11 @@ import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
+import { SANDBOX_OFF_WARNING } from "../../src/browser.js";
 import { extractPdf, fixture } from "./helpers.js";
+
+/** stderr writes other than the notice BANGER_NO_SANDBOX=1 adds (containers that run as root need it). */
+const ownWrites = (spy: { mock: { calls: unknown[][] } }) => spy.mock.calls.filter(([text]) => !String(text).includes(SANDBOX_OFF_WARNING));
 
 type Library = typeof import("../../src/index.js");
 const indexPath = join(dirname(fileURLToPath(import.meta.url)), "../../dist/index.js");
@@ -42,7 +46,7 @@ describe("library", () => {
       expect((await extractPdf(written)).pages).toBe(5);
       expect(process.exitCode).toBe(before);
       expect(out).not.toHaveBeenCalled();
-      expect(err).not.toHaveBeenCalled();
+      expect(ownWrites(err)).toEqual([]);
     } finally {
       out.mockRestore();
       err.mockRestore();

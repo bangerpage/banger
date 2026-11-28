@@ -34,6 +34,7 @@ export function sandboxEnabled(env: NodeJS.ProcessEnv = process.env): boolean {
 }
 
 const SANDBOX_FAILURE = /sandbox/i;
+export const SANDBOX_OFF_WARNING = "BANGER_NO_SANDBOX=1: the browser runs without its sandbox";
 
 /**
  * Tries Google Chrome first, then Chromium. Throws `BrowserSandboxError` when a browser was found but could not start its
@@ -49,7 +50,7 @@ export async function launchBrowser(
     chrome: (chromiumSandbox) => chromium.launch({ channel: "chrome", headless, chromiumSandbox }),
     chromium: (chromiumSandbox) => chromium.launch({ headless, chromiumSandbox }),
   };
-  if (!sandbox) (opts.warn ?? ((m) => process.stderr.write(`banger: ${m}\n`)))("BANGER_NO_SANDBOX=1: the browser runs without its sandbox");
+  if (!sandbox) (opts.warn ?? ((m) => process.stderr.write(`banger: ${m}\n`)))(SANDBOX_OFF_WARNING);
   let sandboxFailed = false;
   for (const launch of [launchers.chrome, launchers.chromium]) {
     try {

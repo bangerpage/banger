@@ -2,6 +2,7 @@ import { execFile } from "node:child_process";
 import { readFile } from "node:fs/promises";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
+import { SANDBOX_OFF_WARNING } from "../../src/browser.js";
 
 const cliRoot = join(dirname(fileURLToPath(import.meta.url)), "../..");
 
@@ -26,7 +27,8 @@ export function runBin(args: string[], opts: { cwd?: string; env?: Record<string
       { cwd: opts.cwd, env: { ...process.env, ...opts.env }, maxBuffer: 64 * 1024 * 1024 },
       (error, stdout, stderr) => {
         const code = error ? (typeof error.code === "number" ? error.code : 1) : 0;
-        resolve({ code, stdout, stderr });
+        // Containers that run as root need BANGER_NO_SANDBOX=1; its notice is not part of what the tests check.
+        resolve({ code, stdout, stderr: stderr.split("\n").filter((line) => !line.endsWith(SANDBOX_OFF_WARNING)).join("\n") });
       },
     );
   });

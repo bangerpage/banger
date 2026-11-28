@@ -14,7 +14,7 @@
     "test:e2e": {
       "dependsOn": ["build"],
       "cache": false,
-      "passThroughEnv": ["PLAYWRIGHT_BROWSERS_PATH"]
+      "passThroughEnv": ["PLAYWRIGHT_BROWSERS_PATH", "BANGER_NO_SANDBOX"]
     }
   }
 }

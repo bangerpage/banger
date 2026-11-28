@@ -3,6 +3,7 @@ import { deckFile, parseArgsStrict } from "../args.js";
 import { expandStates, forEachLanguage, formatReadyFailure } from "../capture.js";
 import { CORE_PACKAGE, coreVersion } from "../core-package.js";
 import { readInput } from "../errors.js";
+import { SANDBOX_OFF_WARNING } from "../browser.js";
 import { findRuntimeScript, runtimeVersionWarning } from "../html-transform.js";
 
 const USAGE = "usage: banger check [file] [--json]";
@@ -53,7 +54,9 @@ export async function checkDeck(file: string): Promise<CheckResult> {
   const oldRuntime = pinned !== undefined && hasLanguages(html) ? oldRuntimeWarning(html) : null;
   let tag = "";
   const onWarning = (message: string) => {
-    if (message === pinned) {
+    // Not a problem with the deck: the person turned the sandbox off on purpose.
+    if (message === SANDBOX_OFF_WARNING) process.stderr.write(`note: ${message}\n`);
+    else if (message === pinned) {
       if (oldRuntime) warnings.push(oldRuntime);
       else process.stderr.write(`note: ${message}\n`);
     } else if (FONT_MESSAGE.test(message)) notes.add(message);
