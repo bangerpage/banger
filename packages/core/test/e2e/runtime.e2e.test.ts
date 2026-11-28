@@ -255,13 +255,26 @@ describe("runtime", () => {
     expect(shown).toContain("Stop 2 / 6");
     expect(shown).toContain("Step 1 / 3");
     await popup.evaluate(() => {
-      const buttons = document.querySelector("bang-root")!.shadowRoot!.querySelectorAll("button");
-      (buttons[1] as HTMLButtonElement).click();
+      document.querySelector("bang-root")!.shadowRoot!.querySelector<HTMLButtonElement>(".presenter-next")!.click();
     });
     await page.waitForFunction(() => (document.querySelector("bang-root") as any).getState().step === 1);
     await page.waitForTimeout(300);
     expect(await state(page)).toEqual({ stop: 1, step: 1 });
     expect(await state(popup)).toEqual({ stop: 1, step: 1 });
+  });
+
+  it("the presenter timer's Reset button starts the elapsed time over", async () => {
+    const { page, context } = await open("deck.html");
+    const popupPromise = context.waitForEvent("page");
+    await page.keyboard.press("p");
+    const popup = await popupPromise;
+    await popup.waitForLoadState();
+    const elapsed = () => popup.evaluate(() => document.querySelector("bang-root")!.shadowRoot!.querySelector(".presenter-elapsed")?.textContent);
+    await popup.waitForFunction(() => document.querySelector("bang-root")?.shadowRoot?.querySelector(".presenter-elapsed")?.textContent === "00:01");
+    await popup.evaluate(() => document.querySelector("bang-root")!.shadowRoot!.querySelector<HTMLButtonElement>(".presenter-reset")!.click());
+    await popup.waitForFunction(() => document.querySelector("bang-root")!.shadowRoot!.querySelector(".presenter-elapsed")!.textContent === "00:00");
+    expect(await elapsed()).toBe("00:00");
+    expect(await state(page)).toEqual({ stop: 0, step: 0 });
   });
 
   it("AC-RT-5 export mode ignores keys, jumps instantly and fixes the stage", async () => {

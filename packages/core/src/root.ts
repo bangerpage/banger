@@ -295,6 +295,17 @@ export class BangRoot extends BangElement {
         font-family: var(--bang-font-mono);
         font-size: 24px;
       }
+      .presenter-timer {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+      }
+      .presenter-reset {
+        padding: 2px 10px;
+        font: inherit;
+        font-size: 16px;
+        cursor: pointer;
+      }
       .presenter-notes {
         flex: 1;
         overflow: auto;
@@ -483,6 +494,11 @@ export class BangRoot extends BangElement {
     }
   }
 
+  private resetTimer(): void {
+    this.startedAt = Date.now();
+    this.elapsedMs = 0;
+  }
+
   private initLanguage(): void {
     const { languages, invalid } = parseLanguages(this.getAttribute("languages"));
     for (const tag of invalid) {
@@ -589,6 +605,7 @@ export class BangRoot extends BangElement {
           elapsedMs: this.elapsedMs,
           onPrev: () => void this.prev(),
           onNext: () => void this.next(),
+          onResetTimer: () => this.resetTimer(),
         })}${this.renderHelp()}<div class="status" role="status">${this.statusText}</div>
         <div hidden><slot @slotchange=${this.onSlotChange}></slot></div>`;
     }

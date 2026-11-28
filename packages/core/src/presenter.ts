@@ -62,6 +62,7 @@ export interface PresenterView {
   elapsedMs: number;
   onPrev: () => void;
   onNext: () => void;
+  onResetTimer: () => void;
 }
 
 const pad = (n: number) => String(n).padStart(2, "0");
@@ -77,12 +78,15 @@ export function renderPresenter(view: PresenterView): TemplateResult {
       <span class="presenter-stop">Stop ${view.stop + 1} / ${view.stopCount}</span>
       <span class="presenter-step">Step ${view.step + 1} / ${view.steps + 1}</span>
       ${view.language !== undefined ? html`<span class="presenter-language">${view.language}</span>` : ""}
-      <span class="presenter-elapsed">${formatElapsed(view.elapsedMs)}</span>
+      <span class="presenter-timer">
+        <span class="presenter-elapsed">${formatElapsed(view.elapsedMs)}</span>
+        <button type="button" class="presenter-reset" @click=${view.onResetTimer}>Reset</button>
+      </span>
     </div>
     <div class="presenter-notes">${view.notes}</div>
     <div class="presenter-buttons">
-      <button type="button" @click=${view.onPrev}>Previous</button>
-      <button type="button" @click=${view.onNext}>Next</button>
+      <button type="button" class="presenter-prev" @click=${view.onPrev}>Previous</button>
+      <button type="button" class="presenter-next" @click=${view.onNext}>Next</button>
     </div>
   </div>`;
 }
