@@ -713,7 +713,7 @@ describe("runtime", () => {
     }
   });
 
-  it("AC-MOT-9 export and presenter never animate and do not write the slow fade", async () => {
+  it("AC-MOT-9 export and presenter never animate and zero the slow fade", async () => {
     const smooth = await openVirtual("mot9-smooth", withMotion("smooth"), { query: "mode=export" });
     await timeGoto(smooth.page, 4);
     const expected = await canvasTransform(smooth.page);
@@ -721,12 +721,12 @@ describe("runtime", () => {
       const { page } = await openVirtual(`mot9-${value}`, withMotion(value), { query: "mode=export" });
       expect(await timeGoto(page, 4)).toBeLessThan(100);
       expect(await rootVar(page, "--bang-duration-fast")).toBe("0s");
-      expect(await rootVar(page, "--bang-duration-slow")).toBe("");
+      expect(await rootVar(page, "--bang-duration-slow")).toBe("0s");
       expect(await canvasTransform(page)).toBe(expected);
     }
     const presenter = await openVirtual("mot9-presenter", withMotion("swift"), { query: "mode=presenter" });
     expect(await timeGoto(presenter.page, 1)).toBeLessThan(100);
-    expect(await rootVar(presenter.page, "--bang-duration-slow")).toBe("");
+    expect(await rootVar(presenter.page, "--bang-duration-slow")).toBe("0s");
     expect(presenter.errors).toEqual([]);
   });
 
@@ -754,5 +754,21 @@ describe("runtime", () => {
     expect(arrived).toBe(expected);
     await page.waitForTimeout(500);
     expect(await canvasTransform(page)).toBe(arrived);
+  });
+
+  it("AC-RT-8 ignores a hash without stop or step and Enter on a focused link or button", async () => {
+    const html = deckHtml.replace("<bang-frame", '<a id="lnk" href="#section">x</a><button id="btn">b</button><bang-frame');
+    const { page } = await openVirtual("rt8", html);
+    await page.evaluate(() => (document.querySelector("bang-root") as any).goto(1));
+    await page.evaluate(() => {
+      location.hash = "#section";
+    });
+    await page.waitForTimeout(100);
+    expect(await state(page)).toEqual({ stop: 1, step: 0 });
+    await page.focus("#btn");
+    await page.keyboard.press("Enter");
+    await page.keyboard.press(" ");
+    await page.waitForTimeout(100);
+    expect(await state(page)).toEqual({ stop: 1, step: 0 });
   });
 });

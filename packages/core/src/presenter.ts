@@ -37,14 +37,14 @@ export class PresenterSync {
   onRemoteLanguage(callback: (lang: string) => void): void {
     this.channel.addEventListener("message", (event: MessageEvent<StateMessage | LanguageMessage>) => {
       const data = event.data;
-      if (data?.type === "lang" && data.sender !== this.id) callback(data.lang);
+      if (data?.type === "lang" && typeof data.lang === "string" && data.sender !== this.id) callback(data.lang);
     });
   }
 
   onRemote(callback: (state: BangState) => void): void {
     this.channel.addEventListener("message", (event: MessageEvent<StateMessage | LanguageMessage>) => {
       const data = event.data;
-      if (data?.type === "state" && data.sender !== this.id) callback({ stop: data.stop, step: data.step });
+      if (data?.type === "state" && data.sender !== this.id && Number.isFinite(data.stop) && Number.isFinite(data.step)) callback({ stop: data.stop, step: data.step });
     });
   }
 

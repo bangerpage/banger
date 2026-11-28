@@ -78,7 +78,7 @@ export interface TextSample {
   background: string | null;
 }
 
-type Source = "local" | "hash" | "remote";
+type Source = "local" | "hash" | "address" | "remote";
 
 interface FrameEntry {
   el: HTMLElement & { currentStep?: number };
@@ -125,6 +125,12 @@ const FLICK_MAX_MS = 400;
 const CURSOR_WAKE_PX = 60;
 const CURSOR_WAKE_MOVES = 3;
 const CURSOR_WAKE_MS = 500;
+
+/** Enter and Space activate these natively, so a key press on one must not also advance the slide. */
+function isActivatable(target: EventTarget | null): boolean {
+  if (!(target instanceof Element)) return false;
+  return target.closest("a[href], button, summary, [role='button'], [role='link']") !== null;
+}
 
 function isEditable(target: EventTarget | null): boolean {
   if (!(target instanceof HTMLElement)) return false;
@@ -504,13 +510,17 @@ export class BangRoot extends BangElement {
     this.swipeStart = null;
   };
   private readonly onHashChange = () => {
+    // An in-frame <a href="#section"> also fires hashchange; only a stop/step hash is navigation.
+    const params = new URLSearchParams(location.hash.replace(/^#/, ""));
+    if (!params.has("stop") && !params.has("step")) return;
     const state = this.hashState();
-    void this.commit(state, { animate: true, source: "hash", overview: false });
+    void this.commit(state, { animate: true, source: "address", overview: false });
   };
   private readonly onMotionChange = () => this.applyMotionPreference();
 
   connectedCallback(): void {
     super.connectedCallback();
+    if (this.initialized && this.mode !== "export") this.resizeObserver?.observe(this);
     this.mode = modeOf();
     this.setAttribute("data-mode", this.mode);
     this.initLanguage();
@@ -622,6 +632,7 @@ export class BangRoot extends BangElement {
     window.removeEventListener("pointermove", this.onPointerMove);
     this.motionQuery?.removeEventListener("change", this.onMotionChange);
     this.resizeObserver?.disconnect();
+    this.settlePending();
     this.sync?.close();
     this.sync = null;
     document.fonts?.removeEventListener("loadingdone", this.onFontsLoaded);
@@ -812,7 +823,8 @@ export class BangRoot extends BangElement {
     this.reducedMotion = this.motionQuery?.matches ?? false;
     const authorNone = this.mode === "live" && this.authoredMotion() === "none";
     this.zeroDuration("--bang-duration-fast", this.mode === "export" || this.reducedMotion || authorNone);
-    this.zeroDuration("--bang-duration-slow", authorNone);
+    // Export and presenter capture must not catch the focus-spotlight fade (it uses the slow token) mid-way.
+    this.zeroDuration("--bang-duration-slow", authorNone || this.mode !== "live");
   }
 
   /**
@@ -867,7 +879,10 @@ export class BangRoot extends BangElement {
   }
 
   private buildPath(): void {
-    for (const el of this.spotted) el.removeAttribute("data-bang-dim");
+    for (const el of this.spotted) {
+      el.removeAttribute("data-bang-dim");
+      el.removeAttribute("data-bang-spot");
+    }
     this.spotted = [];
     const frameEls = [...this.querySelectorAll<HTMLElement & { currentStep?: number }>("bang-frame")];
     const seen = new Set<string>();
@@ -1190,7 +1205,7 @@ export class BangRoot extends BangElement {
     this.applyInert();
     const moved = this.moveCamera(poseFor(rect, this.stageNow), opts.animate);
     this.applyClip();
-    if (opts.source !== "hash" && location.hash !== serializeHash(state)) {
+    if (opts.source !== "hash" && opts.source !== "address" && location.hash !== serializeHash(state)) {
       history.replaceState(null, "", serializeHash(state));
     }
     this.dispatchEvent(
@@ -1200,7 +1215,7 @@ export class BangRoot extends BangElement {
         composed: true,
       }),
     );
-    if (opts.source === "local") this.sync?.send(state);
+    if (opts.source === "local" || opts.source === "address") this.sync?.send(state);
     this.requestUpdate();
     return moved;
   }
@@ -1282,7 +1297,9 @@ export class BangRoot extends BangElement {
 
   private handleKey(event: KeyboardEvent): void {
     if (event.ctrlKey || event.metaKey || event.altKey || event.defaultPrevented) return;
-    if (isEditable(event.composedPath()[0] ?? event.target)) return;
+    const origin = event.composedPath()[0] ?? event.target;
+    if (isEditable(origin)) return;
+    if ((event.key === "Enter" || event.key === " ") && isActivatable(origin)) return;
     const last = this.path.stops.length - 1;
     if (this.helpOpen && (event.key === "Escape" || event.key === "?")) {
       event.preventDefault();
