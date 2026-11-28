@@ -1,6 +1,6 @@
 {
   "name": "banger",
-  "version": "0.2.2",
+  "version": "0.2.3",
   "description": "Write Banger presentations: one HTML file with frames on a canvas and a camera that stops at each point.",
   "author": {
     "name": "bangerpage"
