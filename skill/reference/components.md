@@ -34,6 +34,9 @@ theme, so leave `fontSize` and `color` out of the option.
 Supported series types are `bar`, `line`, `pie` and `scatter`. Any other type (radar, heatmap, sankey and so on)
 makes the deck fail with `chart: unsupported series type: <type>`.
 
+An option with `baseOption`, `options`, `media` or `timeline` makes the deck fail with `chart: unsupported option key "<key>"`.
+`link` and `sublink` in a `title` are ignored, because a deck must not open windows.
+
 ```html
 <bang-chart step="1">
   <script type="application/json">

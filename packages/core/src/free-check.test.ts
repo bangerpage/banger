@@ -40,4 +40,16 @@ describe("free-check", () => {
   it("AC-HATCH-1 scopeCss wraps the css in @scope", () => {
     expect(scopeCss(".a{}")).toBe("@scope {\n.a{}\n}");
   });
+
+  it("scopeCss keeps a leading @charset and @import in front of @scope", () => {
+    const css = `@charset "utf-8";\n/* fonts */\n@import url("https://fonts.googleapis.com/css2?family=A;B&display=swap");\n@import 'x.css' screen;\n.a{}`;
+    expect(scopeCss(css)).toBe(
+      `@charset "utf-8";\n@import url("https://fonts.googleapis.com/css2?family=A;B&display=swap");\n@import 'x.css' screen;\n@scope {\n\n.a{}\n}`,
+    );
+  });
+
+  it("scopeCss leaves @import after a rule and an unterminated @import inside @scope", () => {
+    expect(scopeCss(".a{}\n@import 'x.css';")).toBe("@scope {\n.a{}\n@import 'x.css';\n}");
+    expect(scopeCss("@import 'x.css'")).toBe("@scope {\n@import 'x.css'\n}");
+  });
 });

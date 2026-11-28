@@ -41,6 +41,14 @@ const isPlain = (value: unknown): value is Plain =>
 
 const asList = (value: unknown): Plain[] => (Array.isArray(value) ? value : [value]).filter(isPlain);
 
+/** Keys ECharts reads to swap in whole options (timeline, media queries); the checks and theme defaults only see the top level. */
+export const UNSUPPORTED_OPTION_KEYS = ["baseOption", "options", "media", "timeline"];
+
+/** The first top-level key in {@link UNSUPPORTED_OPTION_KEYS} that the option has, or null. */
+export function unsupportedOptionKey(option: Plain): string | null {
+  return UNSUPPORTED_OPTION_KEYS.find((key) => key in option) ?? null;
+}
+
 /** The first series `type` that is not registered, or null. */
 export function unsupportedSeriesType(option: Plain): string | null {
   for (const series of asList(option.series)) {
@@ -85,7 +93,11 @@ export function buildOption(option: Plain, env: ChartEnv, host: Element): Plain 
       splitLine: { lineStyle: { color: line } },
     });
   }
-  for (const title of asList(merged.title)) fillDefaults(title, { textStyle: text, subtextStyle: text });
+  for (const title of asList(merged.title)) {
+    // ECharts turns these into a click handler that calls window.open without checking the protocol.
+    for (const key of ["link", "sublink", "target", "subtarget"]) delete title[key];
+    fillDefaults(title, { textStyle: text, subtextStyle: text });
+  }
   for (const legend of asList(merged.legend)) fillDefaults(legend, { textStyle: text });
   for (const series of asList(merged.series)) fillDefaults(series, { label: text });
   return merged;
@@ -97,6 +109,8 @@ export async function createChart(el: HTMLElement, text: string): Promise<ChartH
   const chart = echarts.init(el, null, { renderer: "svg" });
   return {
     render(option, env) {
+      const key = unsupportedOptionKey(option);
+      if (key !== null) return Promise.reject(new Error(`chart: unsupported option key "${key}"`));
       const type = unsupportedSeriesType(option);
       if (type !== null) return Promise.reject(new Error(`chart: unsupported series type: ${type}`));
       const merged = buildOption(option, env, el);

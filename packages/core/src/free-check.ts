@@ -33,8 +33,40 @@ export function findColorLiteral(value: string): string | null {
   return COLOR_LITERAL.exec(value)?.[0] ?? null;
 }
 
+/** End index of the leading `@charset`/`@import` rule starting at `from`, or -1. Skips quoted strings and parentheses so a `;` inside `url(...)` does not end it. */
+function leadingRuleEnd(css: string, from: number): number {
+  let quote = "";
+  let depth = 0;
+  for (let i = from; i < css.length; i++) {
+    const c = css[i];
+    if (quote) {
+      if (c === "\\") i++;
+      else if (c === quote) quote = "";
+    } else if (c === '"' || c === "'") quote = c;
+    else if (c === "(") depth++;
+    else if (c === ")") depth = Math.max(depth - 1, 0);
+    else if (c === ";" && depth === 0) return i + 1;
+  }
+  return -1;
+}
+
+/**
+ * Wraps the rules in `@scope`. A leading `@charset`/`@import` is invalid inside a block, so they stay in front of it.
+ * `@font-face` and `@keyframes` are left inside: both are global rules, which the browser applies from within `@scope` too.
+ */
 export function scopeCss(css: string): string {
-  return `@scope {\n${css}\n}`;
+  let head = "";
+  let pos = 0;
+  for (;;) {
+    const rest = css.slice(pos);
+    const lead = /^(?:\s|\/\*[\s\S]*?\*\/)*/.exec(rest)?.[0].length ?? 0;
+    if (!/^@(?:charset|import)\b/i.test(rest.slice(lead))) break;
+    const end = leadingRuleEnd(css, pos + lead);
+    if (end === -1) break;
+    head += `${css.slice(pos + lead, end)}\n`;
+    pos = end;
+  }
+  return `${head}@scope {\n${css.slice(pos)}\n}`;
 }
 
 export function supportsScope(): boolean {
