@@ -8,9 +8,19 @@ export class BrowserNotFoundError extends Error {
   }
 }
 
+export class BrowserSandboxError extends Error {
+  constructor() {
+    super(
+      "the browser could not start its sandbox (usual when running as root, e.g. in a container); " +
+        "set BANGER_NO_SANDBOX=1 to run it without one, only for decks you trust",
+    );
+    this.name = "BrowserSandboxError";
+  }
+}
+
 export interface BrowserLaunchers {
-  chrome: () => Promise<Browser>;
-  chromium: () => Promise<Browser>;
+  chrome: (sandbox: boolean) => Promise<Browser>;
+  chromium: (sandbox: boolean) => Promise<Browser>;
 }
 
 export function installHint(): string {
@@ -18,19 +28,35 @@ export function installHint(): string {
   return `install a browser with: npx playwright-core@${version} install chromium`;
 }
 
-/** Tries Google Chrome first, then Chromium; throws `BrowserNotFoundError` when neither starts. */
-export async function launchBrowser(opts: { headless?: boolean; launchers?: BrowserLaunchers } = {}): Promise<Browser> {
+/** `BANGER_NO_SANDBOX=1` turns the sandbox off; anything else keeps it on. */
+export function sandboxEnabled(env: NodeJS.ProcessEnv = process.env): boolean {
+  return env.BANGER_NO_SANDBOX !== "1";
+}
+
+const SANDBOX_FAILURE = /sandbox/i;
+
+/**
+ * Tries Google Chrome first, then Chromium. Throws `BrowserSandboxError` when a browser was found but could not start its
+ * sandbox, and `BrowserNotFoundError` when neither starts for another reason.
+ */
+export async function launchBrowser(
+  opts: { headless?: boolean; launchers?: BrowserLaunchers; sandbox?: boolean; warn?: (message: string) => void } = {},
+): Promise<Browser> {
   const headless = opts.headless ?? true;
+  const sandbox = opts.sandbox ?? sandboxEnabled();
+  // Playwright adds --no-sandbox unless chromiumSandbox is true, and the deck's scripts run in this browser.
   const launchers: BrowserLaunchers = opts.launchers ?? {
-    chrome: () => chromium.launch({ channel: "chrome", headless }),
-    chromium: () => chromium.launch({ headless }),
+    chrome: (chromiumSandbox) => chromium.launch({ channel: "chrome", headless, chromiumSandbox }),
+    chromium: (chromiumSandbox) => chromium.launch({ headless, chromiumSandbox }),
   };
+  if (!sandbox) (opts.warn ?? ((m) => process.stderr.write(`banger: ${m}\n`)))("BANGER_NO_SANDBOX=1: the browser runs without its sandbox");
+  let sandboxFailed = false;
   for (const launch of [launchers.chrome, launchers.chromium]) {
     try {
-      return await launch();
-    } catch {
-      // fall through to the next launcher
+      return await launch(sandbox);
+    } catch (error) {
+      if (sandbox && error instanceof Error && SANDBOX_FAILURE.test(error.message)) sandboxFailed = true;
     }
   }
-  throw new BrowserNotFoundError();
+  throw sandboxFailed ? new BrowserSandboxError() : new BrowserNotFoundError();
 }

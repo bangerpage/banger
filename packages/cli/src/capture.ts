@@ -1,7 +1,7 @@
 import { readdir, rm } from "node:fs/promises";
 import { join } from "node:path";
 import type { Page } from "playwright-core";
-import { BrowserNotFoundError, installHint, launchBrowser, type BrowserLaunchers } from "./browser.js";
+import { BrowserNotFoundError, BrowserSandboxError, installHint, launchBrowser, type BrowserLaunchers } from "./browser.js";
 import { CORE_PACKAGE, coreVersion, type ReadyReport, type StopInfo } from "./core-package.js";
 import { CliError, readInput } from "./errors.js";
 import { runtimeVersionWarning } from "./html-transform.js";
@@ -44,6 +44,36 @@ const pad = (n: number) => String(n).padStart(3, "0");
 
 export function stopFileName(stop: number, step: number): string {
   return `stop-${pad(stop)}-step-${pad(step)}.png`;
+}
+
+/** Same shape as the runtime's language tags; the CLI does not trust the page, whose scripts are the deck's. */
+const LANGUAGE_TAG = /^[A-Za-z]{2,3}(-[A-Za-z0-9]{2,8})*$/;
+const MAX_STOPS = 10_000;
+const MAX_STEPS = 1_000;
+const MAX_LANGUAGES = 64;
+
+/**
+ * Checks what the page reported before it reaches file names or loop bounds: a language becomes part of an output
+ * path, and a stop's `steps` sizes an array. Throws `CliError(1)` for anything the runtime itself would never report.
+ */
+export function checkPageReport(report: { path: unknown; languages: unknown; language: unknown }): {
+  path: StopInfo[];
+  languages: string[];
+  language: string;
+} {
+  const fail = (what: string): never => {
+    throw new CliError(1, `the deck reported an invalid ${what}; is a script on the page replacing bang-root's methods?`);
+  };
+  const { path, languages, language } = report;
+  if (!Array.isArray(path) || path.length > MAX_STOPS) fail("list of stops");
+  for (const stop of path as { steps?: unknown }[]) {
+    const steps = stop?.steps;
+    if (typeof steps !== "number" || !Number.isInteger(steps) || steps < 0 || steps > MAX_STEPS) fail("step count");
+  }
+  if (!Array.isArray(languages) || languages.length > MAX_LANGUAGES) fail("list of languages");
+  for (const tag of languages as unknown[]) if (typeof tag !== "string" || !LANGUAGE_TAG.test(tag)) fail("language");
+  if (typeof language !== "string" || (language !== "" && !LANGUAGE_TAG.test(language))) fail("language");
+  return { path: path as StopInfo[], languages: languages as string[], language: language as string };
 }
 
 export function expandStates(
@@ -121,8 +151,9 @@ export async function withCapture<T>(
 
   const server = await startServer({ file, watch: false, port: 0 });
   try {
-    const browser = await launchBrowser({ launchers: opts.launchers }).catch((error) => {
+    const browser = await launchBrowser({ launchers: opts.launchers, warn }).catch((error) => {
       if (error instanceof BrowserNotFoundError) throw new CliError(2, `${error.message}; ${installHint()}`);
+      if (error instanceof BrowserSandboxError) throw new CliError(2, error.message);
       throw error;
     });
     try {
@@ -162,16 +193,17 @@ export async function withCapture<T>(
           throw new CliError(1, "the deck has no <bang-root> element; wrap the slides in <bang-root>.");
         });
 
-      const path = await page.evaluate(
+      const reportedPath = await page.evaluate(
         () => (document.querySelector("bang-root") as unknown as { getPath(): StopInfo[] }).getPath(),
       );
-      const { languages, language } = await page.evaluate(() => {
+      const reportedLanguages = await page.evaluate(() => {
         const root = document.querySelector("bang-root") as unknown as {
           getLanguages?(): string[];
           getLanguage?(): string;
         };
         return { languages: root.getLanguages?.() ?? [], language: root.getLanguage?.() ?? "" };
       });
+      const { path, languages, language } = checkPageReport({ path: reportedPath, ...reportedLanguages });
       const session: CaptureSession = {
         page,
         path,
