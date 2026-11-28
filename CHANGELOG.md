@@ -5,6 +5,9 @@
 ### CLI (`@bangerpage/cli`)
 
 - `banger feedback new` writes a draft of your experience with Banger in a temporary directory, and `banger feedback send <file>` shows the final text and sends it as a public GitHub issue (`--via gh`, or `--via web` to submit by hand) or anonymously to the banger.page feedback inbox (`--via inbox`). It stops when the draft holds a token, an absolute path or an email address.
+- `snap`, `check` and `export` start the browser with its sandbox on (it was off before), so a deck's scripts stay inside it. `BANGER_NO_SANDBOX=1` turns it off where it cannot start, such as as root in a container.
+- `banger preview` no longer serves a file through a symbolic link that points outside the deck's folder.
+- `snap` and `export` check the languages and step counts the page reports before using them in file names, so a script on the page cannot make them write outside the output folder.
 - `banger login` and `banger feedback --via web` open URLs that contain `&` correctly on Windows.
 
 ### Skill
