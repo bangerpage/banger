@@ -80,6 +80,12 @@ export function hostAllowed(host: string | undefined, port: number, allowHosts: 
   return allowHosts.some((allowed) => allowed.toLowerCase() === name);
 }
 
+/** The host name of a Host header, without its port; null when it is not a plain DNS name (nothing to suggest). */
+export function hostName(host: string | undefined): string | null {
+  const name = (host ?? "").toLowerCase().replace(/:\d+$/, "");
+  return /^[a-z0-9-]+(\.[a-z0-9-]+)*$/.test(name) && name.length <= 253 ? name : null;
+}
+
 /** A path under the deck's folder that `banger publish` would not send either: a dotfile or folder, or node_modules. */
 function privatePath(root: string, target: string): boolean {
   return relative(root, target)
@@ -99,12 +105,15 @@ export async function startServer(opts: {
   status?: () => Promise<PresenterStatus>;
   /** Host names besides 127.0.0.1 and localhost that may reach the server, such as a tailnet name behind a proxy. */
   allowHosts?: readonly string[];
+  /** Called once per host name the server refused, so the CLI can say how to allow it. */
+  onRefusedHost?: (name: string) => void;
 }): Promise<DeckServer> {
   readInput(opts.file);
   const file = resolve(opts.file);
   const root = dirname(file);
   const served = new Set<string>();
   const clients = new Set<ServerResponse>();
+  const refused = new Set<string>();
   let listenPort = 0;
 
   const send = (res: ServerResponse, status: number, body: string, type = "text/plain; charset=utf-8") => {
@@ -113,7 +122,14 @@ export async function startServer(opts: {
   };
 
   const server = createServer((req, res) => {
-    if (!hostAllowed(req.headers.host, listenPort, opts.allowHosts)) return send(res, 403, "forbidden");
+    if (!hostAllowed(req.headers.host, listenPort, opts.allowHosts)) {
+      const name = hostName(req.headers.host);
+      if (name && opts.onRefusedHost && !refused.has(name)) {
+        refused.add(name);
+        opts.onRefusedHost(name);
+      }
+      return send(res, 403, "forbidden");
+    }
     if (req.method !== "GET" && req.method !== "HEAD") return send(res, 405, "method not allowed");
     const urlPath = (req.url ?? "/").split("?")[0] ?? "/";
 

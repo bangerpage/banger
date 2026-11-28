@@ -30,7 +30,17 @@ export async function runPreview(argv: string[]): Promise<number> {
 
   // Listen before printing the URL: a caller may send SIGINT as soon as it reads it.
   const stopped = new Promise<void>((resolveStop) => process.once("SIGINT", resolveStop));
-  const server = await startServer({ file, watch: true, port, allowHosts, status: createStatusProvider({ file }) });
+  const server = await startServer({
+    file,
+    watch: true,
+    port,
+    allowHosts,
+    status: createStatusProvider({ file }),
+    onRefusedHost: (name) =>
+      process.stderr.write(
+        `banger: refused a request for ${name}; if you opened the preview through it (a proxy such as tailscale serve), restart with --allow-host ${name}\n`,
+      ),
+  });
   process.stdout.write(`${server.url}\n`);
   await stopped;
   await server.close();

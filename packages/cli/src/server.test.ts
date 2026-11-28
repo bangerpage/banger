@@ -159,7 +159,14 @@ describe("server", () => {
       });
 
     it("answers only to its own names and the ones allowed, on every path", async () => {
-      server = await startServer({ file: join(dir, "deck.html"), watch: false, port: 0, allowHosts: ["mac.tail1234.ts.net"] });
+      const refused: string[] = [];
+      server = await startServer({
+        file: join(dir, "deck.html"),
+        watch: false,
+        port: 0,
+        allowHosts: ["mac.tail1234.ts.net"],
+        onRefusedHost: (name) => refused.push(name),
+      });
       const port = Number(new URL(server.url).port);
       for (const path of ["/", "/asset.txt", "/__banger/core/index.js"]) {
         expect(await get(port, path, `127.0.0.1:${port}`), path).toBe(200);
@@ -169,6 +176,8 @@ describe("server", () => {
         expect(await get(port, path, `evil.test:${port}`), path).toBe(403);
         expect(await get(port, path, `127.0.0.1:${port + 1}`), path).toBe(403);
       }
+      expect(await get(port, "/", "bad_host!name")).toBe(403);
+      expect(refused).toEqual(["evil.test", "127.0.0.1"]);
     });
 
     it("hostAllowed", () => {

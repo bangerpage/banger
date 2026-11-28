@@ -8,7 +8,7 @@
 - `snap`, `check` and `export` start the browser with its sandbox on (it was off before), so a deck's scripts stay inside it. `BANGER_NO_SANDBOX=1` turns it off where it cannot start, such as as root in a container.
 - `banger preview` no longer serves a file through a symbolic link that points outside the deck's folder.
 - `snap` and `export` check the languages and step counts the page reports before using them in file names, so a script on the page cannot make them write outside the output folder.
-- `banger preview` answers only requests addressed to `127.0.0.1` or `localhost`, so another website cannot read the deck folder through DNS rebinding. `--allow-host <name>` adds a name, for viewing through a proxy such as `tailscale serve`. It no longer serves dotfiles or `node_modules`.
+- `banger preview` answers only requests addressed to `127.0.0.1` or `localhost`, so another website cannot read the deck folder through DNS rebinding. `--allow-host <name>` adds a name, for viewing through a proxy such as `tailscale serve`. A refused name is printed once with the `--allow-host` option to add it. It no longer serves dotfiles or `node_modules`.
 - `banger login` and `banger feedback --via web` open URLs that contain `&` correctly on Windows.
 
 ### Skill
