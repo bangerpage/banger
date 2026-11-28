@@ -1,4 +1,4 @@
-import { readFileSync, writeFileSync } from "node:fs";
+import { readFileSync, realpathSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -125,7 +125,7 @@ export function buildThemeModule(tokens, href = FONTS_HREF) {
   ].join("\n");
 }
 
-if (process.argv[1] && fileURLToPath(import.meta.url) === process.argv[1]) {
+if (process.argv[1] && fileURLToPath(import.meta.url) === realpathSync(process.argv[1])) {
   const tokens = JSON.parse(readFileSync(TOKENS_PATH, "utf8"));
   writeFileSync(OUT_PATH, buildThemeModule(tokens));
 }

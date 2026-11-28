@@ -161,7 +161,14 @@ export async function startServer(opts: {
     if (!isCore) served.add(target);
     const type = contentType(target);
     if (!isCore && extname(target).toLowerCase() === ".html") {
-      let html = rewriteRuntimeScript(readFileSync(real, "utf8"), CORE_PACKAGE, `${CORE_PREFIX}index.js`);
+      let source: string;
+      try {
+        source = readFileSync(real, "utf8");
+      } catch {
+        // Unreadable, or removed since the check above; a throw here would end the preview.
+        return send(res, 404, "not found");
+      }
+      let html = rewriteRuntimeScript(source, CORE_PACKAGE, `${CORE_PREFIX}index.js`);
       if (opts.watch) html = injectBeforeBodyEnd(html, RELOAD_SNIPPET);
       return send(res, 200, req.method === "HEAD" ? "" : html, type);
     }
@@ -195,6 +202,11 @@ export async function startServer(opts: {
       timer = setTimeout(() => {
         for (const client of clients) client.write("event: reload\ndata: {}\n\n");
       }, 100);
+    });
+    // An FSWatcher without an error listener throws (the folder was removed, too many open files) and ends the preview.
+    watcher.on("error", (error) => {
+      process.stderr.write(`banger: stopped watching for changes: ${error.message}\n`);
+      watcher?.close();
     });
   }
 

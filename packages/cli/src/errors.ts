@@ -20,3 +20,8 @@ export function readInput(file: string): string {
   if (!existsSync(file) || !statSync(file).isFile()) throw new CliError(2, `file not found: ${file}`);
   return readFileSync(file, "utf8");
 }
+
+/** A write that failed (read-only folder, no space, no permission) is a problem with the environment: `CliError(2)`. */
+export function cannotWrite(path: string, error: unknown): CliError {
+  return new CliError(2, `cannot write ${path}: ${error instanceof Error ? error.message : String(error)}`);
+}

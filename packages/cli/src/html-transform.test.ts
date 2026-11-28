@@ -36,6 +36,7 @@ describe("html-transform", () => {
   it("injects before </body> or appends", () => {
     expect(injectBeforeBodyEnd("<body>a</body>", "X")).toBe("<body>aX</body>");
     expect(injectBeforeBodyEnd("<p>a</p>", "X")).toBe("<p>a</p>X");
+    expect(injectBeforeBodyEnd("<p>İİ</p></BODY>", "X")).toBe("<p>İİ</p>X</BODY>");
   });
 
   describe("runtimeVersionWarning", () => {

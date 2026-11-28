@@ -3,10 +3,12 @@ import { CliError } from "../errors.js";
 import { authorizeInBrowser } from "../platform/browser-login.js";
 import {
   ApiError,
+  CredentialsUnreadableError,
   exchangeCode,
   forgetToken,
   PlatformClient,
   platformHost,
+  removeCredentials,
   revokeToken,
   saveToken,
   storedToken,
@@ -69,7 +71,16 @@ export async function runLogout(argv: string[], deps: Pick<LoginDeps, "fetchImpl
   const { positionals } = parseArgsStrict(argv, {});
   if (positionals.length > 0) throw new CliError(2, LOGOUT_USAGE);
   const host = platformHost();
-  const token = storedToken(host);
+  let token: string | null;
+  try {
+    token = storedToken(host);
+  } catch (error) {
+    if (!(error instanceof CredentialsUnreadableError)) throw error;
+    // Its tokens cannot be read to revoke them; removing the file is the way back to banger login.
+    removeCredentials();
+    process.stdout.write(`removed ${error.file}, which could not be read; revoke its tokens on the settings page\n`);
+    return 0;
+  }
   if (!token) {
     process.stdout.write(`not logged in to ${host}\n`);
     return 0;

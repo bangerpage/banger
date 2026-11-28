@@ -1,13 +1,27 @@
-import { chmodSync, existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { chmodSync, existsSync, mkdirSync, readFileSync, renameSync, rmSync, writeFileSync } from "node:fs";
 import { homedir } from "node:os";
 import { dirname, join } from "node:path";
 import { CliError } from "../errors.js";
 
 export const DEFAULT_HOST = "https://banger.page";
 
-/** The banger.page origin to talk to: `BANGER_HOST` (for staging and tests) or banger.page. */
+const LOOPBACK = new Set(["127.0.0.1", "localhost", "[::1]"]);
+
+/**
+ * The banger.page origin to talk to: `BANGER_HOST` (for staging and tests) or banger.page. It must be an https URL, or
+ * http on this machine, since the token goes with every request; anything else is `CliError(2)`.
+ */
 export function platformHost(env: NodeJS.ProcessEnv = process.env): string {
-  return (env.BANGER_HOST?.trim() || DEFAULT_HOST).replace(/\/+$/, "");
+  const host = (env.BANGER_HOST?.trim() || DEFAULT_HOST).replace(/\/+$/, "");
+  let url: URL;
+  try {
+    url = new URL(host);
+  } catch {
+    throw new CliError(2, `BANGER_HOST is not a URL: ${host}`);
+  }
+  const secure = url.protocol === "https:" || (url.protocol === "http:" && LOOPBACK.has(url.hostname));
+  if (!secure) throw new CliError(2, `BANGER_HOST must be an https URL (http only for this machine): ${host}`);
+  return host;
 }
 
 export function credentialsPath(env: NodeJS.ProcessEnv = process.env): string {
@@ -26,16 +40,30 @@ function readCredentials(env: NodeJS.ProcessEnv): Credentials {
     const data = JSON.parse(readFileSync(file, "utf8")) as Partial<Credentials>;
     return { hosts: data.hosts && typeof data.hosts === "object" ? data.hosts : {} };
   } catch {
-    throw new CliError(2, `${file} could not be read; run banger logout and log in again`);
+    throw new CredentialsUnreadableError(file);
   }
+}
+
+export class CredentialsUnreadableError extends CliError {
+  constructor(readonly file: string) {
+    super(2, `${file} could not be read; run banger logout to remove it, then log in again`);
+    this.name = "CredentialsUnreadableError";
+  }
+}
+
+/** Deletes the credentials file, for `banger logout` when it cannot be read. */
+export function removeCredentials(env: NodeJS.ProcessEnv = process.env): void {
+  rmSync(credentialsPath(env), { force: true });
 }
 
 function writeCredentials(credentials: Credentials, env: NodeJS.ProcessEnv): void {
   const file = credentialsPath(env);
   mkdirSync(dirname(file), { recursive: true, mode: 0o700 });
-  writeFileSync(file, `${JSON.stringify(credentials, null, 2)}\n`, { mode: 0o600 });
-  // writeFileSync keeps the mode of a file that already exists.
-  chmodSync(file, 0o600);
+  // Written next to the file and renamed over it, so a crash mid-write cannot leave half a file.
+  const temp = `${file}.${process.pid}.tmp`;
+  writeFileSync(temp, `${JSON.stringify(credentials, null, 2)}\n`, { mode: 0o600 });
+  chmodSync(temp, 0o600);
+  renameSync(temp, file);
 }
 
 export function saveToken(host: string, token: string, username: string | undefined, env: NodeJS.ProcessEnv = process.env): void {
@@ -76,7 +104,7 @@ export async function exchangeCode(
     redirect_uri: params.redirectUri,
     client_id: CLIENT_ID,
   });
-  const response = await fetchImpl(`${host}/oauth/token`, { method: "POST", body });
+  const response = await reach(host, () => fetchImpl(`${host}/oauth/token`, { method: "POST", body, signal: AbortSignal.timeout(API_TIMEOUT_MS) }));
   const data = (await response.json().catch(() => ({}))) as { access_token?: string; error?: string; error_description?: string };
   if (!response.ok || !data.access_token) {
     throw new ApiError(response.status, data.error ?? `http_${response.status}`, data.error_description ?? data.error ?? "the token request failed");
@@ -86,7 +114,13 @@ export async function exchangeCode(
 
 /** Revokes a token on the site. The site answers 200 whether or not it knew the token. */
 export async function revokeToken(host: string, token: string, fetchImpl: typeof fetch = fetch): Promise<void> {
-  const response = await fetchImpl(`${host}/oauth/revoke`, { method: "POST", body: new URLSearchParams({ token, client_id: CLIENT_ID }) });
+  const response = await reach(host, () =>
+    fetchImpl(`${host}/oauth/revoke`, {
+      method: "POST",
+      body: new URLSearchParams({ token, client_id: CLIENT_ID }),
+      signal: AbortSignal.timeout(API_TIMEOUT_MS),
+    }),
+  );
   if (!response.ok) throw new ApiError(response.status, `http_${response.status}`, `${response.status} ${response.statusText}`.trim());
 }
 
@@ -95,7 +129,6 @@ export function storedToken(host: string, env: NodeJS.ProcessEnv = process.env):
   return readCredentials(env).hosts[host]?.token ?? null;
 }
 
-/** The banger.page username stored for `host` by `banger login`, ignoring `BANGER_TOKEN`. */
 /** Every stored token, for every host (banger feedback looks for all of them in a draft). */
 export function allStoredTokens(env: NodeJS.ProcessEnv = process.env): string[] {
   return Object.values(readCredentials(env).hosts)
@@ -103,6 +136,7 @@ export function allStoredTokens(env: NodeJS.ProcessEnv = process.env): string[] 
     .filter((token) => token !== "");
 }
 
+/** The banger.page username stored for `host` by `banger login`, ignoring `BANGER_TOKEN`. */
 export function storedUsername(host: string, env: NodeJS.ProcessEnv = process.env): string | null {
   return readCredentials(env).hosts[host]?.username ?? null;
 }
@@ -179,7 +213,11 @@ export class PlatformClient {
   }
 
   async putBlob(url: string, body: Uint8Array, method = "PUT"): Promise<void> {
-    const response = await this.fetchImpl(url, { method, body: body as BodyInit });
+    // A large file gets longer than an API call: at least 50 KB/s on top of the usual limit.
+    const timeoutMs = API_TIMEOUT_MS + Math.ceil(body.byteLength / 50_000) * 1000;
+    const response = await reach(new URL(url).host, () =>
+      this.fetchImpl(url, { method, body: body as BodyInit, signal: AbortSignal.timeout(timeoutMs) }),
+    );
     if (!response.ok) throw await apiError(response);
   }
 
@@ -213,6 +251,15 @@ export class PlatformClient {
     } catch (error) {
       throw new ApiError(response.status, "invalid_response", `${this.host} sent a response that is not JSON: ${(error as Error).message}`);
     }
+  }
+}
+
+/** Runs a request, turning a network failure or a timeout into `ApiError(0, "network")`. */
+async function reach(host: string, request: () => Promise<Response>): Promise<Response> {
+  try {
+    return await request();
+  } catch (error) {
+    throw new ApiError(0, "network", `could not reach ${host}: ${(error as Error).message}`);
   }
 }
 

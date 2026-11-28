@@ -1,5 +1,5 @@
 import { execFileSync } from "node:child_process";
-import { mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { mkdirSync, readFileSync, realpathSync, rmSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { build } from "esbuild";
@@ -50,7 +50,7 @@ export function emitDeclarations() {
   execFileSync("pnpm", ["exec", "tsc", "-p", "tsconfig.build.json"], { cwd: pkgRoot, stdio: "inherit" });
 }
 
-if (process.argv[1] && fileURLToPath(import.meta.url) === process.argv[1]) {
+if (process.argv[1] && fileURLToPath(import.meta.url) === realpathSync(process.argv[1])) {
   generateManifest();
   await buildEntry();
   emitDeclarations();

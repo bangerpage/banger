@@ -2,7 +2,7 @@ import { mkdir, writeFile } from "node:fs/promises";
 import { dirname, join } from "node:path";
 import { checkLangOption, deckFile, parseArgsStrict } from "../args.js";
 import { captureState, clearStopFiles, expandStates, forEachLanguage, formatReadyFailure, stopFileName } from "../capture.js";
-import { CliError } from "../errors.js";
+import { CliError, cannotWrite } from "../errors.js";
 
 const USAGE = "usage: banger snap [file] [--stop N] [--step M|last] [--steps last|all] [--out path] [--out-dir dir] [--scale 1|2] [--lang <language>|all]";
 
@@ -61,8 +61,12 @@ export async function runSnap(argv: string[]): Promise<number> {
       for (const failure of report.failed) failures.add(`${run.tag}${formatReadyFailure(failure)}`);
       const png = await captureState(session, ref);
       const target = (single && values.out) || join(dir, stopFileName(ref.stop, ref.step));
-      await mkdir(dirname(target), { recursive: true });
-      await writeFile(target, png);
+      try {
+        await mkdir(dirname(target), { recursive: true });
+        await writeFile(target, png);
+      } catch (error) {
+        throw cannotWrite(target, error);
+      }
     }
     return undefined;
   });

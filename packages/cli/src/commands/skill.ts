@@ -1,9 +1,9 @@
-import { cpSync, existsSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { cpSync, existsSync, readFileSync, renameSync, rmSync, writeFileSync } from "node:fs";
 import { homedir } from "node:os";
 import { join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { parseArgsStrict } from "../args.js";
-import { CliError } from "../errors.js";
+import { CliError, cannotWrite } from "../errors.js";
 import { createZip, directoryEntries } from "../zip.js";
 
 const USAGE = "usage: banger skill install [--project | --dir <path>] [--force]\n       banger skill pack [--out <file>]";
@@ -20,17 +20,29 @@ export interface InstallSkillOptions {
 /** Copies the bundled skill to `dest`. Returns whether an earlier install was replaced. */
 export function installSkill(opts: InstallSkillOptions): "installed" | "updated" {
   if (!existsSync(join(opts.source, "SKILL.md"))) throw new CliError(2, `the bundled skill is missing: ${opts.source}`);
-  let outcome: "installed" | "updated" = "installed";
-  if (existsSync(opts.dest)) {
-    if (!existsSync(join(opts.dest, MARKER)) && !opts.force) {
-      throw new CliError(2, `${opts.dest} already exists and was not written by banger; pass --force to replace it`);
+  const exists = existsSync(opts.dest);
+  if (exists && !existsSync(join(opts.dest, MARKER))) {
+    // --force replaces a skill folder banger did not write, but never a folder that holds something else,
+    // such as the skills directory itself given to --dir by mistake.
+    if (!existsSync(join(opts.dest, "SKILL.md"))) {
+      throw new CliError(2, `${opts.dest} already exists and is not a skill folder; give --dir the folder for this skill, such as ${join(opts.dest, "banger")}`);
     }
-    rmSync(opts.dest, { recursive: true, force: true });
-    outcome = "updated";
+    if (!opts.force) throw new CliError(2, `${opts.dest} already exists and was not written by banger; pass --force to replace it`);
   }
-  cpSync(opts.source, opts.dest, { recursive: true });
-  writeFileSync(join(opts.dest, MARKER), `${opts.version}\n`);
-  return outcome;
+  // Copied next to the destination first, so a failed copy leaves the earlier install in place.
+  const staged = `${opts.dest}.banger-${process.pid}.tmp`;
+  try {
+    rmSync(staged, { recursive: true, force: true });
+    cpSync(opts.source, staged, { recursive: true });
+    writeFileSync(join(staged, MARKER), `${opts.version}\n`);
+    if (exists) rmSync(opts.dest, { recursive: true, force: true });
+    renameSync(staged, opts.dest);
+  } catch (error) {
+    rmSync(staged, { recursive: true, force: true });
+    if (error instanceof CliError) throw error;
+    throw cannotWrite(opts.dest, error);
+  }
+  return exists ? "updated" : "installed";
 }
 
 export function bundledSkill(): string {
@@ -46,7 +58,12 @@ export function cliVersion(): string {
 /** Writes the skill as a zip with one top-level `banger/` folder, the layout the Claude apps accept for upload. */
 export function packSkill(source: string, out: string): void {
   if (!existsSync(join(source, "SKILL.md"))) throw new CliError(2, `the bundled skill is missing: ${source}`);
-  writeFileSync(out, createZip(directoryEntries(source, "banger")));
+  const zip = createZip(directoryEntries(source, "banger"));
+  try {
+    writeFileSync(out, zip);
+  } catch (error) {
+    throw cannotWrite(out, error);
+  }
 }
 
 function runPack(rest: string[]): number {

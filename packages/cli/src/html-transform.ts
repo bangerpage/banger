@@ -111,7 +111,9 @@ export function rewriteRuntimeScript(html: string, corePackage: string, newSrc: 
 
 /** Inserts `snippet` just before `</body>`, or at the end when there is none. */
 export function injectBeforeBodyEnd(html: string, snippet: string): string {
-  const index = html.toLowerCase().lastIndexOf("</body>");
+  // Searched in `html` itself: toLowerCase() can change the length (İ becomes two code units) and shift the index.
+  let index = -1;
+  for (const match of html.matchAll(/<\/body>/gi)) index = match.index;
   if (index < 0) return html + snippet;
   return html.slice(0, index) + snippet + html.slice(index);
 }

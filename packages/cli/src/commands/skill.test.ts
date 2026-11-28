@@ -44,6 +44,13 @@ describe("installSkill", () => {
     expect(readFileSync(join(dest, "SKILL.md"), "utf8")).toBe("skill");
   });
 
+  it("never replaces a folder that is not a skill, even with --force", () => {
+    mkdirSync(join(dest, "other-skill"), { recursive: true });
+    writeFileSync(join(dest, "other-skill", "SKILL.md"), "other");
+    expect(() => installSkill({ source, dest, version: "0.1.0", force: true })).toThrow(/not a skill folder/);
+    expect(readFileSync(join(dest, "other-skill", "SKILL.md"), "utf8")).toBe("other");
+  });
+
   it("fails with exit code 2 when the bundled skill is missing", () => {
     try {
       installSkill({ source: join(dir, "nowhere"), dest, version: "0.1.0" });

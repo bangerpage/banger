@@ -1,4 +1,4 @@
-import { mkdirSync, mkdtempSync, readFileSync, rmSync, statSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, statSync, symlinkSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
@@ -93,6 +93,13 @@ describe("collectDeck", () => {
     rmSync(join(deck, "index.html"));
     expect(() => collectDeck(deck)).toThrow(CliError);
   });
+
+  it("lists a symbolic link as not sent", () => {
+    symlinkSync(join(deck, "assets", "a.png"), join(deck, "link.png"));
+    const { files, skipped } = collectDeck(deck);
+    expect(files.map((f) => f.path)).not.toContain("link.png");
+    expect(skipped).toContain("link.png");
+  });
 });
 
 describe("limits and slugs", () => {
@@ -119,6 +126,14 @@ describe("login and logout", () => {
     expect(await runLogout([], { fetchImpl: site.fetchImpl })).toBe(0);
     expect(() => statSync(file)).toThrow();
     expect(site.calls.at(-1)).toMatchObject({ method: "POST", url: "https://example.test/oauth/revoke" });
+  });
+
+  it("logout removes a credentials file that cannot be read", async () => {
+    const file = credentialsPath();
+    mkdirSync(join(file, ".."), { recursive: true });
+    writeFileSync(file, "{not json");
+    expect(await runLogout([], { fetchImpl: fakeSite().fetchImpl })).toBe(0);
+    expect(existsSync(file)).toBe(false);
   });
 
   it("logs in through the browser with PKCE and stores the token the site returns", async () => {

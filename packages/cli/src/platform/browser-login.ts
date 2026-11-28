@@ -53,7 +53,14 @@ export async function authorizeInBrowser(
   const result = new Promise<string>((resolve, reject) => (settle = { resolve, reject }));
 
   const server = createServer((req, res) => {
-    const url = new URL(req.url ?? "/", "http://127.0.0.1");
+    let url: URL;
+    try {
+      url = new URL(req.url ?? "/", "http://127.0.0.1");
+    } catch {
+      // A request path such as "//" is not a URL; a throw here would end the login.
+      res.writeHead(400).end();
+      return;
+    }
     if (url.pathname !== "/callback") {
       res.writeHead(404).end();
       return;
@@ -72,12 +79,13 @@ export async function authorizeInBrowser(
     res.writeHead(200, { "content-type": "text/html; charset=utf-8" }).end(PAGE("Logged in to Banger. You can close this tab and go back to the terminal."));
     settle?.resolve(code);
   });
+  // Built before listening: a host that is not a URL would otherwise throw with the server left open.
+  const authorize = new URL(`${host}/authorize`);
   await new Promise<void>((resolve, reject) => {
     server.once("error", reject);
     server.listen(0, "127.0.0.1", () => resolve());
   });
   const redirectUri = `http://127.0.0.1:${(server.address() as AddressInfo).port}/callback`;
-  const authorize = new URL(`${host}/authorize`);
   authorize.search = new URLSearchParams({
     response_type: "code",
     client_id: CLIENT_ID,

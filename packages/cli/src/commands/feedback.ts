@@ -428,10 +428,15 @@ async function sendDraft(rest: string[], deps: FeedbackDeps): Promise<number> {
   const stripped = stripComments(readInput(file));
   const draft = parseDraft(stripped);
 
-  const host = platformHost();
+  let host: string | undefined;
+  try {
+    host = platformHost();
+  } catch {
+    // An unusable BANGER_HOST matters only to --via inbox, which reports it when it sends.
+  }
   let username: string | undefined;
   try {
-    username = storedUsername(host) ?? undefined;
+    username = host ? (storedUsername(host) ?? undefined) : undefined;
   } catch {
     // A broken credentials file only narrows the check.
   }

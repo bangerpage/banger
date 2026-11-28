@@ -39,9 +39,15 @@ export function collectDeck(dir: string): { files: DeckFile[]; skipped: string[]
         walk(abs);
         continue;
       }
-      if (!entry.isFile()) continue;
-      if (!isAccepted(path)) {
+      // A symbolic link is left out like a file type banger.page does not take, and listed so it is not lost silently.
+      if (!entry.isFile() || !isAccepted(path)) {
         skipped.push(path);
+        continue;
+      }
+      const size = statSync(abs).size;
+      // limitProblems stops a file over the limit before anything is sent; it is not worth reading into memory.
+      if (size > (path === "index.html" ? LIMITS.html : LIMITS.file)) {
+        files.push({ abs, path, size, sha256: "" });
         continue;
       }
       const body = readFileSync(abs);
@@ -131,7 +137,7 @@ export async function runPublish(argv: string[], fetchImpl: typeof fetch = fetch
   const total = files.reduce((sum, f) => sum + f.size, 0);
   for (const f of files) process.stdout.write(`  ${f.path}  ${formatSize(f.size)}\n`);
   process.stdout.write(`${files.length} files, ${formatSize(total)}\n`);
-  if (skipped.length > 0) process.stderr.write(`not sent (banger.page does not take these): ${skipped.join(", ")}\n`);
+  if (skipped.length > 0) process.stderr.write(`not sent (symbolic links, and files banger.page does not take): ${skipped.join(", ")}\n`);
   const problems = limitProblems(files);
   if (problems.length > 0) throw new CliError(1, problems.join("\n"));
 

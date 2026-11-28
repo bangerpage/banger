@@ -1,7 +1,7 @@
 import { existsSync, writeFileSync } from "node:fs";
 import { parseArgsStrict } from "../args.js";
 import { PRESET_NAMES, isPresetName, parseThemeJson, presetTheme, resolveTheme, serializeTheme } from "../core-package.js";
-import { CliError, readInput } from "../errors.js";
+import { CliError, cannotWrite, readInput } from "../errors.js";
 import { applyThemeBlock } from "../html-transform.js";
 
 const USAGE = `usage: banger theme init [file] [--from <preset>] [--force]
@@ -51,7 +51,11 @@ function runThemeApply(argv: string[]): number {
     );
   }
   if (result.html !== html) {
-    writeFileSync(deckFile, result.html);
+    try {
+      writeFileSync(deckFile, result.html);
+    } catch (error) {
+      throw cannotWrite(deckFile, error);
+    }
     process.stdout.write(`applied: ${deckFile}\n`);
   } else {
     process.stdout.write(`unchanged: ${deckFile}\n`);

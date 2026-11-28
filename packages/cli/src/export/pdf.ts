@@ -4,7 +4,7 @@ import { PDFDocument } from "@cantoo/pdf-lib";
 import type { BrowserLaunchers } from "../browser.js";
 import { expandStates, forEachLanguage, formatReadyFailure, type StepSelection } from "../capture.js";
 import type { ReadyFailure } from "../core-package.js";
-import { CliError } from "../errors.js";
+import { CliError, cannotWrite } from "../errors.js";
 
 /**
  * Writes the deck as a PDF with one 1920x1080 CSS px page per state; text stays vector.
@@ -77,8 +77,13 @@ export async function exportPdfs(
     const out = opts.out
       ? resolve(opts.out)
       : defaultPdfPath(file, opts.lang !== undefined && run.language !== "" ? run.language : undefined);
-    await mkdir(dirname(out), { recursive: true });
-    await writeFile(out, await merged.save());
+    const bytes = await merged.save();
+    try {
+      await mkdir(dirname(out), { recursive: true });
+      await writeFile(out, bytes);
+    } catch (error) {
+      throw cannotWrite(out, error);
+    }
     outcomes.push({ language: run.language, path: out, failures: [] });
   });
   return outcomes;
