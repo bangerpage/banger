@@ -5,21 +5,30 @@ on:
     tags:
       - "v*"
 
-permissions:
-  contents: write
-  id-token: write
+# Each job gets only what it needs: dependencies run in `build`, which cannot publish to npm or write to the repository.
+permissions: {}
 
 jobs:
-  publish:
+  build:
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
     steps:
-      - uses: actions/checkout@v4
-      - uses: pnpm/action-setup@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: pnpm/action-setup@b906affcce14559ad1aafd4ab0e942779e9f58b1 # v4
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
         with:
           node-version: 24
           cache: pnpm
-          registry-url: https://registry.npmjs.org
+      - name: Tag is on main
+        run: |
+          if ! git merge-base --is-ancestor "$GITHUB_SHA" origin/main; then
+            echo "::error::$GITHUB_REF_NAME points at a commit that is not on main"
+            exit 1
+          fi
       - run: pnpm install --frozen-lockfile
       - name: Tag matches both package versions
         run: |
@@ -34,10 +43,11 @@ jobs:
       # The release notes are the version's section of CHANGELOG.md (a prerelease uses its release's section).
       - name: Release notes
         run: |
+          mkdir -p "$RUNNER_TEMP/release"
           version="${GITHUB_REF_NAME#v}"
           section="${version%%-*}"
-          awk -v h="## $section" '$0 == h { on = 1; next } on && /^## / { exit } on' CHANGELOG.md > "$RUNNER_TEMP/notes.md"
-          if ! grep -q '[^[:space:]]' "$RUNNER_TEMP/notes.md"; then
+          awk -v h="## $section" '$0 == h { on = 1; next } on && /^## / { exit } on' CHANGELOG.md > "$RUNNER_TEMP/release/notes.md"
+          if ! grep -q '[^[:space:]]' "$RUNNER_TEMP/release/notes.md"; then
             echo "::error::CHANGELOG.md has no section for $section"
             exit 1
           fi
@@ -47,14 +57,37 @@ jobs:
       - run: pnpm test
       - run: pnpm -C packages/core exec playwright-core install --with-deps chromium
       - run: pnpm test:e2e
-      # pnpm pack turns workspace:* into the real version; npm publish then signs in to npm with the
-      # workflow's OIDC token (trusted publishing), so no npm token is stored in the repository.
+      # pnpm pack turns workspace:* into the real version.
+      - name: Pack core and cli
+        run: |
+          for pkg in packages/core packages/cli; do
+            pnpm -C "$pkg" pack --pack-destination "$RUNNER_TEMP/release"
+          done
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: release
+          path: ${{ runner.temp }}/release
+          if-no-files-found: error
+          retention-days: 7
+
+  # npm publish signs in to npm with this job's OIDC token (trusted publishing), so no npm token is stored in the
+  # repository. The job runs no dependency code: it only publishes the tarballs `build` tested.
+  publish:
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      id-token: write
+    steps:
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
+        with:
+          name: release
+          path: ${{ runner.temp }}/release
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: 24
+          registry-url: https://registry.npmjs.org
       - name: Publish core, then cli
         run: |
-          mkdir -p "$RUNNER_TEMP/pack"
-          for pkg in packages/core packages/cli; do
-            pnpm -C "$pkg" pack --pack-destination "$RUNNER_TEMP/pack"
-          done
           version="${GITHUB_REF_NAME#v}"
           # A prerelease (0.2.0-rc.1) goes to the `next` dist-tag, so `npm install` keeps getting the last release.
           case "$version" in *-*) dist_tag=next ;; *) dist_tag=latest ;; esac
@@ -63,13 +96,25 @@ jobs:
             if npm view "@bangerpage/$name@$version" version >/dev/null 2>&1; then
               echo "@bangerpage/$name@$version is already on npm; skipped"
             else
-              npm publish "$RUNNER_TEMP"/pack/bangerpage-$name-*.tgz --access public --tag "$dist_tag"
+              npm publish "$RUNNER_TEMP"/release/bangerpage-$name-*.tgz --access public --tag "$dist_tag"
             fi
           done
+
+  github-release:
+    needs: publish
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
+        with:
+          name: release
+          path: ${{ runner.temp }}/release
       - name: GitHub release
         env:
           GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
         run: |
           prerelease=()
           case "$GITHUB_REF_NAME" in *-*) prerelease=(--prerelease) ;; esac
-          gh release create "$GITHUB_REF_NAME" --verify-tag --notes-file "$RUNNER_TEMP/notes.md" --generate-notes "${prerelease[@]}"
+          gh release create "$GITHUB_REF_NAME" --verify-tag --notes-file "$RUNNER_TEMP/release/notes.md" --generate-notes "${prerelease[@]}"
