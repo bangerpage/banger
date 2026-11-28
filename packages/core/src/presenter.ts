@@ -1,4 +1,5 @@
 import { html, type TemplateResult } from "lit";
+import { initialsOf, type PresenterAccount, type PresenterDeck, type PresenterStatus } from "./presenter-status.js";
 import type { BangState } from "./state.js";
 
 interface StateMessage {
@@ -60,6 +61,7 @@ export interface PresenterView {
   notes: string;
   language?: string;
   elapsedMs: number;
+  status?: PresenterStatus;
   onPrev: () => void;
   onNext: () => void;
   onResetTimer: () => void;
@@ -70,6 +72,37 @@ const pad = (n: number) => String(n).padStart(2, "0");
 export function formatElapsed(ms: number): string {
   const total = Math.floor(ms / 1000);
   return `${pad(Math.floor(total / 60))}:${pad(total % 60)}`;
+}
+
+const ACCOUNT_NOTES = {
+  logged_out: "Not logged in to banger.page",
+  invalid: "banger.page did not accept the token (run banger login)",
+  unavailable: "banger.page is not reachable",
+} as const;
+
+function renderAccount(account: PresenterAccount): TemplateResult {
+  if (account.state !== "logged_in") return html`<span class="presenter-note">${ACCOUNT_NOTES[account.state]}</span>`;
+  return html`<span class="presenter-avatar">${initialsOf(account)}${account.avatarUrl
+      ? html`<img class="presenter-avatar-img" referrerpolicy="no-referrer" alt="" src=${account.avatarUrl} @error=${(event: Event) => ((event.target as HTMLImageElement).hidden = true)} />`
+      : ""}</span>
+    <span class="presenter-user" title=${`@${account.username}`}>${account.displayName ?? `@${account.username}`}</span>`;
+}
+
+function renderDeck(deck: PresenterDeck): TemplateResult | "" {
+  switch (deck.state) {
+    case "none":
+      return "";
+    case "published":
+      return html`<span class="presenter-visibility" data-visibility=${deck.visibility}>${deck.visibility === "unlisted" ? "Unlisted (link only)" : "Public"}</span>
+        ${deck.version !== undefined ? html`<span class="presenter-version">v${deck.version}</span>` : ""}
+        ${deck.url ? html`<span class="presenter-deck-url">${deck.url}</span>` : ""}`;
+    case "unpublished":
+      return html`<span class="presenter-deck-note">Unpublished${deck.url ? ` ${deck.url}` : ""}</span>`;
+    case "missing":
+      return html`<span class="presenter-deck-note">Not found on banger.page (the local record is out of date)</span>`;
+    case "unverified":
+      return html`<span class="presenter-deck-note">Last published from this folder: ${deck.url ? `${deck.url} ` : ""}(not verified)</span>`;
+  }
 }
 
 export function renderPresenter(view: PresenterView): TemplateResult {
@@ -83,6 +116,7 @@ export function renderPresenter(view: PresenterView): TemplateResult {
         <button type="button" class="presenter-reset" @click=${view.onResetTimer}>Reset</button>
       </span>
     </div>
+    ${view.status ? html`<div class="presenter-account">${renderAccount(view.status.account)}${renderDeck(view.status.deck)}</div>` : ""}
     <div class="presenter-notes">${view.notes}</div>
     <div class="presenter-buttons">
       <button type="button" class="presenter-prev" @click=${view.onPrev}>Previous</button>

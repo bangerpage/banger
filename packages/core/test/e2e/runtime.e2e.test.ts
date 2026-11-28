@@ -287,6 +287,122 @@ describe("runtime", () => {
     expect(await state(page)).toEqual({ stop: 0, step: 0 });
   });
 
+  describe("presenter account status", () => {
+    const PNG = Buffer.from("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==", "base64");
+    const logged = { state: "logged_in", username: "alice", displayName: "Alice" };
+    const account = (page: Page) => page.evaluate(() => document.querySelector("bang-root")!.shadowRoot!.querySelector(".presenter-account")?.textContent?.replace(/\s+/g, " ").trim() ?? null);
+    const presenter = (body: unknown, extra?: (page: Page) => Promise<unknown>) =>
+      open("deck.html", {
+        query: "mode=presenter",
+        routes: async (page) => {
+          await page.route("**/__banger/status", (route) =>
+            typeof body === "string" ? route.fulfill({ status: 200, body, contentType: "application/json" }) : route.fulfill({ json: body }),
+          );
+          await extra?.(page);
+        },
+      });
+    const inRoot = (page: Page, selector: string) =>
+      page.evaluate((s) => {
+        const el = document.querySelector("bang-root")!.shadowRoot!.querySelector(s);
+        return el ? { text: el.textContent!.trim(), attr: el.getAttribute("data-visibility"), hidden: (el as HTMLElement).hidden } : null;
+      }, selector);
+    const waitAccount = (page: Page) => page.waitForFunction(() => !!document.querySelector("bang-root")?.shadowRoot?.querySelector(".presenter-account"));
+
+    it("AC-PS-1 shows the display name and an initial, and hides a broken avatar", async () => {
+      const ok = await presenter({ account: { ...logged, avatarUrl: "https://avatars.test/a.png" }, deck: { state: "none" } }, (page) =>
+        page.route("https://avatars.test/**", (route) => route.fulfill({ body: PNG, contentType: "image/png" })),
+      );
+      await waitAccount(ok.page);
+      expect((await inRoot(ok.page, ".presenter-user"))?.text).toBe("Alice");
+      expect((await inRoot(ok.page, ".presenter-avatar"))?.text).toBe("A");
+      await ok.page.waitForFunction(() => {
+        const img = document.querySelector("bang-root")!.shadowRoot!.querySelector<HTMLImageElement>(".presenter-avatar-img");
+        return !!img && img.complete && img.naturalWidth > 0;
+      });
+      expect((await inRoot(ok.page, ".presenter-avatar-img"))?.hidden).toBe(false);
+      const broken = await presenter({ account: { ...logged, avatarUrl: "https://avatars.test/a.png" }, deck: { state: "none" } }, (page) =>
+        page.route("https://avatars.test/**", (route) => route.abort()),
+      );
+      await waitAccount(broken.page);
+      await broken.page.waitForFunction(() => document.querySelector("bang-root")!.shadowRoot!.querySelector<HTMLElement>(".presenter-avatar-img")?.hidden === true);
+      expect((await inRoot(broken.page, ".presenter-avatar"))?.text).toBe("A");
+    });
+
+    it("AC-PS-2 tells public and unlisted decks apart", async () => {
+      for (const [visibility, label] of [["public", "Public"], ["unlisted", "Unlisted (link only)"]] as const) {
+        const { page } = await presenter({ account: logged, deck: { state: "published", visibility, version: 3, url: "https://banger.page/alice/t" } });
+        await waitAccount(page);
+        expect(await inRoot(page, ".presenter-visibility")).toMatchObject({ text: label, attr: visibility });
+        expect((await inRoot(page, ".presenter-version"))?.text).toBe("v3");
+        expect((await inRoot(page, ".presenter-deck-url"))?.text).toBe("https://banger.page/alice/t");
+      }
+    });
+
+    it("AC-PS-3 audience and export windows neither request the status nor draw it", async () => {
+      for (const query of [undefined, "mode=export"]) {
+        const requests: string[] = [];
+        const { page } = await open("deck.html", {
+          query,
+          routes: async (p) => {
+            p.on("request", (r) => requests.push(r.url()));
+            await p.route("**/__banger/status", (route) => route.fulfill({ json: { account: logged, deck: { state: "none" } } }));
+          },
+        });
+        await page.waitForTimeout(300);
+        expect(requests.filter((u) => u.includes("/__banger/status"))).toEqual([]);
+        expect(await account(page)).toBeNull();
+      }
+    });
+
+    it("AC-PS-4 and AC-PS-11 show distinct messages and keep the presenter working", async () => {
+      const cases: [string, string][] = [
+        ["logged_out", "Not logged in to banger.page"],
+        ["invalid", "banger.page did not accept the token (run banger login)"],
+        ["unavailable", "banger.page is not reachable"],
+      ];
+      for (const [state, text] of cases) {
+        const { page, errors } = await presenter({ account: { state }, deck: { state: "none" } });
+        await waitAccount(page);
+        expect(await account(page)).toBe(text);
+        await page.evaluate(() => document.querySelector("bang-root")!.shadowRoot!.querySelector<HTMLButtonElement>(".presenter-next")!.click());
+        await page.waitForFunction(() => (document.querySelector("bang-root") as any).getState().stop === 1);
+        await page.waitForFunction(() => document.querySelector("bang-root")?.shadowRoot?.querySelector(".presenter-elapsed")?.textContent === "00:01");
+        expect(errors).toEqual([]);
+      }
+      const { page } = await presenter({ account: logged, deck: { state: "unpublished" } });
+      await waitAccount(page);
+      expect((await inRoot(page, ".presenter-deck-note"))?.text).toBe("Unpublished");
+    });
+
+    it("AC-PS-5 words missing and unverified decks, and draws nothing for none", async () => {
+      const missing = await presenter({ account: logged, deck: { state: "missing", url: "https://banger.page/a/t" } });
+      await waitAccount(missing.page);
+      expect((await inRoot(missing.page, ".presenter-deck-note"))?.text).toBe("Not found on banger.page (the local record is out of date)");
+      const unverified = await presenter({ account: { state: "unavailable" }, deck: { state: "unverified", url: "https://banger.page/a/t" } });
+      await waitAccount(unverified.page);
+      expect((await inRoot(unverified.page, ".presenter-deck-note"))?.text).toBe("Last published from this folder: https://banger.page/a/t (not verified)");
+      const none = await presenter({ account: logged, deck: { state: "none" } });
+      await waitAccount(none.page);
+      expect(await inRoot(none.page, ".presenter-deck-note")).toBeNull();
+      expect(await inRoot(none.page, ".presenter-visibility")).toBeNull();
+    });
+
+    it("AC-PS-7 draws nothing and raises no error when the status cannot be read", async () => {
+      const failing = [
+        open("deck.html", { query: "mode=presenter" }),
+        presenter("not json"),
+        open("deck.html", { query: "mode=presenter", routes: (page) => page.route("**/__banger/status", (route) => route.abort()) }),
+      ];
+      for (const { page, errors } of await Promise.all(failing)) {
+        await page.waitForTimeout(400);
+        expect(errors).toEqual([]);
+        expect(await account(page)).toBeNull();
+        await page.evaluate(() => document.querySelector("bang-root")!.shadowRoot!.querySelector<HTMLButtonElement>(".presenter-next")!.click());
+        await page.waitForFunction(() => (document.querySelector("bang-root") as any).getState().stop === 1);
+      }
+    });
+  });
+
   it("AC-RT-5 export mode ignores keys, jumps instantly and fixes the stage", async () => {
     const { page } = await open("deck.html", {
       query: "mode=export",

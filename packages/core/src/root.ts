@@ -31,6 +31,7 @@ import { ensureBaseStyle, ensureLanguageStyle, ensureThemeFonts } from "./base-s
 import { BangElement, defineOnce, selectorOf, type StepAware } from "./element.js";
 import { canonicalLanguage, inLanguage, nextLanguage, parseLanguages, resolveLanguage } from "./language.js";
 import { openPresenter, PresenterSync, renderPresenter } from "./presenter.js";
+import { parsePresenterStatus, type PresenterStatus } from "./presenter-status.js";
 import { collectReady, type ReadyReport } from "./ready.js";
 import {
   clamp,
@@ -309,6 +310,44 @@ export class BangRoot extends BangElement {
         font-size: 16px;
         cursor: pointer;
       }
+      .presenter-account {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        font-size: 16px;
+        color: var(--bang-color-ink-muted);
+      }
+      .presenter-avatar {
+        position: relative;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 28px;
+        height: 28px;
+        border-radius: 50%;
+        overflow: hidden;
+        background: var(--bang-color-ink-muted);
+        color: var(--bang-color-paper);
+        font-size: 14px;
+      }
+      .presenter-avatar-img {
+        position: absolute;
+        inset: 0;
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+      }
+      .presenter-avatar-img[hidden] {
+        display: none;
+      }
+      .presenter-visibility {
+        padding: 0 8px;
+        border: 1px solid currentColor;
+        border-radius: 4px;
+      }
+      .presenter-visibility[data-visibility="unlisted"] {
+        border-style: dashed;
+      }
       .presenter-notes {
         flex: 1;
         overflow: auto;
@@ -363,6 +402,7 @@ export class BangRoot extends BangElement {
   @state() private statusText = "";
   @state() private helpOpen = false;
   @state() private elapsedMs = 0;
+  @state() private presenterStatus: PresenterStatus | undefined;
 
   private mode: RootMode = "live";
   private path: PathModel = { stops: [] };
@@ -501,6 +541,19 @@ export class BangRoot extends BangElement {
       this.clockTimer = setInterval(() => {
         this.elapsedMs = Date.now() - this.startedAt;
       }, 1000);
+      void this.loadPresenterStatus();
+    }
+  }
+
+  /** Asks the preview server who is logged in to banger.page. Anywhere else (a published deck, a static host) the request fails and nothing is shown. */
+  private async loadPresenterStatus(): Promise<void> {
+    try {
+      const res = await fetch("/__banger/status", { cache: "no-store" });
+      if (!res.ok) return;
+      const status = parsePresenterStatus(await res.json());
+      if (status) this.presenterStatus = status;
+    } catch {
+      // No status is the same screen as before.
     }
   }
 
@@ -615,6 +668,7 @@ export class BangRoot extends BangElement {
           notes: this.notes[this.current.stop] ?? "",
           language: this.multilingual ? this.currentLanguage : undefined,
           elapsedMs: this.elapsedMs,
+          status: this.presenterStatus,
           onPrev: () => void this.prev(),
           onNext: () => void this.next(),
           onResetTimer: () => this.resetTimer(),
