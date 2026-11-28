@@ -2,6 +2,15 @@
 
 ## 0.2.4
 
+### Runtime (`@bangerpage/core`)
+
+- `bang-chart` ignores `link`, `sublink`, `target` and `subtarget` in a `title`, which ECharts would turn into a click that opens a window, and fails with `chart: unsupported option key "baseOption"` (also `options`, `media`, `timeline`) for the option shapes that the series check and theme defaults cannot see.
+- A leading `@import` or `@charset` in the `<style>` of `bang-free` stays in front of the `@scope` block, so a web font import works.
+- Export and the presenter window no longer catch the focus spotlight mid-fade, and rebuilding the path (a language switch, for example) clears the spotlight.
+- Enter and Space on a link or button inside a frame do what they do on the page instead of moving to the next stop.
+- An in-frame link to `#section` no longer sends the deck back to the first stop, and a stop typed in the address bar reaches the presenter window.
+- A `bang-root` moved in the page keeps following the window size, and a pending `goto()` settles when it is removed. Presenter sync messages of the wrong shape are ignored.
+
 ### CLI (`@bangerpage/cli`)
 
 - `banger feedback new` writes a draft of your experience with Banger in a temporary directory, and `banger feedback send <file>` shows the final text and sends it as a public GitHub issue (`--via gh`, or `--via web` to submit by hand) or anonymously to the banger.page feedback inbox (`--via inbox`). It stops when the draft holds a token or key (including a banger.page token for any host, and one split over lines), an absolute path, an email address, this computer's account name, or a control character that could hide part of a line from the person checking it.
@@ -9,6 +18,11 @@
 - `banger preview` no longer serves a file through a symbolic link that points outside the deck's folder.
 - `snap` and `export` check the languages and step counts the page reports before using them in file names, so a script on the page cannot make them write outside the output folder.
 - `banger preview` answers only requests addressed to `127.0.0.1` or `localhost`, so another website cannot read the deck folder through DNS rebinding. `--allow-host <name>` adds a name, for viewing through a proxy such as `tailscale serve`. A refused name is printed once with the `--allow-host` option to add it. It no longer serves dotfiles or `node_modules`.
+- `BANGER_HOST` must be an https URL (http only for this machine), since the token goes with every request. Logging in, logging out and uploads have time limits and report a network failure in one line.
+- `banger logout` removes a credentials file that cannot be read, and the file is written atomically.
+- A failed write in `snap`, `export`, `init`, `theme apply` and `skill` exits 2 with the path instead of a stack trace. `skill install --force` replaces only a skill folder, and keeps the earlier install when the copy fails.
+- `banger publish` lists symbolic links among the files it does not send, and does not read a file over the size limit into memory.
+- `banger preview` keeps running when a file cannot be read or the folder watch fails, and inserts its reload script correctly after characters whose lower case is longer, such as `İ`.
 - `banger login` and `banger feedback --via web` open URLs that contain `&` correctly on Windows.
 
 ### Skill
