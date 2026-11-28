@@ -77,6 +77,22 @@ describe("skill", () => {
     expect(md).toMatch(/bang-free.*部品に無い/);
   });
 
+  it("AC-FB-12 the skill tells the AI how to send feedback after a deck is finished", () => {
+    const md = read("skill/SKILL.md");
+    expect(md).toContain("## 完成したあとの feedback");
+    expect(md).toContain("banger feedback new");
+    expect(md).toContain("banger feedback send");
+    expect(md).toContain("人が頼むか選ぶまで `banger feedback send` を実行しない");
+    expect(md).toContain("社外秘");
+    for (const word of ["伏せる", "言い換える", "消す"]) expect(md).toContain(word);
+    expect(md).toContain("--dry-run");
+    expect(md).toContain("改めて確認");
+    expect(md).toMatch(/^7\. 仕上がったら/m);
+    expect(md).toContain("(伝え方は「完成したあとの feedback」)");
+    const section = md.slice(md.indexOf("## 完成したあとの feedback"));
+    expect(section).not.toMatch(/#[0-9a-fA-F]{3,8}\b/);
+  });
+
   it("AC-I18N-14 the skill and the components reference describe multilingual decks", () => {
     const skill = read("skill/SKILL.md");
     expect(skill).toContain("## 多言語の発表");

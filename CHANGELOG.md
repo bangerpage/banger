@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.2.4
+
+### CLI (`@bangerpage/cli`)
+
+- `banger feedback new` writes a draft of your experience with Banger in a temporary directory, and `banger feedback send <file>` shows the final text and sends it as a public GitHub issue (`--via gh`, or `--via web` to submit by hand) or anonymously to the banger.page feedback inbox (`--via inbox`). It stops when the draft holds a token, an absolute path or an email address.
+- `banger login` and `banger feedback --via web` open URLs that contain `&` correctly on Windows.
+
+### Skill
+
+- The skill describes what to do after a deck is finished: write a feedback draft, have the person check it for confidential information, and send it only when they ask.
+
 ## 0.2.3
 
 ### Runtime (`@bangerpage/core`)
