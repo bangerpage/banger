@@ -1,5 +1,25 @@
 # Changelog
 
+## 0.2.3
+
+### Runtime (`@bangerpage/core`)
+
+- `bang-root` takes `motion="smooth|swift|none"`. `smooth` (the default) keeps the current camera moves. `swift` moves quickly and does not pull back on long moves. `none` switches stops with no motion, like turning pages, and also stops the fades of steps and spotlights. When the viewer's system asks for reduced motion, every deck switches without motion.
+- The presenter window has a Reset button next to the elapsed time.
+- In `banger preview`, the presenter window shows the banger.page account you are logged in with and, for `index.html`, the deck's visibility, version and URL there.
+- A value that the author writes inline on `bang-root` for `--bang-duration-fast` or `--bang-duration-slow` comes back when motion is turned on again.
+- A resize during a camera move no longer leaves `goto()` and `next()` waiting.
+
+### CLI (`@bangerpage/cli`)
+
+- `banger preview` looks up the account and the deck status for the presenter window. It uses the stored token on the server side, so the token never reaches the browser.
+- Calls to the banger.page API time out after 60 seconds. A response that is not JSON is reported as an error from the site.
+- `banger preview` no longer stops when a file it is serving is removed.
+
+### Skill
+
+- The skill describes `motion`.
+
 ## 0.2.2
 
 ### Runtime (`@bangerpage/core`)
