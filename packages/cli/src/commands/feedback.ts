@@ -1,13 +1,13 @@
 import { spawn } from "node:child_process";
 import { createHash } from "node:crypto";
 import { mkdtempSync, readFileSync, writeFileSync } from "node:fs";
-import { homedir, tmpdir } from "node:os";
+import { homedir, tmpdir, userInfo } from "node:os";
 import { join, resolve } from "node:path";
 import { createInterface } from "node:readline";
 import { parseArgsStrict } from "../args.js";
 import { CliError, readInput } from "../errors.js";
 import { openInBrowser } from "../platform/browser-login.js";
-import { platformHost, storedToken, storedUsername } from "../platform/client.js";
+import { allStoredTokens, platformHost, storedUsername } from "../platform/client.js";
 import { bundledSkill, cliVersion } from "./skill.js";
 
 export type Route = "gh" | "web" | "inbox";
@@ -160,6 +160,8 @@ export interface ScanContext {
   home: string;
   cwd: string;
   username?: string;
+  /** The account name on this computer. */
+  osUser?: string;
   host?: string;
 }
 
@@ -171,8 +173,24 @@ const PATTERNS: { kind: string; test: RegExp }[] = [
   { kind: "an API key", test: /\bsk-[A-Za-z0-9_-]{20,}/ },
   { kind: "a JWT", test: /\beyJ[A-Za-z0-9_-]{8,}\.[A-Za-z0-9_-]{8,}\.[A-Za-z0-9_-]{8,}/ },
   { kind: "a private key", test: /-----BEGIN [A-Z ]*PRIVATE KEY-----/ },
+  { kind: "an AWS access key", test: /\b(?:AKIA|ASIA)[0-9A-Z]{16}\b/ },
+  { kind: "a Slack token", test: /\bxox[abprs]-[A-Za-z0-9-]{10,}/ },
+  { kind: "an npm token", test: /\bnpm_[A-Za-z0-9]{36}\b/ },
+  { kind: "a Google API key", test: /\bAIza[0-9A-Za-z_-]{35}/ },
+  { kind: "a bearer token", test: /\bbearer\s+[A-Za-z0-9._~+/-]{16,}/i },
   { kind: "a secret assigned to a name", test: /\b\w*(?:key|token|secret|password|passwd|credential)\w*\s*=\s*\S+/i },
-  { kind: "an absolute path", test: /\/Users\/[^/\s]+\/|\/home\/[^/\s]+\/|[A-Za-z]:\\Users\\/ },
+  {
+    kind: "a secret assigned to a name",
+    test: /\b\w*(?:key|token|secret|password|passwd|credential)\w*["']?\s*:\s*["']?[A-Za-z0-9_\-./+=]{12,}/i,
+  },
+  { kind: "an absolute path", test: /\/Users\/[^/\s]+\/|\/home\/[^/\s]+\/|[A-Za-z]:[\\/]Users[\\/]/ },
+  {
+    kind: "an absolute path",
+    test: /(?<![\w.:/-])\/(?:Volumes|srv|opt|mnt|private|var|tmp|root|workspaces?|data|media|net)\/[^\s/]+\/?/,
+  },
+  { kind: "an absolute path", test: /(?<![\w])[A-Za-z]:[\\/][^\s\\/]+[\\/]/ },
+  // Carriage returns, escape sequences and bidi overrides can hide part of a line from the person who checks it.
+  { kind: "a control character", test: /[\x00-\x08\x0b-\x1f\x7f\u202a-\u202e\u2066-\u2069]/ },
   { kind: "an email address", test: /[A-Za-z0-9._%+-]+@[A-Za-z0-9-]+(?:\.[A-Za-z0-9-]+)*\.[A-Za-z]{2,}/ },
 ];
 
@@ -192,10 +210,19 @@ export function scanDraft(text: string, ctx: ScanContext): Finding[] {
     }
   }
 
+  const osUser = ctx.osUser && ctx.osUser.length >= 4 ? ctx.osUser : undefined;
+  const osUserTest = osUser ? new RegExp(`(?<![A-Za-z0-9_-])${escapeRegExp(osUser)}(?![A-Za-z0-9_-])`, "i") : undefined;
+
   const findings: Finding[] = [];
-  text.split("\n").forEach((line, index) => {
+  // A token split over lines or by spaces is still the token.
+  const squeezed = text.replace(/\s+/g, "");
+  const split = secrets.filter((secret) => squeezed.includes(secret) && !text.split("\n").some((line) => line.includes(secret)));
+  if (split.length > 0) findings.push({ line: 1, kind: "a stored Banger token split over lines" });
+  text.split("\n").forEach((rawLine, index) => {
+    const line = rawLine.replace(/\r$/, "");
     const kinds = new Set<string>();
     if (secrets.some((secret) => line.includes(secret))) kinds.add("a stored Banger token");
+    if (osUserTest?.test(line)) kinds.add("this computer's account name");
     for (const { kind, test } of PATTERNS) {
       if (test.test(line)) kinds.add(kind);
     }
@@ -412,12 +439,17 @@ async function sendDraft(rest: string[], deps: FeedbackDeps): Promise<number> {
   const fromEnv = process.env.BANGER_TOKEN?.trim();
   if (fromEnv) secrets.push(fromEnv);
   try {
-    const stored = storedToken(host)?.trim();
-    if (stored) secrets.push(stored);
+    secrets.push(...allStoredTokens());
   } catch {
     // Same: keep scanning with what could be read.
   }
-  const findings = scanDraft(stripped, { secrets, home: homedir(), cwd: process.cwd(), username, host });
+  let osUser: string | undefined;
+  try {
+    osUser = userInfo().username;
+  } catch {
+    // No account name to look for.
+  }
+  const findings = scanDraft(stripped, { secrets, home: homedir(), cwd: process.cwd(), username, osUser, host });
   if (findings.length > 0) {
     const list = findings.map((f) => `  line ${f.line}: ${f.kind}`).join("\n");
     throw new CliError(1, `the draft has text that must not be sent:\n${list}\nrewrite those lines; nothing was sent`);

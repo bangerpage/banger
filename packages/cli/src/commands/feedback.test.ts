@@ -204,7 +204,14 @@ describe("draft parsing", () => {
 });
 
 describe("scanDraft", () => {
-  const ctx = { secrets: ["tok_abcdefgh1234"], home: "/Users/alice", cwd: "/work/deck", username: "octocat", host: "https://banger.page" };
+  const ctx = {
+    secrets: ["tok_abcdefgh1234"],
+    home: "/Users/alice",
+    cwd: "/work/deck",
+    username: "octocat",
+    osUser: "alicesmith",
+    host: "https://banger.page",
+  };
   const kinds = (text: string, c = ctx) => scanDraft(text, c).map((f) => `${f.line}:${f.kind}`);
 
   it.each([
@@ -223,6 +230,21 @@ describe("scanDraft", () => {
     ["a banger.page deck URL", "https://banger.page/u/talk"],
     ["a banger.page deck URL", "banger.page/u/talk"],
     ["an email address", "me@example.com"],
+    ["an AWS access key", "AKIAABCDEFGHIJKLMNOP"],
+    ["a Slack token", "xoxb-1234567890-abcdef"],
+    ["an npm token", `npm_${"a".repeat(36)}`],
+    ["a Google API key", `AIza${"a".repeat(35)}`],
+    ["a bearer token", `Authorization: Bearer ${"a".repeat(20)}`],
+    ["a secret assigned to a name", `token: ${"a1".repeat(8)}`],
+    ["a secret assigned to a name", `"apiKey": "${"x9".repeat(8)}"`],
+    ["an absolute path", "at /Volumes/work/acme/deck"],
+    ["an absolute path", "at /srv/acme/app"],
+    ["an absolute path", "at C:/Users/bob"],
+    ["an absolute path", "at D:\\projects\\acme"],
+    ["a control character", "fine\rhidden"],
+    ["a control character", "x \u001b[2K y"],
+    ["a control character", "a \u202e b"],
+    ["this computer's account name", "made by alicesmith"],
   ])("finds %s", (kind, text) => {
     expect(kinds(`ok\n${text}`)).toContain(`2:${kind}`);
   });
@@ -235,6 +257,11 @@ describe("scanDraft", () => {
     "https://banger.page/",
     "a plain sentence about bang-free",
     "a short tok_abc",
+    "the `/__banger/status` endpoint and skill/reference/publishing.md",
+    "https://cdn.jsdelivr.net/npm/@bangerpage/core@0.2.3/dist/index.js",
+    "set the token: with --token",
+    "a line ending in CRLF\r",
+    "a\ttab",
   ])("does not flag %s", (text) => {
     expect(kinds(text)).toEqual([]);
   });
@@ -247,6 +274,10 @@ describe("scanDraft", () => {
 
   it("skips the deck URL check for a host that is not a URL", () => {
     expect(scanDraft("localhost:8787/x", { ...ctx, host: "localhost:8787" })).toEqual([]);
+  });
+
+  it("finds a stored token split over lines", () => {
+    expect(kinds("see tok_abcd\nefgh1234 here")).toContain("1:a stored Banger token split over lines");
   });
 
   it("reports at most one finding per kind per line", () => {

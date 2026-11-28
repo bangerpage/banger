@@ -96,6 +96,13 @@ export function storedToken(host: string, env: NodeJS.ProcessEnv = process.env):
 }
 
 /** The banger.page username stored for `host` by `banger login`, ignoring `BANGER_TOKEN`. */
+/** Every stored token, for every host (banger feedback looks for all of them in a draft). */
+export function allStoredTokens(env: NodeJS.ProcessEnv = process.env): string[] {
+  return Object.values(readCredentials(env).hosts)
+    .map((entry) => (typeof entry?.token === "string" ? entry.token.trim() : ""))
+    .filter((token) => token !== "");
+}
+
 export function storedUsername(host: string, env: NodeJS.ProcessEnv = process.env): string | null {
   return readCredentials(env).hosts[host]?.username ?? null;
 }
