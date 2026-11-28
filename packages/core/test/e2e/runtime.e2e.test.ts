@@ -550,6 +550,39 @@ describe("runtime", () => {
     expect(await timeGoto(live.page, 0)).toBeGreaterThanOrEqual(390);
   });
 
+  it("an inline duration the author wrote on bang-root comes back when the motion is turned on again", async () => {
+    const html = withMotion("smooth").replace('motion="smooth"', 'motion="smooth" style="--bang-duration-fast: 120ms; --bang-duration-slow: 900ms"');
+    const { page } = await openVirtual("inline-durations", html);
+    expect(await rootVar(page, "--bang-duration-fast")).toBe("120ms");
+    expect(await rootVar(page, "--bang-duration-slow")).toBe("900ms");
+    const setMotion = (value: string) =>
+      page.evaluate(async (v) => {
+        const root = document.querySelector("bang-root") as any;
+        root.setAttribute("motion", v);
+        await root.updateComplete;
+      }, value);
+    await setMotion("none");
+    expect(await rootVar(page, "--bang-duration-fast")).toBe("0s");
+    expect(await rootVar(page, "--bang-duration-slow")).toBe("0s");
+    await setMotion("swift");
+    expect(await rootVar(page, "--bang-duration-fast")).toBe("120ms");
+    expect(await rootVar(page, "--bang-duration-slow")).toBe("900ms");
+  });
+
+  it("a resize during a move still settles the goto() waiting on it", async () => {
+    const { page } = await openVirtual("resize-mid-move", withMotion("smooth"));
+    await page.evaluate(() => {
+      const root = document.querySelector("bang-root") as any;
+      (window as any).__move = root.goto(1).then(() => "settled");
+    });
+    await page.waitForTimeout(50);
+    await page.setViewportSize({ width: 600, height: 400 });
+    const settled = await page.evaluate(() =>
+      Promise.race([(window as any).__move, new Promise((r) => setTimeout(() => r("pending"), 2000))]),
+    );
+    expect(settled).toBe("settled");
+  });
+
   it("AC-MOT-8 an unknown motion warns once and moves like smooth", async () => {
     const bogus = await openVirtual("mot8-bogus", withMotion("bogus"));
     expect(await timeGoto(bogus.page, 1)).toBeGreaterThanOrEqual(390);

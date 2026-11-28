@@ -390,6 +390,8 @@ export class BangRoot extends BangElement {
   private clockTimer: ReturnType<typeof setInterval> | undefined;
   private startedAt = 0;
   private motionQuery: MediaQueryList | null = null;
+  /** Duration tokens this element set to 0s, with the inline value the author had before ("" for none). */
+  private zeroedDurations = new Map<string, string>();
   private themeKey: string | null = null;
   private themeVars: string[] = [];
   private themeWarnings: string[] = [];
@@ -755,10 +757,27 @@ export class BangRoot extends BangElement {
   private applyMotionPreference(): void {
     this.reducedMotion = this.motionQuery?.matches ?? false;
     const authorNone = this.mode === "live" && this.authoredMotion() === "none";
-    if (this.mode === "export" || this.reducedMotion || authorNone) this.style.setProperty("--bang-duration-fast", "0s");
-    else this.style.removeProperty("--bang-duration-fast");
-    if (authorNone) this.style.setProperty("--bang-duration-slow", "0s");
-    else if (this.style.getPropertyValue("--bang-duration-slow") === "0s") this.style.removeProperty("--bang-duration-slow");
+    this.zeroDuration("--bang-duration-fast", this.mode === "export" || this.reducedMotion || authorNone);
+    this.zeroDuration("--bang-duration-slow", authorNone);
+  }
+
+  /**
+   * Sets a duration token to 0s on the host, and later removes only the 0s this set, so a value the author wrote
+   * inline on bang-root survives (it is overridden only while the motion is off).
+   */
+  private zeroDuration(name: string, zero: boolean): void {
+    if (zero) {
+      if (!this.zeroedDurations.has(name)) {
+        this.zeroedDurations.set(name, this.style.getPropertyValue(name));
+        this.style.setProperty(name, "0s");
+      }
+      return;
+    }
+    const before = this.zeroedDurations.get(name);
+    if (before === undefined) return;
+    this.zeroedDurations.delete(name);
+    if (before) this.style.setProperty(name, before);
+    else this.style.removeProperty(name);
   }
 
   /** The `motion` attribute as written; an unknown value counts as `smooth` (render() warns about it). */
@@ -777,6 +796,8 @@ export class BangRoot extends BangElement {
     this.stage = stage;
     if (this.initialized) {
       this.stopTween();
+      // The move was cut short, so the goto()/next() waiting on it would otherwise wait until the next move.
+      this.settlePending();
       this.pose = this.targetPose(this.current, this.inOverview);
       this.applyPose(this.pose);
       this.applyClip();
