@@ -56,6 +56,65 @@ describe("camera", () => {
     expect(targetFor({ kind: "frame", frame: "b", steps: 0 }, frames, stage)).toEqual(poseFor(frames.b, stage));
   });
 
+  it("AC-1 layoutFrames places a nested frame in its parent's cells, to any depth", () => {
+    const deck = [
+      { id: "whole", at: [1, 0] as [number, number], span: [3, 3] as [number, number], parent: null },
+      { id: "kid", at: [1, 0] as [number, number], span: [1, 1] as [number, number], parent: "whole" },
+      { id: "mid", at: [1, 1] as [number, number], span: [2, 2] as [number, number], parent: "whole" },
+      { id: "leaf", at: [1, 1] as [number, number], span: [1, 1] as [number, number], parent: "mid" },
+      { id: "top", at: [0, 0] as [number, number], span: [1, 1] as [number, number] },
+    ];
+    const slides = layoutFrames(deck, 240);
+    expect(slides.whole).toEqual({ x: 2160, y: 0, w: 6240, h: 3720 });
+    expect(slides.kid).toEqual({ x: 2160 + 2160, y: 0, w: 1920, h: 1080 });
+    expect(slides.mid).toEqual({ x: 2160 + 2160, y: 1320, w: 4080, h: 2400 });
+    expect(slides.leaf).toEqual({ x: 2160 + 2160 + 2160, y: 1320 + 1320, w: 1920, h: 1080 });
+    expect(slides.top).toEqual({ x: 0, y: 0, w: 1920, h: 1080 });
+    const map = layoutFrames(
+      [
+        { id: "whole", at: [0, 0], span: [3, 3] },
+        { id: "mid", at: [1, 1], span: [2, 2], parent: "whole" },
+        { id: "leaf", at: [1, 1], span: [1, 1], parent: "mid" },
+      ],
+      720,
+    );
+    expect(map.mid).toEqual({ x: 2640, y: 1800, w: 4560, h: 2880 });
+    expect(map.leaf).toEqual({ x: 5280, y: 3600, w: 1920, h: 1080 });
+  });
+
+  it("AC-1 layoutFrames treats an unknown parent as top level", () => {
+    const out = layoutFrames([{ id: "a", at: [1, 0], span: [1, 1], parent: "missing" }], 240);
+    expect(out.a).toEqual({ x: 2160, y: 0, w: 1920, h: 1080 });
+  });
+
+  it("AC-3 a parent to its child is a plain pan, and pullBack: false stops a far move pulling back", () => {
+    for (const gap of [240, 720]) {
+      const f = layoutFrames(
+        [
+          { id: "whole", at: [0, 0], span: [2, 2] },
+          { id: "a", at: [0, 0], span: [1, 1], parent: "whole" },
+          { id: "b", at: [1, 1], span: [1, 1], parent: "whole" },
+        ],
+        gap,
+      );
+      const whole = poseFor(f.whole, stage);
+      const a = poseFor(f.a, stage);
+      const b = poseFor(f.b, stage);
+      expect(pullBackFor(whole, a, stage)).toBe(0);
+      expect(startTween(a, b, 0, stage, { pullBack: false }).pullBack).toBe(0);
+      expect(startTween(a, b, 0, stage, { pullBack: false }).duration).toBe(
+        Math.min(durationFor(a, b, stage), 1300),
+      );
+    }
+    const a = poseFor(frame, stage);
+    const far = poseFor(frameRect([4, 0], [1, 1], 240), stage);
+    expect(startTween(a, far, 0, stage, { pullBack: false }).pullBack).toBe(0);
+    expect(startTween(a, far, 0, stage, { pullBack: true })).toEqual(startTween(a, far, 0, stage));
+    expect(startTween(a, far, 0, stage, { motion: "swift", pullBack: false })).toEqual(
+      startTween(a, far, 0, stage, { motion: "swift" }),
+    );
+  });
+
   it("durationFor stays within 400-800 and is monotonic", () => {
     const from: CameraPose = { cx: 0, cy: 0, zoom: 1 };
     expect(durationFor(from, from, stage)).toBe(400);

@@ -34,6 +34,8 @@ export type CameraMotion = "smooth" | "swift";
 
 export interface TweenOptions {
   motion?: CameraMotion;
+  /** `false` keeps a `smooth` move from pulling back, whatever the distance. */
+  pullBack?: boolean;
 }
 
 export const FRAME_WIDTH = 1920;
@@ -60,11 +62,18 @@ export function frameRect(at: [number, number], span: [number, number], gap: num
   };
 }
 
+/** A frame with a `parent` (the id of an earlier entry) is placed in that frame's cells, so its rect starts at the parent's origin. */
 export function layoutFrames(
-  frames: { id: string; at: [number, number]; span: [number, number] }[],
+  frames: { id: string; at: [number, number]; span: [number, number]; parent?: string | null }[],
   gap: number,
 ): Record<string, Rect> {
-  return Object.fromEntries(frames.map((f) => [f.id, frameRect(f.at, f.span, gap)]));
+  const out = new Map<string, Rect>();
+  for (const f of frames) {
+    const r = frameRect(f.at, f.span, gap);
+    const origin = f.parent != null ? out.get(f.parent) : undefined;
+    out.set(f.id, origin ? { ...r, x: r.x + origin.x, y: r.y + origin.y } : r);
+  }
+  return Object.fromEntries(out);
 }
 
 export function regionRect(frame: Rect, region: Region): Rect {
@@ -186,7 +195,7 @@ export function startTween(
     const duration = Math.min(SWIFT_MIN_DURATION + SWIFT_MS_PER_SCORE * moveScore(from, to, stage), SWIFT_MAX_DURATION);
     return { from, to, start: now, duration, pullBack: 0, curve: "swift" };
   }
-  const pullBack = pullBackFor(from, to, stage);
+  const pullBack = opts?.pullBack === false ? 0 : pullBackFor(from, to, stage);
   const duration = Math.min(durationFor(from, to, stage) - 250 * pullBack, MAX_PULL_BACK_DURATION);
   return { from, to, start: now, duration, pullBack };
 }

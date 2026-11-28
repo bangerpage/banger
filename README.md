@@ -133,7 +133,7 @@ With the skill, the agent agrees on the outline as a list of stops, writes `inde
 | Element | Purpose |
 | --- | --- |
 | `bang-root` | The deck. Picks the theme. |
-| `bang-frame` | A 1920x1080 area on the canvas, placed with `at="col,row"`. |
+| `bang-frame` | A 1920x1080 area on the canvas, placed with `at="col,row"`. Written directly inside another `bang-frame`, it becomes a child placed in the parent's cells. |
 | `bang-path`, `bang-stop` | The order of camera stops: a frame, a `region` of it, one element (`focus`), or the `overview`. |
 | `bang-title`, `bang-text`, `bang-list` | Headings, paragraphs and lists, revealed step by step if you like. |
 | `bang-columns`, `bang-stack`, `bang-card` | Layout. |

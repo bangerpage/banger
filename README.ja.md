@@ -133,7 +133,7 @@ skill を入れた AI は、停止点の並びで構成を合意してから `in
 | 要素 | 役割 |
 | --- | --- |
 | `bang-root` | 発表全体。テーマを選ぶ。 |
-| `bang-frame` | キャンバスの上の 1920x1080 の領域。`at="列,行"` で置く。 |
+| `bang-frame` | キャンバスの上の 1920x1080 の領域。`at="列,行"` で置く。別の `bang-frame` の直下に書くと子になり、親のマスに置かれる。 |
 | `bang-path`、`bang-stop` | カメラの停止点の順。フレーム、その一部 (`region`)、その中の 1 つの要素 (`focus`)、見渡し (`overview`) のいずれか。 |
 | `bang-title`、`bang-text`、`bang-list` | 見出し・段落・箇条書き。段階的に出せる。 |
 | `bang-columns`、`bang-stack`、`bang-card` | レイアウト。 |

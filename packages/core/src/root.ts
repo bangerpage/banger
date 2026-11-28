@@ -2,7 +2,7 @@ import { version } from "./version.js";
 import { css, html, nothing, svg, unsafeCSS, type PropertyValues } from "lit";
 import { property, state } from "lit/decorators.js";
 import { pick, warnOnce } from "./attrs.js";
-import { frameOverflowWarnings, overlapWarnings, translationWarnings, unknownTagWarnings } from "./deck-check.js";
+import { frameOverflowWarnings, nestedFrameWarnings, overlapWarnings, translationWarnings, unknownTagWarnings } from "./deck-check.js";
 import {
   boundsOf,
   clipFor,
@@ -84,6 +84,8 @@ interface FrameEntry {
   el: HTMLElement & { currentStep?: number };
   id: string;
   rect: Rect;
+  /** The frame this one is written directly inside, or null for a top-level frame. */
+  parent: FrameEntry | null;
 }
 
 const MOTIONS = ["smooth", "swift", "none"] as const;
@@ -402,6 +404,8 @@ export class BangRoot extends BangElement {
   @state() private ground: Ground | null = null;
   /** The first stop of each frame, for the fog and for clicks in the overview. */
   private firstStop = new Map<string, number>();
+  /** Per frame, the earliest stop of the frame or anything inside it; a map frame stays fogged until then. */
+  private revealStop = new Map<string, number>();
   private spotted: Element[] = [];
 
   @state() private stage: Size = FULL_STAGE;
@@ -492,7 +496,10 @@ export class BangRoot extends BangElement {
     if (!this.inOverview || this.tween || this.swiped) return;
     const box = (event.currentTarget as HTMLElement).getBoundingClientRect();
     const point = stageToCanvas({ x: event.clientX - box.left, y: event.clientY - box.top }, this.pose, this.stageNow);
-    const hit = this.frames.find((f) => contains(f.rect, point));
+    let hit = this.frames
+      .filter((f) => contains(f.rect, point))
+      .reduce<FrameEntry | undefined>((best, f) => (!best || depthOf(f) > depthOf(best) ? f : best), undefined);
+    while (hit && this.firstStop.get(hit.id) === undefined) hit = hit.parent ?? undefined;
     if (!hit) return;
     const here = this.path.stops[this.current.stop];
     if (here && here.kind !== "overview" && here.frame === hit.id) {
@@ -886,7 +893,14 @@ export class BangRoot extends BangElement {
     this.spotted = [];
     const frameEls = [...this.querySelectorAll<HTMLElement & { currentStep?: number }>("bang-frame")];
     const seen = new Set<string>();
-    const entries: { id: string; at: [number, number]; span: [number, number]; el: (typeof frameEls)[number] }[] = [];
+    const entries: {
+      id: string;
+      at: [number, number];
+      span: [number, number];
+      parent: string | null;
+      el: (typeof frameEls)[number];
+    }[] = [];
+    const keyOf = new Map<Element, string>();
     frameEls.forEach((el, i) => {
       let id = el.id;
       if (id && seen.has(id)) {
@@ -894,17 +908,31 @@ export class BangRoot extends BangElement {
         id = "";
       }
       if (id) seen.add(id);
-      entries.push({ id: id || `\0${i}`, at: parseAt(el.getAttribute("at")), span: parseSpan(el.getAttribute("span")), el });
+      const key = id || `\0${i}`;
+      keyOf.set(el, key);
+      const parentEl = el.parentElement?.closest("bang-frame");
+      entries.push({
+        id: key,
+        at: parseAt(el.getAttribute("at")),
+        span: parseSpan(el.getAttribute("span")),
+        parent: parentEl ? (keyOf.get(parentEl) ?? null) : null,
+        el,
+      });
     });
     const isMap = this.isMap;
     const rects = layoutFrames(entries, isMap ? MAP_GAP : FRAME_GAP);
     this.frameMap = rects;
-    this.frames = entries.map((e) => ({ el: e.el, id: e.id, rect: rects[e.id] }));
+    const byId = new Map<string, FrameEntry>();
+    this.frames = entries.map((e) => {
+      const entry: FrameEntry = { el: e.el, id: e.id, rect: rects[e.id], parent: e.parent ? (byId.get(e.parent) ?? null) : null };
+      byId.set(e.id, entry);
+      return entry;
+    });
     for (const f of this.frames) {
       if (isMap) f.el.setAttribute("data-bang-format", "map");
       else f.el.removeAttribute("data-bang-format");
-      f.el.style.setProperty("--bang-frame-x", `${f.rect.x}px`);
-      f.el.style.setProperty("--bang-frame-y", `${f.rect.y}px`);
+      f.el.style.setProperty("--bang-frame-x", `${f.rect.x - (f.parent?.rect.x ?? 0)}px`);
+      f.el.style.setProperty("--bang-frame-y", `${f.rect.y - (f.parent?.rect.y ?? 0)}px`);
       f.el.style.setProperty("--bang-frame-w", `${f.rect.w}px`);
       f.el.style.setProperty("--bang-frame-h", `${f.rect.h}px`);
     }
@@ -938,6 +966,14 @@ export class BangRoot extends BangElement {
     stops.forEach((stop, i) => {
       if (stop.kind !== "overview" && stop.frame && !this.firstStop.has(stop.frame)) this.firstStop.set(stop.frame, i);
     });
+    this.revealStop = new Map(this.firstStop);
+    for (let i = this.frames.length - 1; i >= 0; i--) {
+      const f = this.frames[i];
+      const own = this.revealStop.get(f.id);
+      if (!f.parent || own === undefined) continue;
+      const up = this.revealStop.get(f.parent.id);
+      if (up === undefined || up > own) this.revealStop.set(f.parent.id, own);
+    }
     this.warnShortSteps();
   }
 
@@ -1137,21 +1173,23 @@ export class BangRoot extends BangElement {
   private applySteps(): void {
     const fog = this.isMap;
     for (const f of this.frames) {
-      f.el.toggleAttribute("data-bang-fog", fog && (this.firstStop.get(f.id) ?? -1) > this.current.stop);
+      f.el.toggleAttribute("data-bang-fog", fog && (this.revealStop.get(f.id) ?? -1) > this.current.stop);
       const step = frameStep(f.id, this.current, this.path);
       f.el.currentStep = step;
       for (const el of f.el.querySelectorAll("[data-step]")) {
+        if (el.closest("bang-frame") !== f.el) continue;
         const n = Number(el.getAttribute("data-step"));
         if (Number.isFinite(n)) el.toggleAttribute("data-bang-hidden", step < n);
       }
       for (const el of f.el.querySelectorAll("[step]")) {
+        if (el.closest("bang-frame") !== f.el) continue;
         if ("frameStep" in el) (el as StepAware).frameStep = step;
       }
     }
     this.applySpotlight();
   }
 
-  /** On a focus stop, fades every frame but the stop's and, inside it, everything off the path from the frame to the focused element. */
+  /** On a focus stop, fades every top-level frame but the one holding the stop and, inside it, everything off the path from it to the focused element (the frames on that path stay). */
   private applySpotlight(): void {
     const before = this.spotted;
     this.spotted = [];
@@ -1159,9 +1197,10 @@ export class BangRoot extends BangElement {
     const found =
       !this.inOverview && stop?.kind === "focus" && stop.frame && stop.focus ? this.focusTarget(stop.frame, stop.focus) : null;
     if (found) {
-      const { entry, target } = found;
-      for (const f of this.frames) if (f !== entry) this.spotted.push(f.el);
-      for (let node: Element = target; node !== entry.el && node.parentElement; node = node.parentElement) {
+      const top = topOf(found.entry);
+      const { target } = found;
+      for (const f of this.frames) if (f.parent === null && f !== top) this.spotted.push(f.el);
+      for (let node: Element = target; node !== top.el && node.parentElement; node = node.parentElement) {
         for (const sibling of node.parentElement.children) if (sibling !== node) this.spotted.push(sibling);
       }
     }
@@ -1185,7 +1224,19 @@ export class BangRoot extends BangElement {
     if (this.mode === "export") return;
     const stop = this.path.stops[this.current.stop];
     const shown = this.inOverview || !stop || stop.kind === "overview" ? null : stop.frame;
-    for (const f of this.frames) f.el.inert = f.id !== shown;
+    const shownEntry = shown ? this.frames.find((f) => f.id === shown) : undefined;
+    for (const f of this.frames) {
+      f.el.inert = !(shownEntry && (f.el.contains(shownEntry.el) || shownEntry.el.contains(f.el)));
+    }
+  }
+
+  /** A move between two frames inside the same parent slides at the same size instead of pulling back. */
+  private slidesBetweenSiblings(from: BangState, to: BangState): boolean {
+    const a = this.path.stops[from.stop];
+    const b = this.path.stops[to.stop];
+    if (!a || !b || a.kind === "overview" || b.kind === "overview" || !a.frame || !b.frame || a.frame === b.frame) return false;
+    const parent = this.frames.find((f) => f.id === a.frame)?.parent;
+    return !!parent && parent === this.frames.find((f) => f.id === b.frame)?.parent;
   }
 
   private commit(
@@ -1198,12 +1249,13 @@ export class BangRoot extends BangElement {
       console.warn("[banger] no target rectangle for the requested state; ignoring it");
       return Promise.resolve();
     }
+    const slides = !this.inOverview && !opts.overview && this.slidesBetweenSiblings(this.current, state);
     this.current = state;
     this.inOverview = opts.overview;
     this.toggleAttribute("data-bang-overview", opts.overview);
     this.applySteps();
     this.applyInert();
-    const moved = this.moveCamera(poseFor(rect, this.stageNow), opts.animate);
+    const moved = this.moveCamera(poseFor(rect, this.stageNow), opts.animate, slides ? { pullBack: false } : undefined);
     this.applyClip();
     if (opts.source !== "hash" && opts.source !== "address" && location.hash !== serializeHash(state)) {
       history.replaceState(null, "", serializeHash(state));
@@ -1279,7 +1331,7 @@ export class BangRoot extends BangElement {
   async ready(opts?: { timeoutMs?: number; fontsTimeoutMs?: number }): Promise<ReadyReport> {
     const report = await collectReady(this, {
       ...opts,
-      extraWarnings: [...this.themeWarnings, ...this.deckWarnings(), ...unknownTagWarnings(this), ...overlapWarnings(this.frames), ...this.languageWarnings()],
+      extraWarnings: [...this.themeWarnings, ...this.deckWarnings(), ...unknownTagWarnings(this), ...overlapWarnings(this.frames), ...nestedFrameWarnings(this.frames), ...this.languageWarnings()],
     });
     this.refreshPose();
     const warnings = new Set([...report.warnings, ...frameOverflowWarnings(this.frames)]);
@@ -1400,10 +1452,14 @@ function groundFor(frames: FrameEntry[]): Ground | null {
   return { rect, roads };
 }
 
+const topOf = (entry: FrameEntry): FrameEntry => (entry.parent ? topOf(entry.parent) : entry);
+
+const depthOf = (entry: FrameEntry): number => (entry.parent ? depthOf(entry.parent) + 1 : 0);
+
 function stepsNeeded(frame: Element): number {
   let needed = 0;
   for (const el of frame.querySelectorAll("*")) {
-    if (!inLanguage(el)) continue;
+    if (!inLanguage(el) || el.closest("bang-frame") !== frame) continue;
     const data = Number(el.getAttribute("data-step"));
     if (el.hasAttribute("data-step") && Number.isFinite(data)) needed = Math.max(needed, data);
     const count = (el as { stepCount?: unknown }).stepCount;

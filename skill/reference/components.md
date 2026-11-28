@@ -92,10 +92,13 @@ A 1920x1080 area of the canvas. Content that does not fit is clipped.
 </bang-root>
 ```
 
+A `bang-frame` written directly inside another `bang-frame` is a child: it sits in the parent's cells and has its own stops.
+Write the children after the parent's own content (and before a `bang-free[overlay]`).
+
 | Attribute | Values | Default | Description |
 | --- | --- | --- | --- |
-| `at` | string | `0,0` | Grid position as "col,row" (integers from 0). |
-| `span` | string | `1,1` | Number of grid cells covered as "w,h" (integers from 1). |
+| `at` | string | `0,0` | Grid position as "col,row" (integers from 0). In a child frame, counted in the parent's cells (the grid its `span` makes). |
+| `span` | string | `1,1` | Number of grid cells covered as "w,h" (integers from 1). In a child frame, counted in the parent's cells. |
 | `tone` | `default`, `accent`, `inverse` | `default` | The frame's ground: `default` uses the theme's paper, `accent` the theme's signal, `inverse` the theme's ink. Text colours follow so they stay readable. Use it for covers and section dividers. |
 | `ground` | `default`, `cover` | `default` | Which ground the frame uses. `cover` applies the custom theme's `coverGradient`; `tone` wins over it, and without a `coverGradient` the normal ground stays. |
 | `crumb` | string | - | A bold heading-size line (36px) at the top left, inside the top margin. It does not move the content and is cut to one line. In a deck with `languages`, write `crumb-<language>` (for example `crumb-en`) for each other language; a language without one shows `crumb`. |

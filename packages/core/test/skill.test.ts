@@ -106,6 +106,23 @@ describe("skill", () => {
     expect(root).toContain("| `languages` |");
   });
 
+  it("AC-18 the skill documents nested frames", () => {
+    const skill = read("skill/SKILL.md");
+    expect(skill).toContain("## フレームの入れ子");
+    const section = read("skill/reference/patterns.md").split(/^## /m).find((s) => s.startsWith("寄って話す地図を入れ子で組む\n")) ?? "";
+    expect(section).not.toBe("");
+    const fences = [...section.matchAll(/```html\n([\s\S]*?)\n```/g)].map((m) => m[1]);
+    expect(fences.length).toBeGreaterThan(0);
+    for (const fence of fences) expect(fence).not.toMatch(/#[0-9a-fA-F]{3,8}\b|rgba?\(|\sstyle=/);
+    const frame = read("skill/reference/components.md").split(/^## /m).find((s) => s.startsWith("bang-frame\n")) ?? "";
+    const at = frame.split("\n").find((l) => l.startsWith("| `at` |")) ?? "";
+    expect(at).toContain("parent's cells");
+    for (const readme of ["README.md", "README.ja.md"]) {
+      const row = read(readme).split("\n").find((l) => l.startsWith("| `bang-frame` |")) ?? "";
+      expect(row).toMatch(/child|子/);
+    }
+  });
+
   it("AC-MOT-11 the skill documents the motion attribute", () => {
     const root = read("skill/reference/components.md").split(/^## /m).find((s) => s.startsWith("bang-root\n")) ?? "";
     const row = root.split("\n").find((l) => l.startsWith("| `motion` |")) ?? "";

@@ -42,6 +42,8 @@ bang-columns > bang-shape { align-self: center; justify-self: center; }
 /* The frame centres its children; when it opens with a title, free space is split between these two auto margins so the title stays on top and the rest is centred below it. */
 bang-frame:not([valign="spread"]) > bang-title:first-child, bang-frame:not([valign="spread"]):has(> bang-title:first-child) > :last-child { margin-bottom: auto; }
 bang-frame:not([valign="spread"]):has(> bang-title:first-child) > :nth-last-child(2):has(+ bang-free[overlay]:last-child) { margin-bottom: auto; }
+/* Child frames sit outside the flow, so the last piece of the parent's own content is the one that shares the free space with the title. */
+bang-frame:not([valign="spread"]):has(> bang-title:first-child):has(> bang-frame) > :nth-last-child(1 of :not(bang-frame, bang-free[overlay])) { margin-bottom: auto; }
 /* Inline emphasis lives in the document: ::slotted() cannot reach a <mark> inside a list's li. The text colour is pinned to ink so the highlight contrast check holds whatever the surrounding tone. */
 bang-text mark, bang-title mark, bang-list mark { color: var(--bang-color-ink); background: linear-gradient(transparent 60%, var(--bang-highlight, color-mix(in srgb, var(--bang-color-signal) 40%, transparent)) 60%); -webkit-box-decoration-break: clone; box-decoration-break: clone; print-color-adjust: exact; -webkit-print-color-adjust: exact; }
 /* Tone frames flip the text colour and put signal or ink behind it, so a light band would swallow the text; underline in the text colour instead. */

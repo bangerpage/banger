@@ -15,6 +15,9 @@ import { themeColorTokens } from "./theme/theme.generated.js";
  * </bang-root>
  * ```
  *
+ * A `bang-frame` written directly inside another `bang-frame` is a child: it sits in the parent's cells and has its own stops.
+ * Write the children after the parent's own content (and before a `bang-free[overlay]`).
+ *
  * @element bang-frame
  * @slot - The frame's content.
  */
@@ -84,7 +87,7 @@ ${unsafeCSS(
       opacity: calc(1 - var(--bang-near, 1));
       pointer-events: none;
     }
-    :host([label]) ::slotted(*) {
+    :host([label]) ::slotted(:not(bang-frame)) {
       opacity: calc(0.12 + 0.88 * var(--bang-near, 1));
     }
     .fog {
@@ -126,10 +129,10 @@ ${unsafeCSS(
     }
   `;
 
-  /** Grid position as "col,row" (integers from 0). */
+  /** Grid position as "col,row" (integers from 0). In a child frame, counted in the parent's cells (the grid its `span` makes). */
   @property() at = "0,0";
 
-  /** Number of grid cells covered as "w,h" (integers from 1). */
+  /** Number of grid cells covered as "w,h" (integers from 1). In a child frame, counted in the parent's cells. */
   @property() span = "1,1";
 
   /**

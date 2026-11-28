@@ -6,6 +6,8 @@ import { canonicalLanguage } from "./language.js";
 export interface CheckedFrame {
   el: HTMLElement;
   rect: Rect;
+  /** The frame this one is written directly inside, or null/absent for a top-level frame. */
+  parent?: CheckedFrame | null;
 }
 
 const frameName = (el: Element) => (el.id ? `frame "${el.id}"` : selectorOf(el));
@@ -26,11 +28,17 @@ export function unknownTagWarnings(root: Element): string[] {
   );
 }
 
-/** Pairs of frames whose `at`/`span` cells cover the same part of the canvas. */
+const isAncestor = (a: CheckedFrame, b: CheckedFrame): boolean => {
+  for (let p = b.parent; p; p = p.parent) if (p === a) return true;
+  return false;
+};
+
+/** Pairs of frames whose `at`/`span` cells cover the same part of the canvas. A frame and the frames inside it are meant to overlap. */
 export function overlapWarnings(frames: readonly CheckedFrame[]): string[] {
   const out: string[] = [];
   for (let i = 0; i < frames.length; i++) {
     for (let j = i + 1; j < frames.length; j++) {
+      if (isAncestor(frames[i], frames[j]) || isAncestor(frames[j], frames[i])) continue;
       const a = frames[i].rect;
       const b = frames[j].rect;
       if (a.x < b.x + b.w && b.x < a.x + a.w && a.y < b.y + b.h && b.y < a.y + a.h) {
@@ -38,6 +46,28 @@ export function overlapWarnings(frames: readonly CheckedFrame[]): string[] {
           `${frameName(frames[i].el)} and ${frameName(frames[j].el)} overlap on the canvas; give them different at values`,
         );
       }
+    }
+  }
+  return out;
+}
+
+/** Nested frames that are not placed in their parent's cells: outside its span, or with another element between them. */
+export function nestedFrameWarnings(frames: readonly CheckedFrame[]): string[] {
+  const out: string[] = [];
+  for (const f of frames) {
+    const parent = f.parent;
+    if (!parent) continue;
+    if (f.el.parentElement !== parent.el) {
+      out.push(
+        `${frameName(f.el)}: <${f.el.parentElement?.localName}> sits between it and its parent ${frameName(parent.el)}; put the frame directly inside its parent, or its position is measured from the wrong box`,
+      );
+    }
+    const a = f.rect;
+    const b = parent.rect;
+    if (a.x < b.x || a.y < b.y || a.x + a.w > b.x + b.w || a.y + a.h > b.y + b.h) {
+      out.push(
+        `${frameName(f.el)}: its at/span put it outside its parent ${frameName(parent.el)}; the part past the parent's edge is cut off, so give it cells inside the parent's span`,
+      );
     }
   }
   return out;
@@ -66,6 +96,9 @@ function reachPast(container: Element, limit: Edges, scale: number): Reach {
   let most = 0;
   for (const child of container.querySelectorAll("*")) {
     if (child.localName === "script" || child.localName === "style" || child.closest("bang-free")) continue;
+    // A nested frame (and what it holds) has its own box and its own check.
+    const inner = child.closest("bang-frame");
+    if (inner && inner !== container && container.contains(inner)) continue;
     if (getComputedStyle(child).display === "inline") continue;
     const r = child.getBoundingClientRect();
     if (r.width === 0 && r.height === 0) continue;
@@ -118,6 +151,7 @@ export function frameOverflowWarnings(frames: readonly CheckedFrame[]): string[]
       );
     }
     for (const card of el.querySelectorAll("bang-card")) {
+      if (card.closest("bang-frame") !== el) continue;
       const cardReach = reachPast(card, card.getBoundingClientRect(), scale);
       const cardParts = amount(cardReach.x, cardReach.y);
       if (cardParts.length > 0) {

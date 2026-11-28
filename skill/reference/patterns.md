@@ -97,6 +97,38 @@
 </bang-root>
 ```
 
+## 寄って話す地図を入れ子で組む
+
+親のフレームで全体の絵を見せ、その中の子に寄り、隣の子へ滑り、最後に親へ戻って結論を出す。親の `span="3,3"` の最上段のマスは見出し用に空け、子を下の段の 3 マスに置く。子の `at` は親のマスで数える。
+
+```html
+<bang-root theme="light">
+  <bang-frame id="whole" at="0,0" span="3,3">
+    <bang-title>3 つの章で話します</bang-title>
+    <bang-text data-step="1">結論: 順に寄ると、全体がつながって見えます</bang-text>
+    <bang-frame id="why" at="0,1">
+      <bang-title>なぜ</bang-title>
+      <bang-text>始めた理由</bang-text>
+    </bang-frame>
+    <bang-frame id="how" at="1,1">
+      <bang-title>どうやって</bang-title>
+      <bang-text>進め方</bang-text>
+    </bang-frame>
+    <bang-frame id="next" at="2,1">
+      <bang-title>これから</bang-title>
+      <bang-text>次の一歩</bang-text>
+    </bang-frame>
+  </bang-frame>
+  <bang-path>
+    <bang-stop frame="whole" steps="0"><bang-notes>全体の絵を見せる</bang-notes></bang-stop>
+    <bang-stop frame="why"><bang-notes>1 つ目に寄る</bang-notes></bang-stop>
+    <bang-stop frame="how"><bang-notes>隣へ滑る</bang-notes></bang-stop>
+    <bang-stop frame="next"><bang-notes>隣へ滑る</bang-notes></bang-stop>
+    <bang-stop frame="whole" steps="1"><bang-notes>親に戻って結論を出す</bang-notes></bang-stop>
+  </bang-path>
+</bang-root>
+```
+
 ## 表紙と章扉を地の色で区切る
 
 表紙や章扉のフレームだけ地を変える。`tone="accent"` はテーマの強調色の地、`tone="inverse"` はテーマの本文の色の地になり、文字の色も読める色に変わる。色はテーマから決まるので、ここでも色コードは書かない。地を変えたフレームでは `tone="accent"` の文字も本文と同じ色になるので、強調は大きさで付ける。`tone="accent"` の地では、`tone="muted"` も読める濃さを保つためにほぼ本文の色になる。補足を弱めたいときは `size` を下げる。
